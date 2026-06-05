@@ -12,6 +12,7 @@ export function AuthProvider({ children }) {
   const [negocioId, setNegocioId] = useState(null);
   const [plan, setPlan] = useState(null);
   const [planActivo, setPlanActivo] = useState(true);
+  const [motivoBloqueo, setMotivoBloqueo] = useState(null); // 'vencido' | 'suspendido' | null
   const [diasRestantesTrial, setDiasRestantesTrial] = useState(null);
   const [limitesPlan, setLimitesPlan] = useState(PLANES.trial);
   const [loading, setLoading] = useState(true);
@@ -22,6 +23,7 @@ export function AuthProvider({ children }) {
     const planKey = rawPlan === 'agencia' ? 'promax' : rawPlan;
     let activo = true;
     let dias = null;
+    let motivo = null;
 
     if (planKey === 'trial') {
       if (negocio.venceTrial) {
@@ -34,18 +36,27 @@ export function AuthProvider({ children }) {
         dias = 7;
       }
       setDiasRestantesTrial(dias);
+      if (!activo) motivo = 'vencido';
     } else {
-      if (negocio.vencePlan) {
+      // Para planes pagos: verificar estado Y fecha de vencimiento
+      if (negocio.estado === 'suspendido') {
+        // MP agotó reintentos y canceló — bloquear inmediatamente
+        activo = false;
+        motivo = 'suspendido';
+      } else if (negocio.vencePlan) {
         const vence = negocio.vencePlan?.toDate?.() || new Date(negocio.vencePlan);
         activo = negocio.estado === 'activo' && vence > hoy;
+        if (!activo) motivo = 'vencido';
       } else {
         activo = negocio.estado !== 'inactivo';
+        if (!activo) motivo = 'vencido';
       }
       setDiasRestantesTrial(null);
     }
 
     setPlan(planKey);
     setPlanActivo(activo);
+    setMotivoBloqueo(motivo);
     setLimitesPlan(PLANES[planKey] || PLANES.trial);
   }
 
@@ -53,12 +64,12 @@ export function AuthProvider({ children }) {
     let unsubNegocio = null;
 
     const unsubAuth = onAuthStateChanged(auth, async (u) => {
-      // Limpiar listener del negocio anterior al cambiar de usuario
       if (unsubNegocio) { unsubNegocio(); unsubNegocio = null; }
 
       if (!u) {
         setUser(null); setPerfil(null); setNegocioId(null);
-        setPlan(null); setPlanActivo(false); setDiasRestantesTrial(null); setLimitesPlan(null);
+        setPlan(null); setPlanActivo(false); setMotivoBloqueo(null);
+        setDiasRestantesTrial(null); setLimitesPlan(null);
         setLoading(false);
         return;
       }
@@ -73,26 +84,23 @@ export function AuthProvider({ children }) {
         const negId = perfilData.negocioId || u.uid;
         setNegocioId(negId);
 
-        // onSnapshot: se ejecuta ahora Y cada vez que el webhook de MP actualice Firestore.
-        // Esto hace que la app se bloquee/desbloquee en tiempo real sin que el usuario recargue.
+        // onSnapshot: se ejecuta ahora Y cada vez que el webhook actualice Firestore.
+        // Permite bloqueo/desbloqueo en tiempo real sin recargar la página.
         unsubNegocio = onSnapshot(
           doc(db, 'negocios', negId),
           (negSnap) => {
             if (negSnap.exists()) {
               procesarNegocio(negSnap.data());
             } else {
-              setPlan('trial');
-              setPlanActivo(true);
-              setDiasRestantesTrial(7);
-              setLimitesPlan(PLANES.trial);
+              setPlan('trial'); setPlanActivo(true);
+              setMotivoBloqueo(null); setDiasRestantesTrial(7); setLimitesPlan(PLANES.trial);
             }
             setLoading(false);
           },
           (err) => {
             console.error('Error escuchando negocio:', err);
-            setPlan('trial');
-            setPlanActivo(true);
-            setLimitesPlan(PLANES.trial);
+            setPlan('trial'); setPlanActivo(true);
+            setMotivoBloqueo(null); setLimitesPlan(PLANES.trial);
             setLoading(false);
           }
         );
@@ -102,10 +110,7 @@ export function AuthProvider({ children }) {
       }
     });
 
-    return () => {
-      unsubAuth();
-      if (unsubNegocio) unsubNegocio();
-    };
+    return () => { unsubAuth(); if (unsubNegocio) unsubNegocio(); };
   }, []);
 
   const login = (email, password) => signInWithEmailAndPassword(auth, email, password);
@@ -125,7 +130,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       user, perfil, negocioId,
-      plan, planActivo, diasRestantesTrial, limitesPlan,
+      plan, planActivo, motivoBloqueo, diasRestantesTrial, limitesPlan,
       loading, login, logout, puedeVer, tieneFeature,
     }}>
       {!loading && children}

@@ -19,8 +19,7 @@ function parsearRef(externalRef) {
   return { negocioId, plan };
 }
 
-async function activarPlan(negocioId, plan) {
-  // 31 días: el mes siguiente tiene un día de gracia para que el webhook llegue antes del bloqueo
+async function activarPlan(negocioId, plan, mpId) {
   const vencePlan = new Date();
   vencePlan.setDate(vencePlan.getDate() + 31);
 
@@ -31,69 +30,133 @@ async function activarPlan(negocioId, plan) {
     ultimoPago: FieldValue.serverTimestamp(),
   });
 
+  await adminDb.collection(`negocios/${negocioId}/pagos`).add({
+    tipo: 'plan_renovado',
+    plan,
+    estado: 'exitoso',
+    mpId: mpId || 'test',
+    fecha: FieldValue.serverTimestamp(),
+  });
+
   console.log(`[Webhook MP] ✅ Plan ${plan} activado | negocio=${negocioId} | vence=${vencePlan.toISOString()}`);
 }
 
-async function desactivarPlan(negocioId, motivo) {
+async function suspenderPlan(negocioId, mpId) {
   await adminDb.doc(`negocios/${negocioId}`).update({
-    estado: 'inactivo',
+    estado: 'suspendido',
+    motivoSuspension: 'pago_fallido',
+    fechaSuspension: FieldValue.serverTimestamp(),
   });
 
-  console.log(`[Webhook MP] 🔒 Plan desactivado | negocio=${negocioId} | motivo=${motivo}`);
+  await adminDb.collection(`negocios/${negocioId}/pagos`).add({
+    tipo: 'suscripcion_cancelada',
+    estado: 'cancelado_sin_pago',
+    mpId: mpId || 'test',
+    fecha: FieldValue.serverTimestamp(),
+  });
+
+  console.log(`[Webhook MP] 🔒 Plan suspendido | negocio=${negocioId}`);
+}
+
+async function logPagoRechazado(negocioId, mpId) {
+  try {
+    await adminDb.collection(`negocios/${negocioId}/pagos`).add({
+      tipo: 'pago_rechazado_reintentando',
+      estado: 'reintentando',
+      mpId: mpId || 'test',
+      fecha: FieldValue.serverTimestamp(),
+    });
+  } catch {}
+  console.log(`[Webhook MP] ⏳ Pago rechazado, MP reintentando | negocio=${negocioId}`);
 }
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
+  const testMode = req.headers['x-test-mode'];
+
+  // ── MODO TEST: opera con Firebase Admin sin llamar a MercadoPago ───────────
+  if (testMode === 'setup') {
+    const { negocioId, data } = req.body || {};
+    if (!negocioId) return res.status(400).json({ error: 'Falta negocioId' });
+    await adminDb.doc(`negocios/${negocioId}`).set(data || {}, { merge: false });
+    return res.status(200).json({ ok: true, action: 'setup', negocioId });
+  }
+
+  if (testMode === 'read') {
+    const { negocioId } = req.body || {};
+    if (!negocioId) return res.status(400).json({ error: 'Falta negocioId' });
+    const snap = await adminDb.doc(`negocios/${negocioId}`).get();
+    if (!snap.exists) return res.status(200).json({ exists: false });
+    return res.status(200).json({ exists: true, data: snap.data() });
+  }
+
+  if (testMode === 'cleanup') {
+    const { negocioIds } = req.body || {};
+    for (const id of (negocioIds || [])) {
+      await adminDb.doc(`negocios/${id}`).delete();
+    }
+    return res.status(200).json({ ok: true, action: 'cleanup', deleted: negocioIds });
+  }
+
+  if (testMode === 'true') {
+    const { negocioId, status, plan } = req.body || {};
+    if (!negocioId || !status) return res.status(400).json({ error: 'Falta negocioId o status' });
+
+    if (status === 'approved' || status === 'authorized') {
+      await activarPlan(negocioId, plan || 'pro', 'test');
+    } else if (status === 'cancelled') {
+      await suspenderPlan(negocioId, 'test');
+    } else if (status === 'paused' || status === 'rejected') {
+      await logPagoRechazado(negocioId, 'test');
+    }
+
+    return res.status(200).json({ ok: true, testMode: true, negocioId, status });
+  }
+
+  // ── HANDLER NORMAL (producción) ────────────────────────────────────────────
   const { type, data } = req.body || {};
   if (!type || !data?.id) return res.status(200).json({ ok: true, msg: 'Notificación ignorada' });
 
   console.log(`[Webhook MP] Recibido: type=${type} id=${data.id}`);
 
   try {
-    // ── Pago individual (cobro mensual de la suscripción) ──────────────────
+    // Pago individual (cobro mensual de la suscripción)
     if (type === 'payment') {
       const pago = await fetchMP(`/v1/payments/${data.id}`);
       const parsed = parsearRef(pago.external_reference);
-
-      if (!parsed) {
-        console.log(`[Webhook MP] Pago ${data.id} sin referencia válida — ignorado`);
-        return res.status(200).json({ ok: true });
-      }
+      if (!parsed) return res.status(200).json({ ok: true });
 
       if (pago.status === 'approved') {
-        // Pago exitoso → activar/renovar plan por 31 días más
-        await activarPlan(parsed.negocioId, parsed.plan);
-      } else {
-        // rejected, in_process, etc. → no hacemos nada.
-        // vencePlan ya existente expira solo → bloqueo automático.
-        console.log(`[Webhook MP] Pago ${data.id} status=${pago.status} — sin acción`);
+        await activarPlan(parsed.negocioId, parsed.plan, data.id);
+      } else if (pago.status === 'rejected') {
+        // MP va a reintentar — NUNCA bloquear por un solo pago rechazado
+        await logPagoRechazado(parsed.negocioId, data.id);
       }
     }
 
-    // ── Cambio de estado de la suscripción (cancelada, pausada) ───────────
+    // Cambio de estado de la suscripción
     if (type === 'subscription_preapproval') {
       const sub = await fetchMP(`/preapproval/${data.id}`);
       const parsed = parsearRef(sub.external_reference);
+      if (!parsed) return res.status(200).json({ ok: true });
 
-      if (!parsed) {
-        console.log(`[Webhook MP] Suscripción ${data.id} sin referencia válida — ignorada`);
-        return res.status(200).json({ ok: true });
-      }
-
-      if (sub.status === 'cancelled' || sub.status === 'paused') {
-        // Cliente canceló o MP canceló por cobros fallidos repetidos
-        await desactivarPlan(parsed.negocioId, sub.status);
-      } else if (sub.status === 'authorized') {
-        // Suscripción reactivada (e.g., cliente actualizó tarjeta)
-        await activarPlan(parsed.negocioId, parsed.plan);
+      if (sub.status === 'authorized') {
+        // Suscripción activa/reactivada (cliente actualizó tarjeta, etc.)
+        await activarPlan(parsed.negocioId, parsed.plan, data.id);
+      } else if (sub.status === 'paused') {
+        // MP reintentando cobro — NO bloquear todavía, solo registrar
+        await logPagoRechazado(parsed.negocioId, data.id);
+      } else if (sub.status === 'cancelled') {
+        // MP agotó todos los reintentos → suspender acceso
+        await suspenderPlan(parsed.negocioId, data.id);
       }
     }
 
+    // SIEMPRE responder 200 a MP — si respondemos 5xx, MP reintenta el webhook indefinidamente
     return res.status(200).json({ ok: true });
   } catch (err) {
     console.error('[Webhook MP] Error:', err.message);
-    // Devolvemos 500 para que MP reintente el webhook
-    return res.status(500).end();
+    return res.status(200).json({ ok: false, error: err.message });
   }
 }

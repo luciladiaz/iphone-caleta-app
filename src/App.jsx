@@ -18,13 +18,14 @@ import DashboardGerencial from './pages/DashboardGerencial';
 import ReporteVendedores from './pages/ReporteVendedores';
 import DevSeed from './pages/DevSeed';
 import AppTest from './pages/AppTest';
+import TestPagos from './pages/TestPagos';
 
 function PrivateRoute({ children, modulo }) {
-  const { user, puedeVer, planActivo } = useAuth();
+  const { user, puedeVer, planActivo, motivoBloqueo } = useAuth();
 
   if (!user) return <Navigate to="/landing" />;
 
-  if (!planActivo) return <Navigate to="/planes?motivo=vencido" />;
+  if (!planActivo) return <Navigate to={`/planes?motivo=${motivoBloqueo || 'vencido'}`} />;
 
   if (modulo && !puedeVer(modulo)) return (
     <div style={{ padding: 60, textAlign: 'center', color: '#86868b', fontFamily: 'Inter, sans-serif' }}>
@@ -43,6 +44,7 @@ function AppRoutes() {
       {/* Rutas de desarrollo */}
       <Route path="/dev/seed" element={<DevSeed />} />
       <Route path="/test" element={<AppTest />} />
+      <Route path="/test-pagos" element={<TestPagos />} />
 
       {/* Rutas públicas */}
       <Route path="/landing" element={<Landing />} />

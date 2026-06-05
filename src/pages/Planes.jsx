@@ -146,6 +146,26 @@ export default function Planes() {
         </div>
       )}
 
+      {/* ── Banner: cuenta suspendida por pago fallido ────────────────────── */}
+      {motivo === 'suspendido' && (
+        <div style={{ background: 'rgba(255,59,48,0.12)', border: '1px solid rgba(255,59,48,0.5)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
+          <div style={{ fontSize: 20, marginBottom: 6 }}>⚠️</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: '#ff3b30', marginBottom: 6 }}>
+            Tu acceso fue suspendido
+          </div>
+          <div style={{ color: '#86868b', fontSize: 14, marginBottom: 12 }}>
+            Tu último pago no pudo procesarse y MercadoPago agotó los reintentos automáticos.
+            Tus datos están guardados. Actualizá tu método de pago para recuperar el acceso inmediatamente.
+          </div>
+          <button
+            onClick={() => { const msg = encodeURIComponent('Hola, necesito actualizar mi método de pago en iPhone Caleta'); window.open(`https://wa.me/${WHATSAPP_SOPORTE}?text=${msg}`, '_blank'); }}
+            style={{ background: '#ff3b30', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+          >
+            Actualizar método de pago →
+          </button>
+        </div>
+      )}
+
       {/* ── Banner: trial vencido ──────────────────────────────────────────── */}
       {motivo === 'vencido' && (
         <div style={{ background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>

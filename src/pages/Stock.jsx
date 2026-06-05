@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs, addDoc, serverTimestamp, query, orderBy, getDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy, getDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import CalculadoraPrecio from '../components/CalculadoraPrecio';
@@ -27,6 +27,7 @@ export default function Stock() {
   const [tipoCambio, setTipoCambio] = useState(0);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
+  const [editandoId, setEditandoId] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [filtro, setFiltro] = useState('');
   const [showCalculadora, setShowCalculadora] = useState(false);
@@ -59,14 +60,42 @@ export default function Stock() {
 
   useEffect(() => { cargar(); }, [negocioId]);
 
+  const abrirEditar = (eq) => {
+    setEditandoId(eq.id);
+    setForm({
+      modelo: eq.modelo || '', color: eq.color || '', gb: eq.gb || '',
+      bateria: eq.bateria || '', imei: eq.imei || '', tipo: eq.tipo || 'compra',
+      proveedor: eq.proveedor || '', costoUsd: eq.costoUsd || '', pvUsd: eq.pvUsd || '',
+      estado: eq.estado || 'disponible', puntoVenta: eq.puntoVenta || '',
+      asignadoA: eq.asignadoA || '', notas: eq.notas || '', fechaManual: ''
+    });
+    setModal(true);
+  };
+
+  const cerrarModal = () => {
+    setModal(false);
+    setEditandoId(null);
+    setForm({ modelo: '', color: '', gb: '', bateria: '', imei: '', tipo: 'compra', proveedor: '', costoUsd: '', pvUsd: '', estado: 'disponible', puntoVenta: '', asignadoA: '', notas: '', fechaManual: '' });
+  };
+
+  const eliminarEquipo = async (id) => {
+    if (!window.confirm('¿Eliminás este equipo del stock? Esta acción no se puede deshacer.')) return;
+    await deleteDoc(doc(db, ...base, 'stock', id));
+    cargar();
+  };
+
   const guardar = async (e) => {
     e.preventDefault();
     setGuardando(true);
     try {
-      const fechaIngreso = form.fechaManual ? new Date(form.fechaManual) : serverTimestamp();
-      await addDoc(collection(db, ...base, 'stock'), { ...form, fechaIngreso });
-      setModal(false);
-      setForm({ modelo: '', color: '', gb: '', bateria: '', imei: '', tipo: 'compra', proveedor: '', costoUsd: '', pvUsd: '', estado: 'disponible', puntoVenta: '', asignadoA: '', notas: '', fechaManual: '' });
+      if (editandoId) {
+        const { fechaManual, ...datos } = form;
+        await updateDoc(doc(db, ...base, 'stock', editandoId), datos);
+      } else {
+        const fechaIngreso = form.fechaManual ? new Date(form.fechaManual) : serverTimestamp();
+        await addDoc(collection(db, ...base, 'stock'), { ...form, fechaIngreso });
+      }
+      cerrarModal();
       cargar();
     } catch (err) { console.error(err); }
     finally { setGuardando(false); }
@@ -138,6 +167,10 @@ export default function Stock() {
                 {copiado === eq.id ? '✓ Ficha copiada' : '📤 Compartir ficha WhatsApp'}
               </button>
             )}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => abrirEditar(eq)} style={{ flex: 1, background: '#2c2c2e', border: '1px solid #3a3a3c', color: '#c9a96e', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>✏️ Editar</button>
+              {esAdmin && <button onClick={() => eliminarEquipo(eq.id)} style={{ background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', color: '#ff3b30', borderRadius: 8, padding: '8px 12px', fontSize: 12, cursor: 'pointer' }}>🗑️</button>}
+            </div>
           </div>
         ))}
       </div>
@@ -154,8 +187,8 @@ export default function Stock() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 16, padding: 28, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Agregar equipo</h2>
-              <button onClick={() => setModal(false)} style={{ background: 'none', border: 'none', color: '#86868b', fontSize: 20, cursor: 'pointer' }}>✕</button>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{editandoId ? '✏️ Editar equipo' : 'Agregar equipo'}</h2>
+              <button onClick={cerrarModal} style={{ background: 'none', border: 'none', color: '#86868b', fontSize: 20, cursor: 'pointer' }}>✕</button>
             </div>
             <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -175,8 +208,8 @@ export default function Stock() {
                 <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>Notas</label><textarea value={form.notas} onChange={e => setForm({...form, notas: e.target.value})} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
               </div>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
-                <button type="button" onClick={() => setModal(false)} style={{ padding: '10px 20px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
-                <button type="submit" disabled={guardando} style={{ padding: '10px 24px', background: '#c9a96e', border: 'none', borderRadius: 8, color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{guardando ? 'Guardando...' : 'Guardar equipo'}</button>
+                <button type="button" onClick={cerrarModal} style={{ padding: '10px 20px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
+                <button type="submit" disabled={guardando} style={{ padding: '10px 24px', background: '#c9a96e', border: 'none', borderRadius: 8, color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{guardando ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Agregar equipo'}</button>
               </div>
             </form>
           </div>

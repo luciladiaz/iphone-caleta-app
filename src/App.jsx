@@ -16,6 +16,8 @@ import Planes from './pages/Planes';
 import CatalogoPublico from './pages/CatalogoPublico';
 import DashboardGerencial from './pages/DashboardGerencial';
 import ReporteVendedores from './pages/ReporteVendedores';
+import DevSeed from './pages/DevSeed';
+import AppTest from './pages/AppTest';
 
 function PrivateRoute({ children, modulo }) {
   const { user, puedeVer, planActivo } = useAuth();
@@ -38,6 +40,10 @@ function AppRoutes() {
   const { user } = useAuth();
   return (
     <Routes>
+      {/* Rutas de desarrollo */}
+      <Route path="/dev/seed" element={<DevSeed />} />
+      <Route path="/test" element={<AppTest />} />
+
       {/* Rutas públicas */}
       <Route path="/landing" element={<Landing />} />
       <Route path="/registro" element={user ? <Navigate to="/" /> : <Registro />} />

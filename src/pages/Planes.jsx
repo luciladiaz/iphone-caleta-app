@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 const WHATSAPP_SOPORTE = '5492974000000'; // CAMBIAR POR TU NÚMERO
 
@@ -54,10 +54,12 @@ const PROMAX_INCLUYE = [
 ];
 
 export default function Planes() {
-  const { perfil, negocioId } = useAuth();
+  const { perfil, negocioId, plan, planActivo } = useAuth();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const motivo = searchParams.get('motivo');
   const upgrade = searchParams.get('upgrade');
+  const pago   = searchParams.get('pago');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const proRef = useRef(null);
 
@@ -73,12 +75,20 @@ export default function Planes() {
     }
   }, [upgrade]);
 
-  const handleContratar = async (plan) => {
+  // Cuando el webhook activa el plan, redirigir al panel automáticamente
+  useEffect(() => {
+    if (pago === 'exitoso' && planActivo && plan && plan !== 'trial') {
+      const t = setTimeout(() => navigate('/'), 2500);
+      return () => clearTimeout(t);
+    }
+  }, [pago, planActivo, plan, navigate]);
+
+  const handleContratar = async (planId) => {
     try {
       const res = await fetch('/api/crear-suscripcion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, negocioId, email: perfil?.email }),
+        body: JSON.stringify({ plan: planId, negocioId, email: perfil?.email }),
       });
       const data = await res.json();
       if (data.init_point) window.location.href = data.init_point;
@@ -95,7 +105,48 @@ export default function Planes() {
 
   return (
     <div>
-      {/* Banner trial vencido */}
+      {/* ── Banner: pago exitoso (redirect en curso) ───────────────────────── */}
+      {pago === 'exitoso' && (
+        <div style={{ background: 'rgba(48,209,88,0.1)', border: '1px solid rgba(48,209,88,0.4)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
+          <div style={{ fontSize: 20, marginBottom: 6 }}>✅</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: '#30d158', marginBottom: 6 }}>
+            {planActivo && plan !== 'trial' ? 'Plan activado. Llevándote al panel...' : 'Pago recibido. Activando tu plan...'}
+          </div>
+          <div style={{ color: '#86868b', fontSize: 14 }}>
+            {planActivo && plan !== 'trial'
+              ? 'Tu suscripción está activa. Serás redirigido automáticamente.'
+              : 'El webhook de MercadoPago está procesando el pago. Puede tardar unos segundos.'}
+          </div>
+        </div>
+      )}
+
+      {/* ── Banner: pago rechazado ─────────────────────────────────────────── */}
+      {pago === 'fallido' && (
+        <div style={{ background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
+          <div style={{ fontSize: 20, marginBottom: 6 }}>❌</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: '#ff3b30', marginBottom: 6 }}>
+            El pago fue rechazado
+          </div>
+          <div style={{ color: '#86868b', fontSize: 14 }}>
+            Verificá que tu tarjeta tenga fondos suficientes e intentá de nuevo, o contactanos por WhatsApp.
+          </div>
+        </div>
+      )}
+
+      {/* ── Banner: pago pendiente ─────────────────────────────────────────── */}
+      {pago === 'pendiente' && (
+        <div style={{ background: 'rgba(255,159,10,0.1)', border: '1px solid rgba(255,159,10,0.3)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
+          <div style={{ fontSize: 20, marginBottom: 6 }}>⏳</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: '#ff9f0a', marginBottom: 6 }}>
+            Pago pendiente de acreditación
+          </div>
+          <div style={{ color: '#86868b', fontSize: 14 }}>
+            Tu pago está siendo procesado. Te avisaremos cuando se confirme y tu plan se activará automáticamente.
+          </div>
+        </div>
+      )}
+
+      {/* ── Banner: trial vencido ──────────────────────────────────────────── */}
       {motivo === 'vencido' && (
         <div style={{ background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
           <div style={{ fontSize: 20, marginBottom: 6 }}>⏰</div>

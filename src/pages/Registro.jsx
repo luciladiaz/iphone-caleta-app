@@ -20,10 +20,14 @@ export default function Registro() {
       const uid = cred.user.uid;
 
       // Crear documento del negocio
+      const venceTrial = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       await setDoc(doc(db, 'negocios', uid), {
         nombre: form.negocio,
         ownerUid: uid,
         plan: 'trial',
+        estado: 'activo',
+        venceTrial,
+        vencePlan: null,
         creadoEn: serverTimestamp(),
         negocioId: uid,
       });

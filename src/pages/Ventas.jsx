@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs, getDoc, addDoc, serverTimestamp, query, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
+import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -11,7 +12,7 @@ const ORIGENES = ['Instagram iPhone Caleta', 'WhatsApp', 'Local físico', 'Refer
 const FORMAS_PAGO = ['Efectivo ARS', 'Efectivo USD', 'Transferencia ARS', 'Transferencia USD', 'Cuotas personales', 'iPhone como parte de pago'];
 
 export default function Ventas() {
-  const { perfil, negocioId } = useAuth();
+  const { perfil, negocioId, plan, limitesPlan } = useAuth();
   const esAdmin = perfil?.rol === 'admin';
   const [ventas, setVentas] = useState([]);
   const [stock, setStock] = useState([]);
@@ -22,6 +23,7 @@ export default function Ventas() {
   const [modal, setModal] = useState(false);
   const [editando, setEditando] = useState(null);
   const [guardando, setGuardando] = useState(false);
+  const [modalLimite, setModalLimite] = useState(false);
   const [form, setForm] = useState({
     equipoId: '', cliente: '', telefono: '', vendedor: '', origen: '',
     estado: 'pendiente', notas: '', tipoCambio: '',
@@ -153,6 +155,21 @@ export default function Ventas() {
 
   if (loading) return <div style={{ color: '#86868b', padding: 40 }}>Cargando ventas...</div>;
 
+  const hoyV = new Date();
+  const primerDiaMesV = new Date(hoyV.getFullYear(), hoyV.getMonth(), 1);
+  const ventasMesCount = ventas.filter(v => {
+    const fecha = v.fecha?.toDate?.() || new Date(v.fecha);
+    return fecha >= primerDiaMesV;
+  }).length;
+  const maxVentasMes = limitesPlan?.maxVentasMes ?? Infinity;
+  const limiteVentasAlcanzado = maxVentasMes !== Infinity && ventasMesCount >= maxVentasMes;
+
+  const handleNuevaVenta = () => {
+    if (limiteVentasAlcanzado) { setModalLimite(true); return; }
+    setEditando(null);
+    setModal(true);
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
@@ -160,7 +177,7 @@ export default function Ventas() {
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Ventas</h1>
           <p style={{ color: '#86868b', fontSize: 13, margin: '4px 0 0' }}>{ventas.length} ventas registradas</p>
         </div>
-        <button onClick={() => { setEditando(null); setModal(true); }} style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+        <button onClick={handleNuevaVenta} style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
           + Nueva venta
         </button>
       </div>
@@ -172,10 +189,12 @@ export default function Ventas() {
               <div style={{ fontWeight: 700, fontSize: 15 }}>{v.modelo} {v.gb}GB {v.color}</div>
               <div style={{ color: '#86868b', fontSize: 12, marginTop: 3 }}>
                 👤 {v.cliente || 'Sin cliente'}
-                {v.telefono && (
+                {v.telefono ? (
                   <a href={`tel:${v.telefono}`} style={{ color: '#c9a96e', marginLeft: 4, textDecoration: 'none' }}>
                     📞 {v.telefono}
                   </a>
+                ) : (
+                  <span title="Sin teléfono — editá la venta para agregarlo" style={{ marginLeft: 4, opacity: 0.5, cursor: 'help', textDecoration: 'line-through' }}>📵</span>
                 )}
                 {' '}· 🧑‍💼 {v.vendedor || '-'} · 📣 {v.origen || '-'}
                 {v.tipoCambio && <span style={{ color: '#c9a96e', marginLeft: 6 }}>· TC ${v.tipoCambio}</span>}
@@ -394,6 +413,13 @@ export default function Ventas() {
             </form>
           </div>
         </div>
+      )}
+      {modalLimite && (
+        <ModalLimiteAlcanzado
+          tipo="ventas" planActual={plan}
+          cantidadActual={ventasMesCount}
+          onCerrar={() => setModalLimite(false)}
+        />
       )}
     </div>
   );

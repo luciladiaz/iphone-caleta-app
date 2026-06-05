@@ -14,16 +14,23 @@ import Configuracion from './pages/Configuracion';
 import Usuarios from './pages/Usuarios';
 import Planes from './pages/Planes';
 import CatalogoPublico from './pages/CatalogoPublico';
+import DashboardGerencial from './pages/DashboardGerencial';
+import ReporteVendedores from './pages/ReporteVendedores';
 
 function PrivateRoute({ children, modulo }) {
-  const { user, puedeVer } = useAuth();
+  const { user, puedeVer, planActivo } = useAuth();
+
   if (!user) return <Navigate to="/landing" />;
+
+  if (!planActivo) return <Navigate to="/planes?motivo=vencido" />;
+
   if (modulo && !puedeVer(modulo)) return (
     <div style={{ padding: 60, textAlign: 'center', color: '#86868b', fontFamily: 'Inter, sans-serif' }}>
       <div style={{ fontSize: 40, marginBottom: 12 }}>🔒</div>
       <p>No tenés permiso para acceder a esta sección.</p>
     </div>
   );
+
   return children;
 }
 
@@ -37,8 +44,11 @@ function AppRoutes() {
       <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
       <Route path="/catalogo/:negocioId" element={<CatalogoPublico />} />
 
+      {/* /planes no usa PrivateRoute con planActivo para evitar loop cuando vence */}
+      <Route path="/planes" element={user ? <Layout><Planes /></Layout> : <Navigate to="/landing" />} />
+
       {/* Rutas privadas */}
-      <Route path="/" element={user ? <PrivateRoute modulo="dashboard"><Layout><Dashboard /></Layout></PrivateRoute> : <Navigate to="/landing" />} />
+      <Route path="/" element={<PrivateRoute modulo="dashboard"><Layout><Dashboard /></Layout></PrivateRoute>} />
       <Route path="/stock" element={<PrivateRoute modulo="stock"><Layout><Stock /></Layout></PrivateRoute>} />
       <Route path="/ventas" element={<PrivateRoute modulo="ventas"><Layout><Ventas /></Layout></PrivateRoute>} />
       <Route path="/cobros" element={<PrivateRoute modulo="cobros"><Layout><Cobros /></Layout></PrivateRoute>} />
@@ -46,7 +56,8 @@ function AppRoutes() {
       <Route path="/pagos" element={<PrivateRoute modulo="pagos"><Layout><PagosProveedores /></Layout></PrivateRoute>} />
       <Route path="/config" element={<PrivateRoute modulo="config"><Layout><Configuracion /></Layout></PrivateRoute>} />
       <Route path="/usuarios" element={<PrivateRoute modulo="usuarios"><Layout><Usuarios /></Layout></PrivateRoute>} />
-      <Route path="/planes" element={<PrivateRoute><Layout><Planes /></Layout></PrivateRoute>} />
+      <Route path="/gerencial" element={<PrivateRoute modulo="gerencial"><Layout><DashboardGerencial /></Layout></PrivateRoute>} />
+      <Route path="/vendedores" element={<PrivateRoute modulo="vendedores"><Layout><ReporteVendedores /></Layout></PrivateRoute>} />
 
       <Route path="*" element={<Navigate to={user ? '/' : '/landing'} />} />
     </Routes>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { PLANES } from '../config/planes';
 
 export default function CatalogoPublico() {
   const { negocioId } = useParams();
@@ -10,6 +11,7 @@ export default function CatalogoPublico() {
   const [tipoCambio, setTipoCambio] = useState(0);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('');
+  const [catalogoHabilitado, setCatalogoHabilitado] = useState(true);
 
   useEffect(() => {
     const cargar = async () => {
@@ -20,7 +22,11 @@ export default function CatalogoPublico() {
           getDocs(collection(db, ...base, 'stock')),
           getDoc(doc(db, ...base, 'config', 'general')),
         ]);
-        setNegocio(negSnap.data());
+        const negData = negSnap.data();
+        setNegocio(negData);
+        const plan = negData?.plan === 'agencia' ? 'promax' : (negData?.plan || 'basico');
+        const planConfig = PLANES[plan];
+        setCatalogoHabilitado(planConfig?.features?.catalogoPublico === true);
         setEquipos(stockSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(e => e.estado === 'disponible'));
         setTipoCambio(cfgSnap.data()?.tipoCambio || 0);
       } catch (e) { console.error(e); }
@@ -36,6 +42,19 @@ export default function CatalogoPublico() {
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0d0d0d', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#86868b', fontFamily: "'Inter', sans-serif" }}>
       Cargando catálogo...
+    </div>
+  );
+
+  if (!catalogoHabilitado) return (
+    <div style={{ minHeight: '100vh', background: '#0d0d0d', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: "'Inter', sans-serif", padding: 32, textAlign: 'center' }}>
+      <div style={{ fontSize: 48, marginBottom: 16 }}>📵</div>
+      <div style={{ fontWeight: 800, fontSize: 20, marginBottom: 8 }}>Este catálogo no está disponible</div>
+      <div style={{ color: '#86868b', fontSize: 14, maxWidth: 340 }}>
+        El negocio no tiene habilitada la función de catálogo público en su plan actual.
+      </div>
+      <div style={{ marginTop: 32, color: '#86868b', fontSize: 12 }}>
+        Gestionado con <span style={{ color: '#c9a96e' }}>iPhone Caleta App</span>
+      </div>
     </div>
   );
 

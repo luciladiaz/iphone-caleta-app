@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs, query, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
-import { useSubscription } from '../hooks/useSubscription';
+import FeatureBloqueada from '../components/FeatureBloqueada';
 
 function diasDesde(fecha) {
   const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -43,8 +43,7 @@ const FILTROS = [
 ];
 
 export default function Cobros() {
-  const { negocioId } = useAuth();
-  const { tieneAccesoWhatsApp } = useSubscription();
+  const { negocioId, tieneFeature } = useAuth();
   const [ventas, setVentas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('todas');
@@ -122,7 +121,7 @@ export default function Cobros() {
     }
   }
 
-  deudores.sort((a, b) => ({ rojo: 0, amarillo: 1, verde: 2 }[a.sem] - { rojo: 0, amarillo: 1, verde: 2 }[b.sem] || b.maxDias - a.maxDias);
+  deudores.sort((a, b) => ({ rojo: 0, amarillo: 1, verde: 2 }[a.sem] - { rojo: 0, amarillo: 1, verde: 2 }[b.sem] || b.maxDias - a.maxDias));
 
   const deudoresFiltrados = deudores.filter(d => {
     if (filtro === 'todas') return true;
@@ -140,7 +139,16 @@ export default function Cobros() {
       <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 24 }}>💳 Cobros</h1>
 
       {/* Panel deudores */}
-      {deudores.length > 0 && (
+      {!tieneFeature('panelDeudores') && (
+        <div style={{ marginBottom: 32 }}>
+          <FeatureBloqueada
+            feature="Panel de deudores con semáforo"
+            planRequerido="pro"
+            descripcion="Mirá quién te debe, cuánto y hace cuántos días. Semáforo de urgencia para no perderte ningún cobro."
+          />
+        </div>
+      )}
+      {tieneFeature('panelDeudores') && deudores.length > 0 && (
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 15, fontWeight: 700 }}>Deudores con cuotas pendientes</span>
@@ -177,7 +185,7 @@ export default function Cobros() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {tieneAccesoWhatsApp ? (
+                    {tieneFeature('botonWhatsappDeudores') ? (
                       <button
                         onClick={() => d.telefono ? generarMensajeWA(d.cliente, d.telefono, d.modelo, '', d.cuotasVencidas, d.totalCuotas, d.montoVencido) : null}
                         title={!d.telefono ? 'Agregá el teléfono del cliente en la venta' : ''}
@@ -185,7 +193,7 @@ export default function Cobros() {
                         📲 WhatsApp
                       </button>
                     ) : (
-                      <span style={{ fontSize: 11, color: '#86868b', alignSelf: 'center' }}>WhatsApp · Plan Agencia</span>
+                      <span style={{ fontSize: 11, color: '#86868b', alignSelf: 'center' }}>📲 WhatsApp · Plan Pro Max</span>
                     )}
                   </div>
                 </div>

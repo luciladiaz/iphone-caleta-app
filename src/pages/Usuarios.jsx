@@ -3,6 +3,7 @@ import { collection, getDocs, doc, setDoc, updateDoc } from 'firebase/firestore'
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
+import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -19,12 +20,13 @@ const MODULOS = [
 ];
 
 export default function Usuarios() {
-  const { negocioId } = useAuth();
+  const { negocioId, plan, limitesPlan } = useAuth();
   const base = ['negocios', negocioId];
 
   const [usuarios, setUsuarios] = useState([]);
   const [puntosVenta, setPuntosVenta] = useState([]);
   const [modal, setModal] = useState(false);
+  const [modalLimite, setModalLimite] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({ nombre: '', email: '', password: '', rol: 'vendedor', puntoVenta: '', activo: true, permisos: {} });
@@ -71,7 +73,14 @@ export default function Usuarios() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>👥 Usuarios</h1>
-        <button onClick={() => setModal(true)} style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>+ Nuevo usuario</button>
+        <button
+          onClick={() => {
+            const maxU = limitesPlan?.maxUsuarios ?? Infinity;
+            if (maxU !== Infinity && usuarios.length >= maxU) { setModalLimite(true); return; }
+            setModal(true);
+          }}
+          style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+        >+ Nuevo usuario</button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -96,6 +105,13 @@ export default function Usuarios() {
         {usuarios.length === 0 && <p style={{ color: '#86868b' }}>No hay usuarios creados.</p>}
       </div>
 
+      {modalLimite && (
+        <ModalLimiteAlcanzado
+          tipo="usuarios" planActual={plan}
+          cantidadActual={usuarios.length}
+          onCerrar={() => setModalLimite(false)}
+        />
+      )}
       {modal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
           <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 16, padding: 28, width: '100%', maxWidth: 500, margin: 'auto' }}>

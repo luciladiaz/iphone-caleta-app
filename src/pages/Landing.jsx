@@ -6,6 +6,7 @@ const FEATURES = [
   { icon: '💰', titulo: 'Ventas con parte de pago', desc: 'Registrá ventas en pesos, dólares, cuotas o iPhone como parte de pago. Todo en una sola operación.' },
   { icon: '📊', titulo: 'Ganancia real en USD y ARS', desc: 'Ves al instante cuánto ganaste en dólares y en pesos, con el tipo de cambio del día aplicado.' },
   { icon: '💳', titulo: 'Cobros y deudores', desc: 'Sabés exactamente quién te debe, cuánto y hace cuántos días. Semáforo de urgencia para no olvidarte de nadie.' },
+  { icon: '📲', titulo: 'Recordatorios con un toque', desc: 'Ves quién te debe hoy y mandás el recordatorio directo a WhatsApp con el mensaje ya escrito. Sin copiar y pegar nada.' },
   { icon: '🤝', titulo: 'Catálogo para compartir', desc: 'Un link listo para mandar por WhatsApp con tu stock disponible. Sin precios de costo, solo lo que querés mostrar.' },
   { icon: '👥', titulo: 'Múltiples usuarios', desc: 'Sumá a tus vendedores con permisos configurables. Cada uno ve solo lo que necesita.' },
 ];
@@ -13,7 +14,7 @@ const FEATURES = [
 const FAQS = [
   { q: '¿Funciona para cualquier tipo de revendedor?', a: 'Sí. Funciona tanto si tenés un local físico como si vendés solo por Instagram o WhatsApp.' },
   { q: '¿Qué pasa con mis datos si cancelo?', a: 'Tus datos quedan guardados por 30 días después de cancelar. Podés exportarlos cuando quieras.' },
-  { q: '¿Puedo agregar a mis vendedores?', a: 'Sí. El plan Básico incluye hasta 2 usuarios. El plan Pro tiene usuarios ilimitados con permisos configurables.' },
+  { q: '¿Puedo agregar a mis vendedores?', a: 'Sí. El plan Básico tiene 1 usuario. El plan Pro incluye hasta 3 usuarios con permisos configurables. El Pro Max tiene usuarios ilimitados.' },
   { q: '¿Necesito saber de tecnología para usarlo?', a: 'No. Si podés usar WhatsApp, podés usar este sistema.' },
   { q: '¿Funciona en el celular?', a: 'Sí, 100%. Está diseñado mobile-first para que lo uses desde tu celular en cualquier momento.' },
 ];
@@ -88,6 +89,7 @@ export default function Landing() {
               { icon: '😰', titulo: 'No sabés cuánto ganaste este mes', desc: 'Comprás en dólares, vendés en pesos, recibís partes de pago... al final del mes no sabés si ganaste o perdiste.' },
               { icon: '📱', titulo: 'Tu stock está en WhatsApp y Excel', desc: 'Cuando un cliente pregunta si tenés un 13 Pro 256 azul, tardás 5 minutos en encontrarlo.' },
               { icon: '💸', titulo: 'Los clientes que deben son un caos', desc: 'Sabés que alguien te debe pero no recordás cuánto, ni cuándo fue la última cuota.' },
+              { icon: '😬', titulo: 'Cobrar las cuotas es un caos', desc: 'Tenés clientes que te deben cuotas y no sabés cuándo llamarlos ni cuánto deben exactamente. Con iPhone Caleta ves todo al instante y mandás el recordatorio con un solo toque.' },
             ].map(p => (
               <div key={p.titulo} style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 24, textAlign: 'left' }}>
                 <div style={{ fontSize: 32, marginBottom: 12 }}>{p.icon}</div>
@@ -120,30 +122,59 @@ export default function Landing() {
 
       {/* PRECIOS */}
       <section style={{ padding: '80px 24px', background: '#0d0d0d' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto', textAlign: 'center' }}>
+        <div style={{ maxWidth: 1060, margin: '0 auto', textAlign: 'center' }}>
           <h2 style={{ fontSize: 'clamp(26px, 4vw, 40px)', fontWeight: 800, letterSpacing: '-1px', marginBottom: 12 }}>Planes simples, sin sorpresas</h2>
           <p style={{ color: '#86868b', fontSize: 16, marginBottom: 48 }}>Empezá gratis 7 días, sin tarjeta</p>
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 24 }}>
-            {[
-              { nombre: 'Básico', precio: '$7.900', features: ['Stock ilimitado', 'Ventas ilimitadas', 'Parte de pago', 'Multi-moneda', 'Hasta 2 usuarios', 'Catálogo público'], destacado: false },
-              { nombre: 'Pro', precio: '$14.900', features: ['Todo lo del Básico', 'Usuarios ilimitados', 'Reportes avanzados', 'Valor del stock en tiempo real', 'Soporte por WhatsApp', 'Nuevas funciones primero'], destacado: true },
-            ].map(plan => (
-              <div key={plan.nombre} style={{ background: plan.destacado ? 'rgba(201,169,110,0.06)' : '#1c1c1e', border: `2px solid ${plan.destacado ? '#c9a96e' : '#2c2c2e'}`, borderRadius: 16, padding: 28, flex: 1, minWidth: 240, position: 'relative' }}>
-                {plan.destacado && <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: '#c9a96e', color: '#000', fontSize: 10, fontWeight: 800, padding: '4px 14px', borderRadius: 99, whiteSpace: 'nowrap' }}>MÁS POPULAR</div>}
-                <div style={{ fontSize: 13, color: '#86868b', marginBottom: 8 }}>Plan {plan.nombre}</div>
-                <div style={{ fontSize: 34, fontWeight: 800, color: plan.destacado ? '#c9a96e' : '#fff', letterSpacing: '-1px', marginBottom: 20 }}>{plan.precio}<span style={{ fontSize: 14, fontWeight: 400, color: '#86868b' }}>/mes</span></div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
-                  {plan.features.map(f => <div key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: '#ebebf5cc' }}><span style={{ color: '#30d158' }}>✓</span>{f}</div>)}
-                </div>
-                <Link to="/registro" style={{ display: 'block', background: plan.destacado ? '#c9a96e' : '#2c2c2e', color: plan.destacado ? '#000' : '#fff', border: plan.destacado ? 'none' : '1px solid #3a3a3c', borderRadius: 10, padding: '13px', fontSize: 14, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}>
-                  Empezar gratis
-                </Link>
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'flex-start', marginBottom: 28 }}>
+
+            {/* Básico */}
+            <div style={{ background: '#1c1c1e', border: '2px solid #2c2c2e', borderRadius: 16, padding: 24, flex: '1 1 220px', maxWidth: 280, textAlign: 'left' }}>
+              <div style={{ fontSize: 11, color: '#86868b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Plan Básico</div>
+              <div style={{ fontSize: 30, fontWeight: 800, color: '#fff', letterSpacing: '-1px', marginBottom: 4 }}>$7.900<span style={{ fontSize: 13, fontWeight: 400, color: '#86868b' }}>/mes</span></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 20, marginTop: 14 }}>
+                {['Stock hasta 20 equipos', 'Hasta 10 ventas/mes', 'Multi-moneda ARS/USD', '1 usuario', 'Cobros y cuotas'].map(f => (
+                  <div key={f} style={{ display: 'flex', gap: 8, fontSize: 12, color: '#ebebf5cc' }}><span style={{ color: '#30d158', flexShrink: 0 }}>✓</span>{f}</div>
+                ))}
               </div>
-            ))}
+              <Link to="/registro" style={{ display: 'block', background: '#2c2c2e', color: '#fff', border: '1px solid #3a3a3c', borderRadius: 10, padding: '11px', fontSize: 13, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}>
+                Empezar gratis
+              </Link>
+            </div>
+
+            {/* Pro */}
+            <div style={{ background: 'rgba(201,169,110,0.06)', border: '2px solid #c9a96e', borderRadius: 16, padding: 24, flex: '1 1 240px', maxWidth: 320, textAlign: 'left', position: 'relative' }}>
+              <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', background: '#c9a96e', color: '#000', fontSize: 10, fontWeight: 800, padding: '3px 14px', borderRadius: 99, whiteSpace: 'nowrap' }}>🔥 MÁS POPULAR</div>
+              <div style={{ fontSize: 11, color: '#c9a96e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Plan Pro</div>
+              <div style={{ fontSize: 34, fontWeight: 800, color: '#c9a96e', letterSpacing: '-1px', marginBottom: 2 }}>$14.900<span style={{ fontSize: 13, fontWeight: 400, color: '#86868b' }}>/mes</span></div>
+              <div style={{ fontSize: 11, color: '#86868b', marginBottom: 14 }}>= $497 ARS por día. Menos que un café.</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 20 }}>
+                {['Stock hasta 60 equipos', 'Hasta 30 ventas/mes', 'Hasta 3 usuarios con permisos', 'Reportes USD y ARS', 'Cobros del día + semáforo', 'Calculadora de precio', 'Catálogo público compartible', 'Soporte WhatsApp 24hs'].map(f => (
+                  <div key={f} style={{ display: 'flex', gap: 8, fontSize: 12, color: '#ebebf5cc' }}><span style={{ color: '#30d158', flexShrink: 0 }}>✓</span>{f}</div>
+                ))}
+              </div>
+              <Link to="/registro" style={{ display: 'block', background: '#c9a96e', color: '#000', border: 'none', borderRadius: 10, padding: '12px', fontSize: 14, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}>
+                Empezar gratis
+              </Link>
+            </div>
+
+            {/* Pro Max */}
+            <div style={{ background: '#1c1c1e', border: '2px solid #2c2c2e', borderRadius: 16, padding: 24, flex: '1 1 220px', maxWidth: 280, textAlign: 'left' }}>
+              <div style={{ fontSize: 11, color: '#86868b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Plan Pro Max</div>
+              <div style={{ fontSize: 30, fontWeight: 800, color: '#fff', letterSpacing: '-1px', marginBottom: 4 }}>$29.900<span style={{ fontSize: 13, fontWeight: 400, color: '#86868b' }}>/mes</span></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 20, marginTop: 14 }}>
+                {['Stock y ventas ilimitados', 'Todo lo del Plan Pro', 'Usuarios ilimitados', 'Múltiples puntos de venta', 'Reportes por vendedor', 'Dashboard gerencial', 'WhatsApp directo a deudores', 'Soporte prioritario 2hs'].map(f => (
+                  <div key={f} style={{ display: 'flex', gap: 8, fontSize: 12, color: '#ebebf5cc' }}><span style={{ color: '#30d158', flexShrink: 0 }}>✓</span>{f}</div>
+                ))}
+              </div>
+              <Link to="/registro" style={{ display: 'block', background: '#2c2c2e', color: '#fff', border: '1px solid #3a3a3c', borderRadius: 10, padding: '11px', fontSize: 13, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}>
+                Consultar
+              </Link>
+            </div>
+
           </div>
           <div style={{ color: '#86868b', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
             <span>💳 Pagá con tarjeta, débito o transferencia via MercadoPago</span>
-            <span>🔄 Cancelá en cualquier momento, sin compromisos</span>
+            <span>🔄 Cancelá cuando quieras · ✓ 7 días gratis sin tarjeta</span>
           </div>
         </div>
       </section>

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy, getDoc, doc } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import CalculadoraPrecio from '../components/CalculadoraPrecio';
+import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
 
 const MODELOS_DEFAULT = ['iPhone 12','iPhone 12 Pro','iPhone 12 Pro Max','iPhone 13','iPhone 13 Pro','iPhone 13 Pro Max','iPhone 14','iPhone 14 Pro','iPhone 14 Pro Max','iPhone 15','iPhone 15 Pro','iPhone 15 Pro Max','iPhone 16','iPhone 16 Plus','iPhone 16 Pro','iPhone 16 Pro Max','iPhone 17','iPhone 17 Air','iPhone 17 Pro','iPhone 17 Pro Max'];
 const COLORES = ['Negro','Blanco','Azul','Natural','Desert','Desert Titanium','Natural Titanium','Naranja','Rosa','Verde','Morado','Rojo'];
@@ -15,7 +17,8 @@ const inputStyle = { width: '100%', padding: '10px 12px', background: '#2c2c2e',
 const labelStyle = { color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 
 export default function Stock() {
-  const { perfil, negocioId } = useAuth();
+  const { perfil, negocioId, plan, limitesPlan, tieneFeature } = useAuth();
+  const navigate = useNavigate();
   const esAdmin = perfil?.rol === 'admin';
   const base = ['negocios', negocioId];
 
@@ -33,6 +36,7 @@ export default function Stock() {
   const [showCalculadora, setShowCalculadora] = useState(false);
   const [modalCatalogo, setModalCatalogo] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [modalLimite, setModalLimite] = useState(false);
   const [form, setForm] = useState({
     modelo: '', color: '', gb: '', bateria: '', imei: '',
     tipo: 'compra', proveedor: '', costoUsd: '', pvUsd: '',
@@ -118,6 +122,13 @@ export default function Stock() {
   const equiposFiltrados = equipos.filter(e =>
     `${e.modelo} ${e.color} ${e.gb} ${e.imei} ${e.puntoVenta} ${e.asignadoA}`.toLowerCase().includes(filtro.toLowerCase())
   );
+  const maxStock = limitesPlan?.maxStock ?? Infinity;
+  const limiteAlcanzado = maxStock !== Infinity && equipos.length >= maxStock;
+
+  const handleAgregarEquipo = () => {
+    if (limiteAlcanzado) { setModalLimite(true); return; }
+    setModal(true);
+  };
 
   if (loading) return <div style={{ color: '#86868b', padding: 40 }}>Cargando stock...</div>;
 
@@ -128,13 +139,22 @@ export default function Stock() {
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Stock</h1>
           <p style={{ color: '#86868b', fontSize: 13, margin: '4px 0 0' }}>
             {stockDisponible.length} disponibles · {equipos.length} total
-            {esAdmin && totalValorUSD > 0 && <span style={{ color: '#c9a96e', marginLeft: 8 }}>· USD {totalValorUSD.toFixed(0)} en stock</span>}
+            {esAdmin && tieneFeature('valorStockTiempoReal') && totalValorUSD > 0 && <span style={{ color: '#c9a96e', marginLeft: 8 }}>· USD {totalValorUSD.toFixed(0)} en stock</span>}
+            {esAdmin && !tieneFeature('valorStockTiempoReal') && <span style={{ color: '#3a3a3c', marginLeft: 8, fontSize: 12 }}>· 🔒 Valor total · Plan Pro</span>}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button onClick={() => setShowCalculadora(true)} style={{ background: '#2c2c2e', color: '#c9a96e', border: '1px solid #3a3a3c', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🧮 Calculadora</button>
-          <button onClick={() => setModalCatalogo(true)} style={{ background: '#2c2c2e', color: '#fff', border: '1px solid #3a3a3c', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🔗 Catálogo</button>
-          {esAdmin && <button onClick={() => setModal(true)} style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>+ Agregar equipo</button>}
+          {tieneFeature('calculadoraPrecio') ? (
+            <button onClick={() => setShowCalculadora(true)} style={{ background: '#2c2c2e', color: '#c9a96e', border: '1px solid #3a3a3c', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🧮 Calculadora</button>
+          ) : (
+            <button onClick={() => navigate('/planes')} style={{ background: '#2c2c2e', color: '#3a3a3c', border: '1px solid #2c2c2e', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🔒 Calculadora</button>
+          )}
+          {tieneFeature('catalogoPublico') ? (
+            <button onClick={() => setModalCatalogo(true)} style={{ background: '#2c2c2e', color: '#fff', border: '1px solid #3a3a3c', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🔗 Catálogo</button>
+          ) : (
+            <button onClick={() => navigate('/planes')} style={{ background: '#2c2c2e', color: '#3a3a3c', border: '1px solid #2c2c2e', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🔒 Catálogo</button>
+          )}
+          {esAdmin && <button onClick={handleAgregarEquipo} style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>+ Agregar equipo</button>}
         </div>
       </div>
 
@@ -235,6 +255,13 @@ export default function Stock() {
       )}
 
       {showCalculadora && <CalculadoraPrecio tipoCambio={tipoCambio} onClose={() => setShowCalculadora(false)} />}
+      {modalLimite && (
+        <ModalLimiteAlcanzado
+          tipo="stock" planActual={plan}
+          cantidadActual={equipos.length}
+          onCerrar={() => setModalLimite(false)}
+        />
+      )}
     </div>
   );
 }

@@ -1,57 +1,77 @@
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 
-const BASICO = [
-  'Stock ilimitado', 'Ventas ilimitadas', 'Parte de pago / permuta',
-  'Multi-moneda ARS/USD', 'Hasta 2 usuarios', 'Catálogo público compartible',
+const WHATSAPP_SOPORTE = '5492974000000'; // CAMBIAR POR TU NÚMERO
+
+const BASICO_INCLUYE = [
+  'Stock hasta 20 equipos',
+  'Hasta 10 ventas por mes',
+  'Cobros y cuotas',
+  'Proveedores y pagos',
+  '1 usuario',
 ];
-const PRO = [
-  ...BASICO,
-  'Usuarios ilimitados', 'Reportes de ganancia avanzados',
-  'Valor del stock en tiempo real', 'Soporte prioritario por WhatsApp',
-  'Nuevas funciones primero',
+const BASICO_NO_INCLUYE = [
+  'Catálogo público',
+  'Reportes de ganancia USD y ARS',
+  'Calculadora de precio',
+  'Panel de deudores con semáforo',
+  'Resumen de cobros del día',
+  'Exportar a Excel',
 ];
 
-function PlanCard({ nombre, precio, features, destacado, onContratar }) {
-  return (
-    <div style={{
-      background: destacado ? 'rgba(201,169,110,0.06)' : '#1c1c1e',
-      border: `2px solid ${destacado ? '#c9a96e' : '#2c2c2e'}`,
-      borderRadius: 16, padding: 28, display: 'flex', flexDirection: 'column', gap: 20,
-      position: 'relative', flex: 1, minWidth: 260,
-    }}>
-      {destacado && (
-        <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: '#c9a96e', color: '#000', fontSize: 11, fontWeight: 800, padding: '4px 16px', borderRadius: 99, letterSpacing: 1, whiteSpace: 'nowrap' }}>
-          MÁS POPULAR
-        </div>
-      )}
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#86868b', marginBottom: 6 }}>Plan {nombre}</div>
-        <div style={{ fontSize: 36, fontWeight: 800, color: destacado ? '#c9a96e' : '#fff', letterSpacing: '-1px' }}>
-          ${precio.toLocaleString('es-AR')}
-          <span style={{ fontSize: 14, fontWeight: 400, color: '#86868b' }}>/mes</span>
-        </div>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-        {features.map(f => (
-          <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#ebebf5cc' }}>
-            <span style={{ color: '#30d158', flexShrink: 0, marginTop: 1 }}>✓</span> {f}
-          </div>
-        ))}
-      </div>
-      <button onClick={() => onContratar(nombre.toLowerCase())} style={{
-        background: destacado ? '#c9a96e' : '#2c2c2e',
-        color: destacado ? '#000' : '#fff',
-        border: destacado ? 'none' : '1px solid #3a3a3c',
-        borderRadius: 10, padding: '13px', fontSize: 15, fontWeight: 700, cursor: 'pointer',
-      }}>
-        Empezar con {nombre}
-      </button>
-    </div>
-  );
-}
+const PRO_INCLUYE = [
+  'Stock hasta 60 equipos',
+  'Hasta 30 ventas por mes',
+  'Todo lo del Básico',
+  'Hasta 3 usuarios con permisos',
+  'Catálogo público compartible',
+  'Reportes de ganancia USD y ARS',
+  'Calculadora de precio con rentabilidad',
+  'Panel de deudores con semáforo',
+  'Resumen de cobros del día',
+  'Exportar ventas y stock a Excel',
+  'Soporte WhatsApp 24hs',
+];
+const PRO_NO_INCLUYE = [
+  'Botón WhatsApp directo a deudores',
+  'Reportes por vendedor',
+  'Dashboard gerencial',
+];
+
+const PROMAX_INCLUYE = [
+  'Stock ilimitado',
+  'Ventas ilimitadas',
+  'Todo lo del Pro',
+  'Usuarios ilimitados',
+  'Múltiples puntos de venta',
+  'Botón WhatsApp directo a deudores',
+  'Reportes por vendedor',
+  'Dashboard gerencial',
+  'Historial completo de cada equipo',
+  'Soporte WhatsApp prioritario 2hs',
+  'Onboarding personalizado',
+];
 
 export default function Planes() {
   const { perfil, negocioId } = useAuth();
+  const [searchParams] = useSearchParams();
+  const motivo = searchParams.get('motivo');
+  const upgrade = searchParams.get('upgrade');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const proRef = useRef(null);
+
+  useEffect(() => {
+    const h = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
+
+  useEffect(() => {
+    if (upgrade && proRef.current) {
+      setTimeout(() => proRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+    }
+  }, [upgrade]);
 
   const handleContratar = async (plan) => {
     try {
@@ -68,21 +88,145 @@ export default function Planes() {
     }
   };
 
+  const handleProMax = () => {
+    const msg = encodeURIComponent('Hola, quiero info del Plan Pro Max de iPhone Caleta');
+    window.open(`https://wa.me/${WHATSAPP_SOPORTE}?text=${msg}`, '_blank');
+  };
+
   return (
     <div>
+      {/* Banner trial vencido */}
+      {motivo === 'vencido' && (
+        <div style={{ background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
+          <div style={{ fontSize: 20, marginBottom: 6 }}>⏰</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: '#ff3b30', marginBottom: 6 }}>
+            Tu período de prueba de 7 días ha vencido
+          </div>
+          <div style={{ color: '#86868b', fontSize: 14 }}>
+            Elegí un plan para seguir organizando tu negocio. Tus datos están guardados y seguros.
+          </div>
+        </div>
+      )}
+
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
         <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-1px', marginBottom: 8 }}>Planes simples, sin sorpresas</h1>
         <p style={{ color: '#86868b', fontSize: 16 }}>Elegí el plan que mejor se adapta a tu negocio</p>
       </div>
 
-      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 720, margin: '0 auto 40px' }}>
-        <PlanCard nombre="Básico" precio={7900} features={BASICO} destacado={false} onContratar={handleContratar} />
-        <PlanCard nombre="Pro" precio={14900} features={PRO} destacado={true} onContratar={handleContratar} />
+      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'flex-start', maxWidth: 1060, margin: '0 auto 40px' }}>
+
+        {/* BÁSICO */}
+        <div style={{
+          order: isMobile ? 2 : 1,
+          background: '#1c1c1e', border: '2px solid #2c2c2e', borderRadius: 16,
+          padding: 28, display: 'flex', flexDirection: 'column', gap: 14,
+          flex: isMobile ? '1 1 100%' : '1 1 260px', maxWidth: isMobile ? '100%' : 300,
+        }}>
+          <div>
+            <div style={{ fontSize: 12, color: '#86868b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Plan Básico</div>
+            <div style={{ fontSize: 13, color: '#86868b', marginBottom: 10 }}>Para empezar</div>
+            <div style={{ fontSize: 36, fontWeight: 800, color: '#fff', letterSpacing: '-1px' }}>
+              $7.900<span style={{ fontSize: 14, fontWeight: 400, color: '#86868b' }}>/mes</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+            {BASICO_INCLUYE.map(f => (
+              <div key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: '#ebebf5cc', alignItems: 'flex-start' }}>
+                <span style={{ color: '#30d158', flexShrink: 0, marginTop: 1 }}>✓</span> {f}
+              </div>
+            ))}
+            <div style={{ borderTop: '1px solid #2c2c2e', marginTop: 10, paddingTop: 10 }}>
+              {BASICO_NO_INCLUYE.map(f => (
+                <div key={f} style={{ display: 'flex', gap: 8, fontSize: 12, color: '#86868b', alignItems: 'flex-start', marginBottom: 5 }}>
+                  <span style={{ flexShrink: 0, marginTop: 1 }}>🔒</span>
+                  <span style={{ textDecoration: 'line-through' }}>{f}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <button onClick={() => handleContratar('basico')}
+            style={{ background: '#2c2c2e', color: '#fff', border: '1px solid #3a3a3c', borderRadius: 10, padding: '13px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+            Empezar gratis
+          </button>
+        </div>
+
+        {/* PRO */}
+        <div ref={proRef} style={{
+          order: isMobile ? 1 : 2,
+          background: 'rgba(201,169,110,0.06)', border: `2px solid ${upgrade === 'pro' ? '#ff9f0a' : '#c9a96e'}`, borderRadius: 16,
+          padding: isMobile ? 28 : 32, display: 'flex', flexDirection: 'column', gap: 14,
+          flex: isMobile ? '1 1 100%' : '1 1 300px', maxWidth: isMobile ? '100%' : 360,
+          position: 'relative',
+        }}>
+          <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: '#c9a96e', color: '#000', fontSize: 11, fontWeight: 800, padding: '4px 18px', borderRadius: 99, letterSpacing: 1, whiteSpace: 'nowrap' }}>
+            🔥 MÁS POPULAR
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: '#c9a96e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Plan Pro</div>
+            <div style={{ fontSize: 13, color: '#86868b', marginBottom: 10 }}>Para crecer</div>
+            <div style={{ fontSize: 40, fontWeight: 800, color: '#c9a96e', letterSpacing: '-1px' }}>
+              $14.900<span style={{ fontSize: 14, fontWeight: 400, color: '#86868b' }}>/mes</span>
+            </div>
+            <div style={{ fontSize: 12, color: '#86868b', marginTop: 4 }}>= $497 ARS por día. Menos que un café.</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+            {PRO_INCLUYE.map(f => (
+              <div key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: '#ebebf5cc', alignItems: 'flex-start' }}>
+                <span style={{ color: '#30d158', flexShrink: 0, marginTop: 1 }}>✓</span> {f}
+              </div>
+            ))}
+            <div style={{ borderTop: '1px solid rgba(201,169,110,0.2)', marginTop: 10, paddingTop: 10 }}>
+              {PRO_NO_INCLUYE.map(f => (
+                <div key={f} style={{ display: 'flex', gap: 8, fontSize: 12, color: '#86868b', alignItems: 'flex-start', marginBottom: 5 }}>
+                  <span style={{ flexShrink: 0, marginTop: 1 }}>🔒</span>
+                  <span style={{ textDecoration: 'line-through' }}>{f}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ background: 'rgba(201,169,110,0.1)', border: '1px solid rgba(201,169,110,0.25)', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: '#c9a96e', textAlign: 'center' }}>
+            🔥 El 80% de nuestros usuarios elige este plan
+          </div>
+          <button onClick={() => handleContratar('pro')}
+            style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 10, padding: '14px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+            Empezar gratis
+          </button>
+        </div>
+
+        {/* PRO MAX */}
+        <div style={{
+          order: 3,
+          background: '#1c1c1e', border: `2px solid ${upgrade === 'promax' ? '#ff9f0a' : '#2c2c2e'}`, borderRadius: 16,
+          padding: 28, display: 'flex', flexDirection: 'column', gap: 14,
+          flex: isMobile ? '1 1 100%' : '1 1 260px', maxWidth: isMobile ? '100%' : 300,
+        }}>
+          <div>
+            <div style={{ fontSize: 12, color: '#86868b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Plan Pro Max</div>
+            <div style={{ fontSize: 13, color: '#86868b', marginBottom: 10 }}>Para equipos</div>
+            <div style={{ fontSize: 36, fontWeight: 800, color: '#fff', letterSpacing: '-1px' }}>
+              $29.900<span style={{ fontSize: 14, fontWeight: 400, color: '#86868b' }}>/mes</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+            {PROMAX_INCLUYE.map(f => (
+              <div key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: '#ebebf5cc', alignItems: 'flex-start' }}>
+                <span style={{ color: '#30d158', flexShrink: 0, marginTop: 1 }}>✓</span> {f}
+              </div>
+            ))}
+          </div>
+          <div style={{ background: '#2c2c2e', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#86868b', textAlign: 'center', lineHeight: 1.5 }}>
+            💬 ¿Manejás más de 100 equipos por mes? Este plan es para vos
+          </div>
+          <button onClick={handleProMax}
+            style={{ background: '#25D366', color: '#fff', border: 'none', borderRadius: 10, padding: '13px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+            Contactar por WhatsApp
+          </button>
+        </div>
       </div>
 
       <div style={{ textAlign: 'center', color: '#86868b', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
         <span>💳 Pagá con tarjeta, débito o transferencia via MercadoPago</span>
-        <span>🔄 Cancelá en cualquier momento, sin compromisos</span>
+        <span>🔄 Cancelá cuando quieras · ✓ 7 días de prueba gratis al registrarte</span>
       </div>
     </div>
   );

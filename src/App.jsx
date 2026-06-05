@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
+import Registro from './pages/Registro';
+import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Stock from './pages/Stock';
 import Ventas from './pages/Ventas';
@@ -10,10 +12,12 @@ import Proveedores from './pages/Proveedores';
 import PagosProveedores from './pages/PagosProveedores';
 import Configuracion from './pages/Configuracion';
 import Usuarios from './pages/Usuarios';
+import Planes from './pages/Planes';
+import CatalogoPublico from './pages/CatalogoPublico';
 
 function PrivateRoute({ children, modulo }) {
   const { user, puedeVer } = useAuth();
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to="/landing" />;
   if (modulo && !puedeVer(modulo)) return (
     <div style={{ padding: 60, textAlign: 'center', color: '#86868b', fontFamily: 'Inter, sans-serif' }}>
       <div style={{ fontSize: 40, marginBottom: 12 }}>🔒</div>
@@ -27,8 +31,14 @@ function AppRoutes() {
   const { user } = useAuth();
   return (
     <Routes>
+      {/* Rutas públicas */}
+      <Route path="/landing" element={<Landing />} />
+      <Route path="/registro" element={user ? <Navigate to="/" /> : <Registro />} />
       <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
-      <Route path="/" element={<PrivateRoute modulo="dashboard"><Layout><Dashboard /></Layout></PrivateRoute>} />
+      <Route path="/catalogo/:negocioId" element={<CatalogoPublico />} />
+
+      {/* Rutas privadas */}
+      <Route path="/" element={user ? <PrivateRoute modulo="dashboard"><Layout><Dashboard /></Layout></PrivateRoute> : <Navigate to="/landing" />} />
       <Route path="/stock" element={<PrivateRoute modulo="stock"><Layout><Stock /></Layout></PrivateRoute>} />
       <Route path="/ventas" element={<PrivateRoute modulo="ventas"><Layout><Ventas /></Layout></PrivateRoute>} />
       <Route path="/cobros" element={<PrivateRoute modulo="cobros"><Layout><Cobros /></Layout></PrivateRoute>} />
@@ -36,7 +46,9 @@ function AppRoutes() {
       <Route path="/pagos" element={<PrivateRoute modulo="pagos"><Layout><PagosProveedores /></Layout></PrivateRoute>} />
       <Route path="/config" element={<PrivateRoute modulo="config"><Layout><Configuracion /></Layout></PrivateRoute>} />
       <Route path="/usuarios" element={<PrivateRoute modulo="usuarios"><Layout><Usuarios /></Layout></PrivateRoute>} />
-      <Route path="*" element={<Navigate to="/" />} />
+      <Route path="/planes" element={<PrivateRoute><Layout><Planes /></Layout></PrivateRoute>} />
+
+      <Route path="*" element={<Navigate to={user ? '/' : '/landing'} />} />
     </Routes>
   );
 }

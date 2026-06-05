@@ -8,6 +8,7 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [perfil, setPerfil] = useState(null);
+  const [negocioId, setNegocioId] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,10 +16,15 @@ export function AuthProvider({ children }) {
       if (u) {
         setUser(u);
         const snap = await getDoc(doc(db, 'usuarios', u.uid));
-        if (snap.exists()) setPerfil(snap.data());
+        if (snap.exists()) {
+          const perfilData = snap.data();
+          setPerfil(perfilData);
+          setNegocioId(perfilData.negocioId || u.uid);
+        }
       } else {
         setUser(null);
         setPerfil(null);
+        setNegocioId(null);
       }
       setLoading(false);
     });
@@ -35,7 +41,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, perfil, loading, login, logout, puedeVer }}>
+    <AuthContext.Provider value={{ user, perfil, negocioId, loading, login, logout, puedeVer }}>
       {!loading && children}
     </AuthContext.Provider>
   );

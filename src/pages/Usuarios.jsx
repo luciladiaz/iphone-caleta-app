@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, updateDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '../firebase/config';
+import { useAuth } from '../context/AuthContext';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -18,6 +19,9 @@ const MODULOS = [
 ];
 
 export default function Usuarios() {
+  const { negocioId } = useAuth();
+  const base = ['negocios', negocioId];
+
   const [usuarios, setUsuarios] = useState([]);
   const [puntosVenta, setPuntosVenta] = useState([]);
   const [modal, setModal] = useState(false);
@@ -26,15 +30,16 @@ export default function Usuarios() {
   const [form, setForm] = useState({ nombre: '', email: '', password: '', rol: 'vendedor', puntoVenta: '', activo: true, permisos: {} });
 
   const cargar = async () => {
+    if (!negocioId) return;
     const [uSnap, pvSnap] = await Promise.all([
-      getDocs(collection(db, 'usuarios')),
-      getDocs(collection(db, 'puntosVenta')),
+      getDocs(collection(db, ...base, 'usuarios')),
+      getDocs(collection(db, ...base, 'puntosVenta')),
     ]);
     setUsuarios(uSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     setPuntosVenta(pvSnap.docs.map(d => ({ id: d.id, ...d.data() })));
   };
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => { cargar(); }, [negocioId]);
 
   const togglePermiso = (key) => setForm(f => ({ ...f, permisos: { ...f.permisos, [key]: !f.permisos[key] } }));
 
@@ -44,11 +49,11 @@ export default function Usuarios() {
     setError('');
     try {
       const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);
-      await setDoc(doc(db, 'usuarios', cred.user.uid), {
-        nombre: form.nombre, email: form.email,
-        rol: form.rol, puntoVenta: form.puntoVenta,
-        activo: form.activo, permisos: form.permisos,
-      });
+      const userData = { nombre: form.nombre, email: form.email, rol: form.rol, puntoVenta: form.puntoVenta, activo: form.activo, permisos: form.permisos, negocioId };
+      // Guardar en colección global de usuarios (para auth lookup)
+      await setDoc(doc(db, 'usuarios', cred.user.uid), userData);
+      // Guardar también en el negocio
+      await setDoc(doc(db, ...base, 'usuarios', cred.user.uid), userData);
       setModal(false);
       setForm({ nombre: '', email: '', password: '', rol: 'vendedor', puntoVenta: '', activo: true, permisos: {} });
       cargar();
@@ -58,7 +63,7 @@ export default function Usuarios() {
   };
 
   const toggleActivo = async (u) => {
-    await updateDoc(doc(db, 'usuarios', u.id), { activo: !u.activo });
+    await updateDoc(doc(db, ...base, 'usuarios', u.id), { activo: !u.activo });
     cargar();
   };
 
@@ -83,12 +88,9 @@ export default function Usuarios() {
                 ))}
               </div>
             </div>
-            <button onClick={() => toggleActivo(u)} style={{
-              background: u.activo ? 'rgba(48,209,88,0.1)' : 'rgba(255,59,48,0.1)',
-              border: `1px solid ${u.activo ? 'rgba(48,209,88,0.3)' : 'rgba(255,59,48,0.3)'}`,
-              color: u.activo ? '#30d158' : '#ff3b30',
-              borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer'
-            }}>{u.activo ? 'Activo' : 'Inactivo'}</button>
+            <button onClick={() => toggleActivo(u)} style={{ background: u.activo ? 'rgba(48,209,88,0.1)' : 'rgba(255,59,48,0.1)', border: `1px solid ${u.activo ? 'rgba(48,209,88,0.3)' : 'rgba(255,59,48,0.3)'}`, color: u.activo ? '#30d158' : '#ff3b30', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              {u.activo ? 'Activo' : 'Inactivo'}
+            </button>
           </div>
         ))}
         {usuarios.length === 0 && <p style={{ color: '#86868b' }}>No hay usuarios creados.</p>}
@@ -106,22 +108,9 @@ export default function Usuarios() {
               <div><label style={labelStyle}>Email</label><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required style={inputStyle} /></div>
               <div><label style={labelStyle}>Contraseña</label><input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required minLength={6} style={inputStyle} /></div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={labelStyle}>Rol</label>
-                  <select value={form.rol} onChange={e => setForm({ ...form, rol: e.target.value })} style={inputStyle}>
-                    <option value="vendedor">Vendedor</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={labelStyle}>Punto de venta</label>
-                  <select value={form.puntoVenta} onChange={e => setForm({ ...form, puntoVenta: e.target.value })} style={inputStyle}>
-                    <option value="">Ninguno</option>
-                    {puntosVenta.map(p => <option key={p.id}>{p.nombre}</option>)}
-                  </select>
-                </div>
+                <div><label style={labelStyle}>Rol</label><select value={form.rol} onChange={e => setForm({ ...form, rol: e.target.value })} style={inputStyle}><option value="vendedor">Vendedor</option><option value="admin">Admin</option></select></div>
+                <div><label style={labelStyle}>Punto de venta</label><select value={form.puntoVenta} onChange={e => setForm({ ...form, puntoVenta: e.target.value })} style={inputStyle}><option value="">Ninguno</option>{puntosVenta.map(p => <option key={p.id}>{p.nombre}</option>)}</select></div>
               </div>
-
               {form.rol === 'vendedor' && (
                 <div>
                   <label style={{ ...labelStyle, marginBottom: 10 }}>Permisos de módulos</label>
@@ -135,14 +124,10 @@ export default function Usuarios() {
                   </div>
                 </div>
               )}
-
               {error && <div style={{ background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', borderRadius: 8, padding: '10px 14px', color: '#ff3b30', fontSize: 13 }}>{error}</div>}
-
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
                 <button type="button" onClick={() => setModal(false)} style={{ padding: '10px 20px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
-                <button type="submit" disabled={guardando} style={{ padding: '10px 24px', background: '#c9a96e', border: 'none', borderRadius: 8, color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-                  {guardando ? 'Creando...' : 'Crear usuario'}
-                </button>
+                <button type="submit" disabled={guardando} style={{ padding: '10px 24px', background: '#c9a96e', border: 'none', borderRadius: 8, color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{guardando ? 'Creando...' : 'Crear usuario'}</button>
               </div>
             </form>
           </div>

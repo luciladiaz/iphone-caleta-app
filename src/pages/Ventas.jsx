@@ -11,7 +11,7 @@ const ORIGENES = ['Instagram iPhone Caleta', 'WhatsApp', 'Local físico', 'Refer
 const FORMAS_PAGO = ['Efectivo ARS', 'Efectivo USD', 'Transferencia ARS', 'Transferencia USD', 'Cuotas personales', 'iPhone como parte de pago'];
 
 export default function Ventas() {
-  const { perfil } = useAuth();
+  const { perfil, negocioId } = useAuth();
   const esAdmin = perfil?.rol === 'admin';
   const [ventas, setVentas] = useState([]);
   const [stock, setStock] = useState([]);
@@ -20,10 +20,10 @@ export default function Ventas() {
   const [tipoCambioGlobal, setTipoCambioGlobal] = useState('');
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
-  const [editando, setEditando] = useState(null); // venta que se está editando
+  const [editando, setEditando] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [form, setForm] = useState({
-    equipoId: '', cliente: '', vendedor: '', origen: '',
+    equipoId: '', cliente: '', telefono: '', vendedor: '', origen: '',
     estado: 'pendiente', notas: '', tipoCambio: '',
     cobros: [{ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS', cuotas: '', montoCuota: '', fechaInicio: '' }],
     partesDePago: []
@@ -31,11 +31,13 @@ export default function Ventas() {
   const [nuevaParte, setNuevaParte] = useState({ modelo: '', gb: '', color: '', bateria: '', imei: '', costoUsd: '', pvUsd: '' });
 
   const cargar = async () => {
+    if (!negocioId) return;
+    const base = ['negocios', negocioId];
     const [vSnap, sSnap, vendSnap, origSnap] = await Promise.all([
-      getDocs(query(collection(db, 'ventas'), orderBy('fecha', 'desc'))),
-      getDocs(collection(db, 'stock')),
-      getDocs(collection(db, 'vendedores')),
-      getDocs(collection(db, 'config')),
+      getDocs(query(collection(db, ...base, 'ventas'), orderBy('fecha', 'desc'))),
+      getDocs(collection(db, ...base, 'stock')),
+      getDocs(collection(db, ...base, 'vendedores')),
+      getDocs(collection(db, ...base, 'config')),
     ]);
     setVentas(vSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     setStock(sSnap.docs.filter(d => d.data().estado === 'disponible').map(d => ({ id: d.id, ...d.data() })));
@@ -46,7 +48,10 @@ export default function Ventas() {
     setLoading(false);
   };
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    if (!negocioId) return;
+    cargar();
+  }, [negocioId]);
 
   const equipoSeleccionado = stock.find(s => s.id === form.equipoId);
 
@@ -62,10 +67,10 @@ export default function Ventas() {
 
   const eliminarVenta = async (v) => {
     if (!window.confirm(`¿Eliminás la venta de ${v.modelo} ${v.gb}GB? Esta acción no se puede deshacer.`)) return;
-    await deleteDoc(doc(db, 'ventas', v.id));
-    // Si el equipo estaba vendido, volver a disponible
+    const base = ['negocios', negocioId];
+    await deleteDoc(doc(db, ...base, 'ventas', v.id));
     if (v.equipoId) {
-      try { await updateDoc(doc(db, 'stock', v.equipoId), { estado: 'disponible' }); } catch {}
+      try { await updateDoc(doc(db, ...base, 'stock', v.equipoId), { estado: 'disponible' }); } catch {}
     }
     cargar();
   };
@@ -75,6 +80,7 @@ export default function Ventas() {
     setForm({
       equipoId: v.equipoId || '',
       cliente: v.cliente || '',
+      telefono: v.telefono || '',
       vendedor: v.vendedor || '',
       origen: v.origen || '',
       estado: v.estado || 'pendiente',
@@ -89,34 +95,47 @@ export default function Ventas() {
   const cerrarModal = () => {
     setModal(false);
     setEditando(null);
-    setForm({ equipoId: '', cliente: '', vendedor: '', origen: '', estado: 'pendiente', notas: '', cobros: [{ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS', cuotas: '', montoCuota: '', fechaInicio: '' }], partesDePago: [] });
+    setForm({
+      equipoId: '', cliente: '', telefono: '', vendedor: '', origen: '',
+      estado: 'pendiente', notas: '', tipoCambio: '',
+      cobros: [{ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS', cuotas: '', montoCuota: '', fechaInicio: '' }],
+      partesDePago: []
+    });
   };
 
   const guardar = async (e) => {
     e.preventDefault();
     setGuardando(true);
+    const base = ['negocios', negocioId];
     try {
       if (editando) {
-        // Modo edición
-        await updateDoc(doc(db, 'ventas', editando), {
-          cliente: form.cliente, vendedor: form.vendedor,
-          origen: form.origen, estado: form.estado,
-          notas: form.notas, cobros: form.cobros,
+        await updateDoc(doc(db, ...base, 'ventas', editando), {
+          cliente: form.cliente,
+          telefono: form.telefono,
+          vendedor: form.vendedor,
+          origen: form.origen,
+          estado: form.estado,
+          notas: form.notas,
+          cobros: form.cobros,
         });
       } else {
-        // Modo nuevo
         const equipo = stock.find(s => s.id === form.equipoId);
         const ventaData = {
-          ...form, fecha: serverTimestamp(),
-          modelo: equipo?.modelo || '', gb: equipo?.gb || '',
-          color: equipo?.color || '', proveedor: equipo?.proveedor || '',
-          costoUsd: equipo?.costoUsd || '', pvUsd: equipo?.pvUsd || '',
+          ...form,
+          fecha: serverTimestamp(),
+          modelo: equipo?.modelo || '',
+          gb: equipo?.gb || '',
+          color: equipo?.color || '',
+          proveedor: equipo?.proveedor || '',
+          costoUsd: equipo?.costoUsd || '',
+          pvUsd: equipo?.pvUsd || '',
           equipoId: form.equipoId,
+          telefono: form.telefono,
         };
-        await addDoc(collection(db, 'ventas'), ventaData);
-        if (form.equipoId) await updateDoc(doc(db, 'stock', form.equipoId), { estado: 'vendido' });
+        await addDoc(collection(db, ...base, 'ventas'), ventaData);
+        if (form.equipoId) await updateDoc(doc(db, ...base, 'stock', form.equipoId), { estado: 'vendido' });
         for (const parte of form.partesDePago) {
-          await addDoc(collection(db, 'stock'), {
+          await addDoc(collection(db, ...base, 'stock'), {
             ...parte,
             tipo: 'parte_de_pago',
             estado: 'disponible',
@@ -152,7 +171,13 @@ export default function Ventas() {
             <div>
               <div style={{ fontWeight: 700, fontSize: 15 }}>{v.modelo} {v.gb}GB {v.color}</div>
               <div style={{ color: '#86868b', fontSize: 12, marginTop: 3 }}>
-                👤 {v.cliente || 'Sin cliente'} · 🧑‍💼 {v.vendedor || '-'} · 📣 {v.origen || '-'}
+                👤 {v.cliente || 'Sin cliente'}
+                {v.telefono && (
+                  <a href={`tel:${v.telefono}`} style={{ color: '#c9a96e', marginLeft: 4, textDecoration: 'none' }}>
+                    📞 {v.telefono}
+                  </a>
+                )}
+                {' '}· 🧑‍💼 {v.vendedor || '-'} · 📣 {v.origen || '-'}
                 {v.tipoCambio && <span style={{ color: '#c9a96e', marginLeft: 6 }}>· TC ${v.tipoCambio}</span>}
               </div>
             </div>
@@ -186,22 +211,36 @@ export default function Ventas() {
             </div>
             <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Equipo */}
-              <div>
-                <label style={labelStyle}>Equipo</label>
-                <select value={form.equipoId} onChange={e => setForm({ ...form, equipoId: e.target.value })} required style={inputStyle}>
-                  <option value="">Elegir equipo...</option>
-                  {stock.map(s => <option key={s.id} value={s.id}>{s.modelo} {s.gb}GB {s.color} · Bat {s.bateria}%</option>)}
-                </select>
-              </div>
+              {!editando && (
+                <div>
+                  <label style={labelStyle}>Equipo</label>
+                  <select value={form.equipoId} onChange={e => setForm({ ...form, equipoId: e.target.value })} required style={inputStyle}>
+                    <option value="">Elegir equipo...</option>
+                    {stock.map(s => <option key={s.id} value={s.id}>{s.modelo} {s.gb}GB {s.color} · Bat {s.bateria}%</option>)}
+                  </select>
+                </div>
+              )}
               {equipoSeleccionado && (
                 <div style={{ background: '#2c2c2e', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#c9a96e' }}>
                   📦 {equipoSeleccionado.modelo} · {equipoSeleccionado.gb}GB · {equipoSeleccionado.color} · Bat {equipoSeleccionado.bateria}% · Costo USD {equipoSeleccionado.costoUsd}
                 </div>
               )}
+
+              {/* Cliente y Teléfono */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={labelStyle}>Cliente</label>
                   <input value={form.cliente} onChange={e => setForm({ ...form, cliente: e.target.value })} placeholder="Nombre del comprador" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Teléfono</label>
+                  <input
+                    value={form.telefono}
+                    onChange={e => setForm({ ...form, telefono: e.target.value })}
+                    placeholder="+54 9 11 1234-5678"
+                    type="tel"
+                    style={inputStyle}
+                  />
                 </div>
                 <div>
                   <label style={labelStyle}>Vendedor</label>
@@ -225,10 +264,10 @@ export default function Ventas() {
                     <option value="cancelado">Cancelado</option>
                   </select>
                 </div>
-                <div style={{ gridColumn: '1/-1' }}>
+                <div>
                   <label style={labelStyle}>
-                    Tipo de cambio del día (ARS por USD)
-                    {tipoCambioGlobal && <span style={{ color: '#86868b', fontWeight: 400, marginLeft: 8 }}>— Global: ${tipoCambioGlobal}</span>}
+                    Tipo de cambio (ARS/USD)
+                    {tipoCambioGlobal && <span style={{ color: '#86868b', fontWeight: 400, marginLeft: 6 }}>— Global: ${tipoCambioGlobal}</span>}
                   </label>
                   <input
                     type="number"
@@ -237,8 +276,10 @@ export default function Ventas() {
                     placeholder={tipoCambioGlobal || '1430'}
                     style={inputStyle}
                   />
-                  <div style={{ fontSize: 11, color: '#86868b', marginTop: 4 }}>
-                    Si no lo modificás, se usa el tipo de cambio global de configuración.
+                </div>
+                <div style={{ gridColumn: '1/-1' }}>
+                  <div style={{ fontSize: 11, color: '#86868b' }}>
+                    Si no modificás el TC, se usa el tipo de cambio global de configuración.
                   </div>
                 </div>
               </div>
@@ -297,45 +338,47 @@ export default function Ventas() {
               </div>
 
               {/* Partes de pago iPhone */}
-              <div style={{ borderTop: '1px solid #2c2c2e', paddingTop: 16 }}>
-                <label style={{ ...labelStyle, marginBottom: 12 }}>iPhones recibidos como parte de pago</label>
-                {form.partesDePago.map((p, i) => (
-                  <div key={i} style={{ background: '#2c2c2e', borderRadius: 8, padding: '10px 14px', marginBottom: 8, fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <span style={{ color: '#c9a96e', fontWeight: 600 }}>📱 {p.modelo} {p.gb}GB {p.color}</span>
-                      <div style={{ color: '#86868b', fontSize: 11, marginTop: 3 }}>
-                        Toma: USD {p.costoUsd} · Venta: USD {p.pvUsd}
-                      </div>
-                    </div>
-                    <button type="button" onClick={() => setForm(f => ({ ...f, partesDePago: f.partesDePago.filter((_, idx) => idx !== i) }))} style={{ background: 'none', border: 'none', color: '#ff3b30', cursor: 'pointer', fontSize: 18 }}>✕</button>
-                  </div>
-                ))}
-                <div style={{ background: '#2c2c2e', borderRadius: 10, padding: 14 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-                    <div><label style={labelStyle}>Modelo</label><input value={nuevaParte.modelo} onChange={e => setNuevaParte({ ...nuevaParte, modelo: e.target.value })} placeholder="iPhone 13" style={inputStyle} /></div>
-                    <div><label style={labelStyle}>GB</label><input value={nuevaParte.gb} onChange={e => setNuevaParte({ ...nuevaParte, gb: e.target.value })} placeholder="128" style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Color</label><input value={nuevaParte.color} onChange={e => setNuevaParte({ ...nuevaParte, color: e.target.value })} placeholder="Negro" style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Batería %</label><input type="number" value={nuevaParte.bateria} onChange={e => setNuevaParte({ ...nuevaParte, bateria: e.target.value })} placeholder="85" style={inputStyle} /></div>
-                    <div><label style={labelStyle}>IMEI</label><input value={nuevaParte.imei} onChange={e => setNuevaParte({ ...nuevaParte, imei: e.target.value })} style={inputStyle} /></div>
-                    <div style={{ gridColumn: '1/-1', background: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.15)', borderRadius: 8, padding: 10 }}>
-                      <div style={{ color: '#c9a96e', fontSize: 11, fontWeight: 600, marginBottom: 8 }}>VALUACIÓN DEL EQUIPO RECIBIDO</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                        <div>
-                          <label style={labelStyle}>Lo tomo a USD (costo)</label>
-                          <input type="number" value={nuevaParte.costoUsd} onChange={e => setNuevaParte({ ...nuevaParte, costoUsd: e.target.value })} placeholder="200" style={inputStyle} />
-                          <div style={{ fontSize: 10, color: '#86868b', marginTop: 3 }}>Valor que le reconocés al cliente</div>
-                        </div>
-                        <div>
-                          <label style={labelStyle}>Lo vendo a USD (precio venta)</label>
-                          <input type="number" value={nuevaParte.pvUsd} onChange={e => setNuevaParte({ ...nuevaParte, pvUsd: e.target.value })} placeholder="280" style={inputStyle} />
-                          <div style={{ fontSize: 10, color: '#86868b', marginTop: 3 }}>Se carga en stock como precio de venta</div>
+              {!editando && (
+                <div style={{ borderTop: '1px solid #2c2c2e', paddingTop: 16 }}>
+                  <label style={{ ...labelStyle, marginBottom: 12 }}>iPhones recibidos como parte de pago</label>
+                  {form.partesDePago.map((p, i) => (
+                    <div key={i} style={{ background: '#2c2c2e', borderRadius: 8, padding: '10px 14px', marginBottom: 8, fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <span style={{ color: '#c9a96e', fontWeight: 600 }}>📱 {p.modelo} {p.gb}GB {p.color}</span>
+                        <div style={{ color: '#86868b', fontSize: 11, marginTop: 3 }}>
+                          Toma: USD {p.costoUsd} · Venta: USD {p.pvUsd}
                         </div>
                       </div>
+                      <button type="button" onClick={() => setForm(f => ({ ...f, partesDePago: f.partesDePago.filter((_, idx) => idx !== i) }))} style={{ background: 'none', border: 'none', color: '#ff3b30', cursor: 'pointer', fontSize: 18 }}>✕</button>
                     </div>
+                  ))}
+                  <div style={{ background: '#2c2c2e', borderRadius: 10, padding: 14 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                      <div><label style={labelStyle}>Modelo</label><input value={nuevaParte.modelo} onChange={e => setNuevaParte({ ...nuevaParte, modelo: e.target.value })} placeholder="iPhone 13" style={inputStyle} /></div>
+                      <div><label style={labelStyle}>GB</label><input value={nuevaParte.gb} onChange={e => setNuevaParte({ ...nuevaParte, gb: e.target.value })} placeholder="128" style={inputStyle} /></div>
+                      <div><label style={labelStyle}>Color</label><input value={nuevaParte.color} onChange={e => setNuevaParte({ ...nuevaParte, color: e.target.value })} placeholder="Negro" style={inputStyle} /></div>
+                      <div><label style={labelStyle}>Batería %</label><input type="number" value={nuevaParte.bateria} onChange={e => setNuevaParte({ ...nuevaParte, bateria: e.target.value })} placeholder="85" style={inputStyle} /></div>
+                      <div><label style={labelStyle}>IMEI</label><input value={nuevaParte.imei} onChange={e => setNuevaParte({ ...nuevaParte, imei: e.target.value })} style={inputStyle} /></div>
+                      <div style={{ gridColumn: '1/-1', background: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.15)', borderRadius: 8, padding: 10 }}>
+                        <div style={{ color: '#c9a96e', fontSize: 11, fontWeight: 600, marginBottom: 8 }}>VALUACIÓN DEL EQUIPO RECIBIDO</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                          <div>
+                            <label style={labelStyle}>Lo tomo a USD (costo)</label>
+                            <input type="number" value={nuevaParte.costoUsd} onChange={e => setNuevaParte({ ...nuevaParte, costoUsd: e.target.value })} placeholder="200" style={inputStyle} />
+                            <div style={{ fontSize: 10, color: '#86868b', marginTop: 3 }}>Valor que le reconocés al cliente</div>
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Lo vendo a USD (precio venta)</label>
+                            <input type="number" value={nuevaParte.pvUsd} onChange={e => setNuevaParte({ ...nuevaParte, pvUsd: e.target.value })} placeholder="280" style={inputStyle} />
+                            <div style={{ fontSize: 10, color: '#86868b', marginTop: 3 }}>Se carga en stock como precio de venta</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <button type="button" onClick={agregarParte} style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>+ Agregar iPhone</button>
                   </div>
-                  <button type="button" onClick={agregarParte} style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>+ Agregar iPhone</button>
                 </div>
-              </div>
+              )}
 
               <div>
                 <label style={labelStyle}>Notas</label>
@@ -343,7 +386,7 @@ export default function Ventas() {
               </div>
 
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
-                <button type="button" onClick={() => setModal(false)} style={{ padding: '10px 20px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
+                <button type="button" onClick={cerrarModal} style={{ padding: '10px 20px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
                 <button type="submit" disabled={guardando} style={{ padding: '10px 24px', background: '#c9a96e', border: 'none', borderRadius: 8, color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
                   {guardando ? 'Guardando...' : 'Guardar venta'}
                 </button>

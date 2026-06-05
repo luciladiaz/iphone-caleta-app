@@ -1,0 +1,34 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Usuarios globales: cada usuario lee su propio doc (para obtener negocioId al login)
+    match /usuarios/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Negocios: solo acceden usuarios que pertenecen al negocio
+    match /negocios/{negocioId}/{document=**} {
+      allow read, write: if request.auth != null
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.negocioId == negocioId;
+    }
+
+    // Catálogo público: cualquiera puede leer el stock disponible
+    match /negocios/{negocioId}/stock/{equipoId} {
+      allow read: if true;
+    }
+
+    // Info pública del negocio (nombre para el catálogo)
+    match /negocios/{negocioId} {
+      allow read: if true;
+    }
+
+    // Suscripciones: solo el admin puede leer, solo servidor puede escribir
+    match /suscripciones/{negocioId} {
+      allow read: if request.auth != null
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.negocioId == negocioId;
+      allow write: if false;
+    }
+  }
+}

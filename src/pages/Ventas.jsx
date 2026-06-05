@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs, addDoc, serverTimestamp, query, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, getDoc, addDoc, serverTimestamp, query, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 
@@ -33,18 +33,18 @@ export default function Ventas() {
   const cargar = async () => {
     if (!negocioId) return;
     const base = ['negocios', negocioId];
-    const [vSnap, sSnap, vendSnap, origSnap] = await Promise.all([
+    const [vSnap, sSnap, vendSnap, cfgSnap] = await Promise.all([
       getDocs(query(collection(db, ...base, 'ventas'), orderBy('fecha', 'desc'))),
       getDocs(collection(db, ...base, 'stock')),
       getDocs(collection(db, ...base, 'vendedores')),
-      getDocs(collection(db, ...base, 'config')),
+      getDoc(doc(db, ...base, 'config', 'general')),
     ]);
     setVentas(vSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     setStock(sSnap.docs.filter(d => d.data().estado === 'disponible').map(d => ({ id: d.id, ...d.data() })));
     setVendedores(vendSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-    const cfg = origSnap.docs.find(d => d.id === 'general');
-    if (cfg?.data()?.origenes) setOrigenes(cfg.data().origenes);
-    if (cfg?.data()?.tipoCambio) setTipoCambioGlobal(String(cfg.data().tipoCambio));
+    const cfg = cfgSnap.data() || {};
+    if (cfg.origenes) setOrigenes(cfg.origenes);
+    if (cfg.tipoCambio) setTipoCambioGlobal(String(cfg.tipoCambio));
     setLoading(false);
   };
 

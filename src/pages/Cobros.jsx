@@ -52,7 +52,7 @@ export default function Cobros() {
     const venta = ventas.find(v => v.id === ventaId);
     const cobros = [...(venta.cobros || [])];
     const cuotasPagadas = [...(cobros[cobroIdx].cuotasPagadas || [])];
-    if (pagada) cuotasPagadas.splice(cuotasPagadas.indexOf(cuotaIdx), 1);
+    if (pagada) { const i = cuotasPagadas.indexOf(cuotaIdx); if (i > -1) cuotasPagadas.splice(i, 1); }
     else cuotasPagadas.push(cuotaIdx);
     cobros[cobroIdx] = { ...cobros[cobroIdx], cuotasPagadas };
     await updateDoc(doc(db, ...base, 'ventas', ventaId), { cobros });

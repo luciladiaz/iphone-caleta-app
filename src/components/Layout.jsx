@@ -74,7 +74,7 @@ export default function Layout({ children }) {
       <aside style={{
         width: 220, background: '#1c1c1e', borderRight: '1px solid #2c2c2e',
         position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 50,
-        display: window.innerWidth < 768 ? 'none' : 'flex',
+        display: 'flex',
         flexDirection: 'column'
       }} className="sidebar-desktop">
         <SidebarContent />

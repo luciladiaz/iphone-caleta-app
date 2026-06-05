@@ -2,17 +2,14 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs, query, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
+import { useSubscription } from '../hooks/useSubscription';
 
-// Calcula cuántos días de diferencia hay entre hoy y una fecha (negativo = pasado)
 function diasDesde(fecha) {
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const d = new Date(fecha);
-  d.setHours(0, 0, 0, 0);
-  return Math.floor((d - hoy) / (1000 * 60 * 60 * 24));
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const d = new Date(fecha); d.setHours(0,0,0,0);
+  return Math.floor((hoy - d) / 86400000);
 }
 
-// Genera la fecha de cada cuota a partir de fechaInicio + N meses
 function fechaCuota(fechaInicio, idx) {
   if (!fechaInicio) return null;
   const d = new Date(fechaInicio);
@@ -20,21 +17,37 @@ function fechaCuota(fechaInicio, idx) {
   return d;
 }
 
-// Devuelve semáforo: 'rojo' (>30 días vencida), 'naranja' (1-30 días), 'verde' (al día)
-function semaforo(diasVencidos) {
-  if (diasVencidos > 30) return 'rojo';
-  if (diasVencidos >= 1) return 'naranja';
+function calcSemaforo(diasVencidos) {
+  if (diasVencidos > 7) return 'rojo';
+  if (diasVencidos >= 1) return 'amarillo';
   return 'verde';
 }
 
-const colorSemaforo = { rojo: '#ff3b30', naranja: '#ff9f0a', verde: '#30d158' };
-const bgSemaforo = { rojo: 'rgba(255,59,48,0.10)', naranja: 'rgba(255,159,10,0.10)', verde: 'rgba(48,209,88,0.10)' };
-const etiquetaSemaforo = { rojo: 'URGENTE', naranja: 'ATENCIÓN', verde: 'AL DÍA' };
+const colorSem = { rojo: '#ff3b30', amarillo: '#ff9f0a', verde: '#30d158' };
+const bgSem = { rojo: 'rgba(255,59,48,0.10)', amarillo: 'rgba(255,159,10,0.10)', verde: 'rgba(48,209,88,0.10)' };
+const etiquetaSem = { rojo: 'URGENTE', amarillo: 'ATENCIÓN', verde: 'AL DÍA' };
+
+const generarMensajeWA = (cliente, telefono, modelo, gb, numeroCuota, totalCuotas, monto) => {
+  const msg = `Hola ${cliente}! Te recuerdo que vence la cuota ${numeroCuota} de ${totalCuotas} de tu ${modelo} ${gb}GB. El monto es $${Number(monto).toLocaleString('es-AR')} ARS. Cualquier consulta avisame. Gracias!`;
+  const tel = telefono?.replace(/\D/g, '');
+  const telAR = tel?.startsWith('54') ? tel : `54${tel}`;
+  window.open(`https://wa.me/${telAR}?text=${encodeURIComponent(msg)}`, '_blank');
+};
+
+const FILTROS = [
+  { key: 'vencidas', label: '🔴 Vencidas' },
+  { key: 'semana', label: '🟡 Esta semana' },
+  { key: 'mes', label: '🟠 Este mes' },
+  { key: 'aldia', label: '✅ Al día' },
+  { key: 'todas', label: 'Todas' },
+];
 
 export default function Cobros() {
   const { negocioId } = useAuth();
+  const { tieneAccesoWhatsApp } = useSubscription();
   const [ventas, setVentas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filtro, setFiltro] = useState('todas');
 
   useEffect(() => {
     if (!negocioId) return;
@@ -61,9 +74,10 @@ export default function Cobros() {
 
   if (loading) return <div style={{ color: '#86868b', padding: 40 }}>Cargando...</div>;
 
-  // --- Calcular deudores urgentes ---
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
+  // Calcular deudores
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const finSemana = new Date(hoy); finSemana.setDate(finSemana.getDate() + 7);
+  const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
 
   const deudores = [];
   for (const venta of ventas) {
@@ -71,146 +85,127 @@ export default function Cobros() {
     for (let ci = 0; ci < venta.cobros.length; ci++) {
       const cobro = venta.cobros[ci];
       if (cobro.tipo !== 'Cuotas personales' || !cobro.cuotas || !cobro.fechaInicio) continue;
-      const cuotasPagadas = cobro.cuotasPagadas || [];
-      const totalCuotas = Number(cobro.cuotas);
-      const montoCuota = Number(cobro.montoCuota) || 0;
+      const pagadas = cobro.cuotasPagadas || [];
+      const total = Number(cobro.cuotas);
+      const monto = Number(cobro.montoCuota) || 0;
+      let vencidas = [], montoTotal = 0, maxDias = 0;
+      let proximasNoVencidas = [];
 
-      let cuotasVencidas = [];
-      let maxDiasVencida = 0;
-
-      for (let qi = 0; qi < totalCuotas; qi++) {
-        if (cuotasPagadas.includes(qi)) continue;
-        const fCuota = fechaCuota(cobro.fechaInicio, qi);
-        if (!fCuota) continue;
-        fCuota.setHours(0, 0, 0, 0);
-        const diff = Math.floor((hoy - fCuota) / (1000 * 60 * 60 * 24)); // positivo = vencida
+      for (let qi = 0; qi < total; qi++) {
+        if (pagadas.includes(qi)) continue;
+        const fc = fechaCuota(cobro.fechaInicio, qi);
+        if (!fc) continue;
+        fc.setHours(0,0,0,0);
+        const diff = Math.floor((hoy - fc) / 86400000);
         if (diff >= 1) {
-          cuotasVencidas.push({ idx: qi, diasVencida: diff });
-          if (diff > maxDiasVencida) maxDiasVencida = diff;
+          vencidas.push(qi);
+          montoTotal += monto;
+          if (diff > maxDias) maxDias = diff;
+        } else {
+          proximasNoVencidas.push({ idx: qi, fecha: fc });
         }
       }
 
-      if (cuotasVencidas.length > 0) {
-        deudores.push({
-          ventaId: venta.id,
-          cobroIdx: ci,
-          cliente: venta.cliente || 'Sin nombre',
-          telefono: venta.telefono || '',
-          modelo: `${venta.modelo || ''} ${venta.gb || ''}GB`.trim(),
-          cuotasVencidas: cuotasVencidas.length,
-          montoVencido: cuotasVencidas.length * montoCuota,
-          moneda: cobro.moneda || 'ARS',
-          maxDiasVencida,
-          semaforo: semaforo(maxDiasVencida),
-        });
-      }
+      const sem = vencidas.length > 0 ? calcSemaforo(maxDias) : 'verde';
+      const pendientesFuturo = proximasNoVencidas.length;
+
+      deudores.push({
+        ventaId: venta.id, cobroIdx: ci,
+        cliente: venta.cliente || 'Sin nombre',
+        telefono: venta.telefono || '',
+        modelo: `${venta.modelo || ''} ${venta.gb || ''}GB`.trim(),
+        cuotasVencidas: vencidas.length, montoVencido: montoTotal,
+        moneda: cobro.moneda || 'ARS', maxDias, sem, pendientesFuturo,
+        totalCuotas: total, cobro,
+        venta,
+      });
     }
   }
 
-  // Ordenar: rojo primero, luego naranja
-  const ordenSemaforo = { rojo: 0, naranja: 1, verde: 2 };
-  deudores.sort((a, b) => ordenSemaforo[a.semaforo] - ordenSemaforo[b.semaforo] || b.maxDiasVencida - a.maxDiasVencida);
+  deudores.sort((a, b) => ({ rojo: 0, amarillo: 1, verde: 2 }[a.sem] - { rojo: 0, amarillo: 1, verde: 2 }[b.sem] || b.maxDias - a.maxDias);
+
+  const deudoresFiltrados = deudores.filter(d => {
+    if (filtro === 'todas') return true;
+    if (filtro === 'vencidas') return d.cuotasVencidas > 0;
+    if (filtro === 'semana') return d.maxDias <= 7 && d.maxDias >= 1;
+    if (filtro === 'mes') return d.maxDias <= 31 && d.maxDias >= 1;
+    if (filtro === 'aldia') return d.cuotasVencidas === 0;
+    return true;
+  });
 
   const ventasConCobros = ventas.filter(v => v.cobros && v.cobros.length > 0);
 
   return (
     <div>
-      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 24 }}>Cobros</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 24 }}>💳 Cobros</h1>
 
-      {/* Panel deudores urgentes */}
+      {/* Panel deudores */}
       {deudores.length > 0 && (
         <div style={{ marginBottom: 32 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-            <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ff3b30' }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#ff3b30', textTransform: 'uppercase', letterSpacing: 1 }}>
-              Deudores con cuotas vencidas
-            </span>
-            <span style={{ background: 'rgba(255,59,48,0.15)', color: '#ff3b30', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99 }}>
-              {deudores.length}
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 15, fontWeight: 700 }}>Deudores con cuotas pendientes</span>
+            <span style={{ background: 'rgba(255,59,48,0.15)', color: '#ff3b30', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99 }}>{deudores.filter(d => d.cuotasVencidas > 0).length} con atraso</span>
           </div>
+
+          {/* Filtros */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+            {FILTROS.map(f => (
+              <button key={f.key} onClick={() => setFiltro(f.key)} style={{ background: filtro === f.key ? '#c9a96e' : '#2c2c2e', color: filtro === f.key ? '#000' : '#ebebf5cc', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {deudores.map((d, idx) => (
-              <div key={idx} style={{
-                background: bgSemaforo[d.semaforo],
-                border: `1px solid ${colorSemaforo[d.semaforo]}44`,
-                borderLeft: `4px solid ${colorSemaforo[d.semaforo]}`,
-                borderRadius: 12,
-                padding: '14px 18px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 10,
-              }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-                    <span style={{
-                      fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
-                      background: colorSemaforo[d.semaforo] + '22',
-                      color: colorSemaforo[d.semaforo],
-                      letterSpacing: 0.5,
-                    }}>
-                      {etiquetaSemaforo[d.semaforo]}
-                    </span>
-                    <span style={{ fontWeight: 700, fontSize: 14 }}>{d.cliente}</span>
-                    <span style={{ color: '#86868b', fontSize: 12 }}>{d.modelo}</span>
+            {deudoresFiltrados.map((d, idx) => (
+              <div key={idx} style={{ background: d.cuotasVencidas > 0 ? bgSem[d.sem] : '#1c1c1e', border: `1px solid ${d.cuotasVencidas > 0 ? colorSem[d.sem] + '44' : '#2c2c2e'}`, borderLeft: d.cuotasVencidas > 0 ? `4px solid ${colorSem[d.sem]}` : '4px solid #2c2c2e', borderRadius: 12, padding: '14px 18px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                      {d.cuotasVencidas > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: colorSem[d.sem] + '22', color: colorSem[d.sem] }}>{etiquetaSem[d.sem]}</span>}
+                      <span style={{ fontWeight: 700, fontSize: 14 }}>{d.cliente}</span>
+                      <span style={{ color: '#86868b', fontSize: 12 }}>{d.modelo}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#86868b' }}>
+                      {d.cuotasVencidas > 0 && (
+                        <span style={{ color: colorSem[d.sem], fontWeight: 600 }}>
+                          {d.cuotasVencidas} cuota{d.cuotasVencidas > 1 ? 's' : ''} vencida{d.cuotasVencidas > 1 ? 's' : ''} · Hace {d.maxDias} días
+                        </span>
+                      )}
+                      {d.cuotasVencidas > 0 && d.montoVencido > 0 && <span style={{ color: '#fff', fontWeight: 600, marginLeft: 8 }}>· Debe {d.moneda} {d.montoVencido.toLocaleString('es-AR')}</span>}
+                      {d.cuotasVencidas === 0 && <span style={{ color: '#30d158' }}>Al día ✓</span>}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 12, color: '#86868b' }}>
-                    <span style={{ color: colorSemaforo[d.semaforo], fontWeight: 600 }}>
-                      {d.cuotasVencidas} cuota{d.cuotasVencidas > 1 ? 's' : ''} vencida{d.cuotasVencidas > 1 ? 's' : ''}
-                    </span>
-                    {' '}· Hace {d.maxDiasVencida} días la más antigua
-                    {d.montoVencido > 0 && (
-                      <span style={{ color: '#fff', fontWeight: 600, marginLeft: 8 }}>
-                        · Debe {d.moneda} {d.montoVencido.toLocaleString('es-AR')}
-                      </span>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {tieneAccesoWhatsApp ? (
+                      <button
+                        onClick={() => d.telefono ? generarMensajeWA(d.cliente, d.telefono, d.modelo, '', d.cuotasVencidas, d.totalCuotas, d.montoVencido) : null}
+                        title={!d.telefono ? 'Agregá el teléfono del cliente en la venta' : ''}
+                        style={{ background: '#25D366', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: d.telefono ? 'pointer' : 'not-allowed', opacity: d.telefono ? 1 : 0.4 }}>
+                        📲 WhatsApp
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: 11, color: '#86868b', alignSelf: 'center' }}>WhatsApp · Plan Agencia</span>
                     )}
                   </div>
                 </div>
-                {d.telefono && (
-                  <a
-                    href={`tel:${d.telefono}`}
-                    style={{
-                      background: '#30d158',
-                      color: '#000',
-                      border: 'none',
-                      borderRadius: 8,
-                      padding: '8px 14px',
-                      fontSize: 13,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      textDecoration: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    📞 Llamar
-                  </a>
-                )}
               </div>
             ))}
+            {deudoresFiltrados.length === 0 && <div style={{ textAlign: 'center', color: '#30d158', padding: 20, fontSize: 14 }}>✅ No hay deudores en esta categoría</div>}
           </div>
         </div>
       )}
 
-      {/* Panel de cobros por venta */}
+      {/* Lista de cobros con cuotas */}
+      <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Detalle de cuotas</h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {ventasConCobros.map(v => (
           <div key={v.id} style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 20 }}>
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>
-                {v.modelo} {v.gb}GB · {v.cliente || 'Sin cliente'}
-              </div>
-              <div style={{ color: '#86868b', fontSize: 12, marginTop: 2, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span>Vendedor: {v.vendedor || '-'}</span>
-                {v.telefono && (
-                  <a href={`tel:${v.telefono}`} style={{ color: '#c9a96e', textDecoration: 'none', fontSize: 12 }}>
-                    📞 {v.telefono}
-                  </a>
-                )}
+              <div style={{ fontWeight: 700, fontSize: 15 }}>{v.modelo} {v.gb}GB · {v.cliente || 'Sin cliente'}</div>
+              <div style={{ color: '#86868b', fontSize: 12, marginTop: 2 }}>
+                Vendedor: {v.vendedor || '-'}
+                {v.telefono && <a href={`tel:${v.telefono}`} style={{ color: '#c9a96e', marginLeft: 8 }}>📞 {v.telefono}</a>}
               </div>
             </div>
             {v.cobros.map((cobro, ci) => (
@@ -221,58 +216,27 @@ export default function Cobros() {
                 </div>
                 {cobro.tipo === 'Cuotas personales' && cobro.cuotas && (
                   <div>
-                    <div style={{ color: '#86868b', fontSize: 12, marginBottom: 8 }}>
-                      {cobro.cuotas} cuotas de {cobro.moneda} {cobro.montoCuota}
-                    </div>
+                    <div style={{ color: '#86868b', fontSize: 12, marginBottom: 8 }}>{cobro.cuotas} cuotas de {cobro.moneda} {cobro.montoCuota}</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {Array.from({ length: Number(cobro.cuotas) }).map((_, qi) => {
                         const pagada = (cobro.cuotasPagadas || []).includes(qi);
-                        const fCuota = fechaCuota(cobro.fechaInicio, qi);
-                        const label = fCuota
-                          ? fCuota.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' })
-                          : `Cuota ${qi + 1}`;
-                        // Calcular si está vencida y no pagada
-                        let vencida = false;
-                        if (!pagada && fCuota) {
-                          fCuota.setHours(0, 0, 0, 0);
-                          const hoyLocal = new Date();
-                          hoyLocal.setHours(0, 0, 0, 0);
-                          vencida = fCuota < hoyLocal;
-                        }
+                        const fc = cobro.fechaInicio ? fechaCuota(cobro.fechaInicio, qi) : null;
+                        const vencida = fc && fc < hoy && !pagada;
+                        const fecha = fc ? fc.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' }) : `Cuota ${qi + 1}`;
                         return (
-                          <button
-                            key={qi}
-                            onClick={() => marcarCuota(v.id, ci, qi, pagada)}
-                            title={fCuota ? fCuota.toLocaleDateString('es-AR') : ''}
-                            style={{
-                              padding: '6px 12px',
-                              borderRadius: 8,
-                              fontSize: 11,
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              border: vencida && !pagada ? '1px solid rgba(255,59,48,0.5)' : 'none',
-                              background: pagada
-                                ? 'rgba(48,209,88,0.15)'
-                                : vencida
-                                  ? 'rgba(255,59,48,0.15)'
-                                  : 'rgba(255,159,10,0.15)',
-                              color: pagada
-                                ? '#30d158'
-                                : vencida
-                                  ? '#ff3b30'
-                                  : '#ff9f0a',
-                            }}
-                          >
-                            {pagada ? '✓ ' : ''}{label}
+                          <button key={qi} onClick={() => marcarCuota(v.id, ci, qi, pagada)} style={{
+                            padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
+                            background: pagada ? 'rgba(48,209,88,0.15)' : vencida ? 'rgba(255,59,48,0.15)' : 'rgba(255,159,10,0.15)',
+                            color: pagada ? '#30d158' : vencida ? '#ff3b30' : '#ff9f0a',
+                          }}>
+                            {pagada ? '✓' : vencida ? '⚠' : ''} {fecha}
                           </button>
                         );
                       })}
                     </div>
                   </div>
                 )}
-                {cobro.tipo === 'iPhone como parte de pago' && (
-                  <div style={{ color: '#c9a96e', fontSize: 13 }}>📱 iPhone recibido como parte de pago (ya agregado al stock)</div>
-                )}
+                {cobro.tipo === 'iPhone como parte de pago' && <div style={{ color: '#c9a96e', fontSize: 13 }}>📱 iPhone recibido como parte de pago</div>}
               </div>
             ))}
           </div>

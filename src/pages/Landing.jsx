@@ -95,7 +95,7 @@ function CardFeature({ icon, titulo, desc }) {
       <div style={{ width: 44, height: 44, borderRadius: 10, background: 'rgba(37,99,235,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
         {icon}
       </div>
-      <div style={{ fontWeight: 700, fontSize: 15, color: C.textPrimary, marginTop: 14 }}>{titulo}</div>
+      <h3 style={{ fontWeight: 700, fontSize: 15, color: C.textPrimary, margin: '14px 0 0', padding: 0 }}>{titulo}</h3>
       <div style={{ color: C.textSecondary, fontSize: 12, marginTop: 6, lineHeight: 1.6 }}>{desc}</div>
     </div>
   );
@@ -172,7 +172,7 @@ export default function Landing() {
             Usado por revendedores en toda Argentina
           </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {['CABA', 'Córdoba', 'Rosario', 'Mendoza', 'Tucumán'].map(ciudad => (
+            {['CABA', 'Córdoba', 'Rosario', 'Mendoza', 'Tucumán', 'Santa Fe', 'Mar del Plata', 'Salta', 'Neuquén', 'San Juan'].map(ciudad => (
               <span key={ciudad} style={{ background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)', color: C.textSecondary, borderRadius: 99, padding: '6px 16px', fontSize: 12 }}>
                 {ciudad}
               </span>
@@ -201,8 +201,8 @@ export default function Landing() {
       <section style={{ padding: '80px 24px', background: '#0a1628' }}>
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 56 }}>
-            <h2 style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 800, letterSpacing: '-1px', marginBottom: 12 }}>Resuelve todo eso</h2>
-            <p style={{ color: C.textSecondary, fontSize: 16 }}>Todo lo que necesitás para gestionar tu negocio de iPhones</p>
+            <h2 style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 800, letterSpacing: '-1px', marginBottom: 12 }}>Software completo para gestionar tu negocio de iPhones</h2>
+            <p style={{ color: C.textSecondary, fontSize: 16 }}>Control de stock, ventas, cobros y ganancias — todo en una sola app para revendedores de celulares</p>
           </div>
           <div className="landing-grid-2">
             {FEATURES.map(f => <CardFeature key={f.titulo} {...f} />)}
@@ -285,7 +285,7 @@ export default function Landing() {
       {/* TESTIMONIOS */}
       <section style={{ padding: '80px 24px', background: '#0a1628' }}>
         <div style={{ maxWidth: 960, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 800, letterSpacing: '-1px', marginBottom: 48, textAlign: 'center' }}>Lo que dicen los revendedores</h2>
+          <h2 style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 800, letterSpacing: '-1px', marginBottom: 48, textAlign: 'center' }}>Lo que dicen los revendedores de iPhone en Argentina</h2>
           <div className="landing-grid-3">
             {TESTIMONIOS.map(t => (
               <div key={t.nombre} style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14, padding: 24 }}>
@@ -337,13 +337,31 @@ export default function Landing() {
         ¿Tenés dudas? Hablá con un asesor
       </a>
 
+      {/* SEO TEXT BLOCK */}
+      <section style={{ background: '#080e1e', padding: '48px 24px', borderTop: `1px solid ${C.border}` }}>
+        <div style={{ maxWidth: 860, margin: '0 auto' }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: C.accentLight, marginBottom: 16 }}>
+            El sistema de gestión preferido por revendedores de iPhone en Argentina
+          </h2>
+          <p style={{ color: C.textSecondary, fontSize: 14, lineHeight: 1.9, marginBottom: 16 }}>
+            <strong style={{ color: '#fff' }}>ReventApp</strong> es un <strong style={{ color: '#fff' }}>software de gestión para revendedores de celulares y iPhones</strong> diseñado especialmente para el mercado argentino. Si revendés iPhones — ya sea desde un local, por Instagram o por WhatsApp — necesitás un sistema que entienda cómo funciona tu negocio: ventas en pesos y dólares, cobros en cuotas, parte de pago, y stock que cambia todos los días.
+          </p>
+          <p style={{ color: C.textSecondary, fontSize: 14, lineHeight: 1.9, marginBottom: 16 }}>
+            Con ReventApp podés <strong style={{ color: '#fff' }}>controlar el stock de iPhones</strong> con todos los detalles (modelo, GB, color, batería, IMEI), <strong style={{ color: '#fff' }}>registrar ventas en ARS y USD</strong> con el tipo de cambio del día, gestionar <strong style={{ color: '#fff' }}>cobros en cuotas y parte de pago</strong>, y compartir un <strong style={{ color: '#fff' }}>catálogo público por WhatsApp</strong> con tu stock disponible en tiempo real.
+          </p>
+          <p style={{ color: C.textSecondary, fontSize: 14, lineHeight: 1.9 }}>
+            Usada por <strong style={{ color: '#fff' }}>revendedores de iPhone en todo el país</strong> — CABA, Córdoba, Rosario, Mendoza, Tucumán, Santa Fe, Mar del Plata, Salta, Neuquén y más — ReventApp reemplaza las planillas de Excel y los cuadernos de anotaciones por un <strong style={{ color: '#fff' }}>sistema profesional de gestión de reventas</strong>, accesible desde cualquier celular, sin necesidad de instalar nada.
+          </p>
+        </div>
+      </section>
+
       {/* FOOTER */}
       <footer style={{ background: '#080e1e', borderTop: `1px solid ${C.border}`, padding: '32px 24px', textAlign: 'center', color: C.textSecondary, fontSize: 13 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
           <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, fill: C.textSecondary }}><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" /></svg>
           <span>ReventApp</span>
         </div>
-        <div>© 2025 · Para revendedores de iPhone en Argentina</div>
+        <div>© 2026 · Software de gestión para revendedores de iPhone en Argentina</div>
       </footer>
 
     </div>

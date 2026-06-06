@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
-const WHATSAPP_SOPORTE = '5492974000000'; // CAMBIAR POR TU NÚMERO
+const WHATSAPP_SOPORTE = '5493364400111';
 
 const BASICO_INCLUYE = [
   'Stock hasta 20 equipos',
@@ -98,10 +98,7 @@ export default function Planes() {
     }
   };
 
-  const handleProMax = () => {
-    const msg = encodeURIComponent('Hola, quiero info del Plan Pro Max de iPhone Caleta');
-    window.open(`https://wa.me/${WHATSAPP_SOPORTE}?text=${msg}`, '_blank');
-  };
+  const handleProMax = () => handleContratar('promax');
 
   return (
     <div>
@@ -158,7 +155,7 @@ export default function Planes() {
             Tus datos están guardados. Actualizá tu método de pago para recuperar el acceso inmediatamente.
           </div>
           <button
-            onClick={() => { const msg = encodeURIComponent('Hola, necesito actualizar mi método de pago en iPhone Caleta'); window.open(`https://wa.me/${WHATSAPP_SOPORTE}?text=${msg}`, '_blank'); }}
+            onClick={() => { const msg = encodeURIComponent('Hola, necesito actualizar mi método de pago en RevendApp'); window.open(`https://wa.me/${WHATSAPP_SOPORTE}?text=${msg}`, '_blank'); }}
             style={{ background: '#ff3b30', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
           >
             Actualizar método de pago →
@@ -217,7 +214,7 @@ export default function Planes() {
           </div>
           <button onClick={() => handleContratar('basico')}
             style={{ background: '#2c2c2e', color: '#fff', border: '1px solid #3a3a3c', borderRadius: 10, padding: '13px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-            Empezar gratis
+            Contratar ahora
           </button>
         </div>
 
@@ -260,7 +257,7 @@ export default function Planes() {
           </div>
           <button onClick={() => handleContratar('pro')}
             style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 10, padding: '14px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
-            Empezar gratis
+            Contratar ahora
           </button>
         </div>
 
@@ -289,8 +286,8 @@ export default function Planes() {
             💬 ¿Manejás más de 100 equipos por mes? Este plan es para vos
           </div>
           <button onClick={handleProMax}
-            style={{ background: '#25D366', color: '#fff', border: 'none', borderRadius: 10, padding: '13px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-            Contactar por WhatsApp
+            style={{ background: '#2c2c2e', color: '#fff', border: '1px solid #3a3a3c', borderRadius: 10, padding: '13px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+            Contratar ahora
           </button>
         </div>
       </div>

@@ -12,7 +12,7 @@ export function AuthProvider({ children }) {
   const [negocioId, setNegocioId] = useState(null);
   const [plan, setPlan] = useState(null);
   const [planActivo, setPlanActivo] = useState(true);
-  const [motivoBloqueo, setMotivoBloqueo] = useState(null); // 'vencido' | 'suspendido' | null
+  const [motivoBloqueo, setMotivoBloqueo] = useState(null);
   const [diasRestantesTrial, setDiasRestantesTrial] = useState(null);
   const [limitesPlan, setLimitesPlan] = useState(PLANES.trial);
   const [loading, setLoading] = useState(true);
@@ -38,9 +38,7 @@ export function AuthProvider({ children }) {
       setDiasRestantesTrial(dias);
       if (!activo) motivo = 'vencido';
     } else {
-      // Para planes pagos: verificar estado Y fecha de vencimiento
       if (negocio.estado === 'suspendido') {
-        // MP agotó reintentos y canceló — bloquear inmediatamente
         activo = false;
         motivo = 'suspendido';
       } else if (negocio.vencePlan) {
@@ -75,37 +73,64 @@ export function AuthProvider({ children }) {
       }
 
       setUser(u);
+
       try {
         const snap = await getDoc(doc(db, 'usuarios', u.uid));
-        if (!snap.exists()) { setLoading(false); return; }
 
-        const perfilData = snap.data();
-        setPerfil(perfilData);
-        const negId = perfilData.negocioId || u.uid;
+        // negId: si usuarios ya existe usamos su negocioId, si no (registro en curso) usamos uid
+        let negId = u.uid;
+        if (snap.exists()) {
+          const perfilData = snap.data();
+          setPerfil(perfilData);
+          negId = perfilData.negocioId || u.uid;
+        }
         setNegocioId(negId);
 
-        // onSnapshot: se ejecuta ahora Y cada vez que el webhook actualice Firestore.
-        // Permite bloqueo/desbloqueo en tiempo real sin recargar la página.
+        // perfilLoaded: rastrea si el perfil fue cargado. Si hubo condición de carrera
+        // (usuarios aún no existía) lo reintentamos cuando llega el primer snapshot del negocio.
+        let perfilLoaded = snap.exists();
+
+        // onSnapshot: se actualiza en tiempo real cuando el webhook de MP modifica Firestore.
+        // También maneja el caso en que el doc del negocio aún no fue creado (registro en curso).
         unsubNegocio = onSnapshot(
           doc(db, 'negocios', negId),
-          (negSnap) => {
+          async (negSnap) => {
             if (negSnap.exists()) {
               procesarNegocio(negSnap.data());
+
+              // Si el perfil no se cargó (condición de carrera al registrarse),
+              // reintentamos ahora que el negocio ya existe.
+              if (!perfilLoaded) {
+                try {
+                  const reintento = await getDoc(doc(db, 'usuarios', u.uid));
+                  if (reintento.exists()) {
+                    setPerfil(reintento.data());
+                    perfilLoaded = true;
+                  }
+                } catch {}
+              }
             } else {
-              setPlan('trial'); setPlanActivo(true);
-              setMotivoBloqueo(null); setDiasRestantesTrial(7); setLimitesPlan(PLANES.trial);
+              // Documento de negocio aún no creado (milisegundos después del registro)
+              setPlan('trial');
+              setPlanActivo(true);
+              setMotivoBloqueo(null);
+              setDiasRestantesTrial(7);
+              setLimitesPlan(PLANES.trial);
             }
             setLoading(false);
           },
           (err) => {
             console.error('Error escuchando negocio:', err);
-            setPlan('trial'); setPlanActivo(true);
-            setMotivoBloqueo(null); setLimitesPlan(PLANES.trial);
+            setPlan('trial');
+            setPlanActivo(true);
+            setMotivoBloqueo(null);
+            setLimitesPlan(PLANES.trial);
             setLoading(false);
           }
         );
       } catch (e) {
         console.error('Error cargando perfil:', e);
+        setPlanActivo(true);
         setLoading(false);
       }
     });
@@ -117,7 +142,8 @@ export function AuthProvider({ children }) {
   const logout = () => signOut(auth);
 
   const puedeVer = (modulo) => {
-    if (!perfil) return false;
+    // Si perfil no cargó todavía (condición de carrera en registro), permitir acceso
+    if (!perfil) return true;
     if (perfil.rol === 'admin') return true;
     return perfil.permisos?.[modulo] === true;
   };

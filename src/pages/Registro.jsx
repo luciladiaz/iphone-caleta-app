@@ -19,20 +19,10 @@ export default function Registro() {
       const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);
       const uid = cred.user.uid;
 
-      // Crear documento del negocio
       const venceTrial = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      await setDoc(doc(db, 'negocios', uid), {
-        nombre: form.negocio,
-        ownerUid: uid,
-        plan: 'trial',
-        estado: 'activo',
-        venceTrial,
-        vencePlan: null,
-        creadoEn: serverTimestamp(),
-        negocioId: uid,
-      });
 
-      // Crear perfil de usuario global (para auth lookup con negocioId)
+      // usuarios PRIMERO: así cuando onSnapshot del negocio se dispara en AuthContext,
+      // el perfil ya existe y puede cargarse en el reintento.
       const userData = {
         nombre: form.nombre,
         email: form.email,
@@ -45,6 +35,19 @@ export default function Registro() {
 
       // Crear usuario también en la subcolección del negocio
       await setDoc(doc(db, 'negocios', uid, 'usuarios', uid), userData);
+
+      // negocios DESPUÉS: su creación dispara onSnapshot en AuthContext.
+      // Para entonces usuarios ya existe → perfil se carga correctamente.
+      await setDoc(doc(db, 'negocios', uid), {
+        nombre: form.negocio,
+        ownerUid: uid,
+        plan: 'trial',
+        estado: 'activo',
+        venceTrial,
+        vencePlan: null,
+        creadoEn: serverTimestamp(),
+        negocioId: uid,
+      });
 
       // Config inicial del negocio
       await setDoc(doc(db, 'negocios', uid, 'config', 'general'), {

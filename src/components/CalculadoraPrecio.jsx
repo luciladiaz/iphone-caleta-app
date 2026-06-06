@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 
 const inputStyle = { width: '100%', padding: '12px 14px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 10, color: '#fff', fontSize: 15, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6, textTransform: 'uppercase' };
@@ -66,7 +66,7 @@ export default function CalculadoraPrecio({ tipoCambio: tcInicial, onClose }) {
               </div>
               <div style={{ background: '#2c2c2e', borderRadius: 10, padding: '12px 14px', gridColumn: '1/-1' }}>
                 <div style={{ color: '#86868b', fontSize: 10, marginBottom: 4 }}>PRECIO DE VENTA EN ARS</div>
-                <div style={{ fontWeight: 800, fontSize: 20, color: '#c9a96e' }}>
+                <div style={{ fontWeight: 800, fontSize: 20, color: '#2563EB' }}>
                   ${pvARS.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                 </div>
               </div>
@@ -83,3 +83,4 @@ export default function CalculadoraPrecio({ tipoCambio: tcInicial, onClose }) {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { collection, getDocs, addDoc, deleteDoc, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
@@ -14,7 +14,7 @@ function SeccionLista({ titulo, icono, items, onAgregar, onEliminar, campo, plac
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         <input value={nuevo} onChange={e => setNuevo(e.target.value)} placeholder={placeholder} style={{ ...inputStyle, flex: 1 }}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (nuevo.trim()) { onAgregar(nuevo.trim()); setNuevo(''); } } }} />
-        <button onClick={() => { if (nuevo.trim()) { onAgregar(nuevo.trim()); setNuevo(''); } }} style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 700, cursor: 'pointer' }}>Agregar</button>
+        <button onClick={() => { if (nuevo.trim()) { onAgregar(nuevo.trim()); setNuevo(''); } }} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 700, cursor: 'pointer' }}>Agregar</button>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {items.map(item => (
@@ -98,7 +98,7 @@ export default function Configuracion() {
         <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700 }}>💵 Tipo de cambio (ARS por USD)</h3>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', maxWidth: 300 }}>
           <input type="number" value={tipoCambio} onChange={e => setTipoCambio(e.target.value)} placeholder="1430" style={inputStyle} />
-          <button onClick={guardarTC} disabled={savingTC} style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <button onClick={guardarTC} disabled={savingTC} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
             {savingTC ? 'Guardando...' : 'Guardar'}
           </button>
         </div>
@@ -112,3 +112,4 @@ export default function Configuracion() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { collection, getDocs, doc, setDoc, updateDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '../firebase/config';
@@ -79,7 +79,7 @@ export default function Usuarios() {
             if (maxU !== Infinity && usuarios.length >= maxU) { setModalLimite(true); return; }
             setModal(true);
           }}
-          style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+          style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
         >+ Nuevo usuario</button>
       </div>
 
@@ -91,7 +91,7 @@ export default function Usuarios() {
               <div style={{ color: '#86868b', fontSize: 12, marginTop: 3 }}>{u.email} · {u.rol} {u.puntoVenta ? `· ${u.puntoVenta}` : ''}</div>
               <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {u.rol === 'admin' ? (
-                  <span style={{ fontSize: 10, background: 'rgba(201,169,110,0.15)', color: '#c9a96e', padding: '2px 8px', borderRadius: 99, fontWeight: 600 }}>Todos los módulos</span>
+                  <span style={{ fontSize: 10, background: 'rgba(37,99,235,0.15)', color: '#2563EB', padding: '2px 8px', borderRadius: 99, fontWeight: 600 }}>Todos los módulos</span>
                 ) : MODULOS.filter(m => u.permisos?.[m.key]).map(m => (
                   <span key={m.key} style={{ fontSize: 10, background: '#2c2c2e', color: '#ebebf5cc', padding: '2px 8px', borderRadius: 99 }}>{m.label}</span>
                 ))}
@@ -133,7 +133,7 @@ export default function Usuarios() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     {MODULOS.map(m => (
                       <label key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: '#ebebf5cc' }}>
-                        <input type="checkbox" checked={!!form.permisos[m.key]} onChange={() => togglePermiso(m.key)} style={{ accentColor: '#c9a96e' }} />
+                        <input type="checkbox" checked={!!form.permisos[m.key]} onChange={() => togglePermiso(m.key)} style={{ accentColor: '#2563EB' }} />
                         {m.label}
                       </label>
                     ))}
@@ -143,7 +143,7 @@ export default function Usuarios() {
               {error && <div style={{ background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', borderRadius: 8, padding: '10px 14px', color: '#ff3b30', fontSize: 13 }}>{error}</div>}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
                 <button type="button" onClick={() => setModal(false)} style={{ padding: '10px 20px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
-                <button type="submit" disabled={guardando} style={{ padding: '10px 24px', background: '#c9a96e', border: 'none', borderRadius: 8, color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{guardando ? 'Creando...' : 'Crear usuario'}</button>
+                <button type="submit" disabled={guardando} style={{ padding: '10px 24px', background: '#2563EB', border: 'none', borderRadius: 8, color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{guardando ? 'Creando...' : 'Crear usuario'}</button>
               </div>
             </form>
           </div>
@@ -152,3 +152,4 @@ export default function Usuarios() {
     </div>
   );
 }
+

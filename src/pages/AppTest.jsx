@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { PLANES } from '../config/planes';
@@ -594,11 +594,11 @@ export default function AppTest() {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32, flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>🧪 Test Suite — iPhone Caleta App</h1>
+            <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>🧪 Test Suite — ReventApp</h1>
             <div style={{ color: '#86868b', fontSize: 13, marginTop: 4 }}>Tests automáticos de lógica + checklist manual</div>
           </div>
           <button onClick={ejecutarTests} disabled={corriendo}
-            style={{ background: corriendo ? '#2c2c2e' : '#c9a96e', color: corriendo ? '#86868b' : '#000', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: corriendo ? 'not-allowed' : 'pointer' }}>
+            style={{ background: corriendo ? '#2c2c2e' : '#2563EB', color: corriendo ? '#86868b' : '#000', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: corriendo ? 'not-allowed' : 'pointer' }}>
             {corriendo ? 'Ejecutando...' : '▶ Volver a ejecutar'}
           </button>
         </div>
@@ -607,7 +607,7 @@ export default function AppTest() {
         {total > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, marginBottom: 28 }}>
             <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 12, padding: '16px 20px', textAlign: 'center' }}>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#c9a96e' }}>{total}/{totalTests}</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: '#2563EB' }}>{total}/{totalTests}</div>
               <div style={{ color: '#86868b', fontSize: 12, marginTop: 4 }}>Tests ejecutados</div>
             </div>
             <div style={{ background: pasaron > 0 ? 'rgba(48,209,88,0.08)' : '#1c1c1e', border: `1px solid ${pasaron > 0 ? 'rgba(48,209,88,0.3)' : '#2c2c2e'}`, borderRadius: 12, padding: '16px 20px', textAlign: 'center' }}>
@@ -619,7 +619,7 @@ export default function AppTest() {
               <div style={{ color: '#86868b', fontSize: 12, marginTop: 4 }}>Tests fallidos</div>
             </div>
             <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 12, padding: '16px 20px', textAlign: 'center' }}>
-              <div style={{ fontSize: 28, fontWeight: 800, color: total === totalTests && fallaron === 0 ? '#30d158' : '#c9a96e' }}>
+              <div style={{ fontSize: 28, fontWeight: 800, color: total === totalTests && fallaron === 0 ? '#30d158' : '#2563EB' }}>
                 {total < totalTests ? `${Math.round((total/totalTests)*100)}%` : fallaron === 0 ? '100% ✅' : `${Math.round((pasaron/total)*100)}%`}
               </div>
               <div style={{ color: '#86868b', fontSize: 12, marginTop: 4 }}>Éxito</div>
@@ -630,14 +630,14 @@ export default function AppTest() {
         {/* Barra de progreso */}
         {corriendo && (
           <div style={{ background: '#2c2c2e', borderRadius: 99, height: 4, marginBottom: 24, overflow: 'hidden' }}>
-            <div style={{ background: '#c9a96e', height: '100%', width: `${(total / totalTests) * 100}%`, transition: 'width .1s' }} />
+            <div style={{ background: '#2563EB', height: '100%', width: `${(total / totalTests) * 100}%`, transition: 'width .1s' }} />
           </div>
         )}
 
         {/* Resultados por categoría */}
         {categorias.map(cat => (
           <div key={cat} style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 20, marginBottom: 14 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#c9a96e' }}>{cat}</div>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#2563EB' }}>{cat}</div>
             {resultados.filter(r => r.categoria === cat).map((r, i) => (
               <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '8px 0', borderBottom: '1px solid #2c2c2e', lastChild: { borderBottom: 'none' } }}>
                 <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{r.ok ? '✅' : '❌'}</span>
@@ -668,7 +668,7 @@ export default function AppTest() {
           <h2 style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>☑️ Checklist Manual</h2>
           <p style={{ color: '#86868b', fontSize: 13, marginBottom: 4 }}>
             Para estos tests necesitás hacer login con los usuarios de{' '}
-            <a href="/dev/seed" style={{ color: '#c9a96e' }}>/dev/seed</a>.
+            <a href="/dev/seed" style={{ color: '#2563EB' }}>/dev/seed</a>.
             Marcá ✅ o ❌ según lo que veas en el browser.
           </p>
           <div style={{ fontSize: 12, color: '#86868b' }}>
@@ -678,7 +678,7 @@ export default function AppTest() {
 
         {MANUAL.map((grupo) => (
           <div key={grupo.categoria} style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 20, marginBottom: 14 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#c9a96e' }}>{grupo.categoria}</div>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#2563EB' }}>{grupo.categoria}</div>
             {grupo.items.map((item, i) => {
               const key = `${grupo.categoria}_${i}`;
               const val = manual[key];
@@ -693,7 +693,7 @@ export default function AppTest() {
                   <span style={{ fontSize: 13, flex: 1, color: val === true ? '#30d158' : val === false ? '#ff3b30' : '#ebebf5cc', textDecoration: val === false ? 'line-through' : 'none' }}>{item.label}</span>
                   {item.link && (
                     <a href={item.link} target="_blank" rel="noreferrer"
-                      style={{ fontSize: 11, color: '#c9a96e', textDecoration: 'none', flexShrink: 0 }}>↗ abrir</a>
+                      style={{ fontSize: 11, color: '#2563EB', textDecoration: 'none', flexShrink: 0 }}>↗ abrir</a>
                   )}
                 </div>
               );
@@ -703,9 +703,10 @@ export default function AppTest() {
 
         {/* Footer */}
         <div style={{ textAlign: 'center', color: '#3a3a3c', fontSize: 12, marginTop: 32 }}>
-          Solo visible en desarrollo · <a href="/dev/seed" style={{ color: '#c9a96e' }}>Crear usuarios de prueba</a>
+          Solo visible en desarrollo · <a href="/dev/seed" style={{ color: '#2563EB' }}>Crear usuarios de prueba</a>
         </div>
       </div>
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
@@ -155,7 +155,7 @@ export default function Planes() {
             Tus datos están guardados. Actualizá tu método de pago para recuperar el acceso inmediatamente.
           </div>
           <button
-            onClick={() => { const msg = encodeURIComponent('Hola, necesito actualizar mi método de pago en RevendApp'); window.open(`https://wa.me/${WHATSAPP_SOPORTE}?text=${msg}`, '_blank'); }}
+            onClick={() => { const msg = encodeURIComponent('Hola, necesito actualizar mi método de pago en ReventApp'); window.open(`https://wa.me/${WHATSAPP_SOPORTE}?text=${msg}`, '_blank'); }}
             style={{ background: '#ff3b30', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
           >
             Actualizar método de pago →
@@ -221,18 +221,18 @@ export default function Planes() {
         {/* PRO */}
         <div ref={proRef} style={{
           order: isMobile ? 1 : 2,
-          background: 'rgba(201,169,110,0.06)', border: `2px solid ${upgrade === 'pro' ? '#ff9f0a' : '#c9a96e'}`, borderRadius: 16,
+          background: 'rgba(37,99,235,0.06)', border: `2px solid ${upgrade === 'pro' ? '#ff9f0a' : '#2563EB'}`, borderRadius: 16,
           padding: isMobile ? 28 : 32, display: 'flex', flexDirection: 'column', gap: 14,
           flex: isMobile ? '1 1 100%' : '1 1 300px', maxWidth: isMobile ? '100%' : 360,
           position: 'relative',
         }}>
-          <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: '#c9a96e', color: '#000', fontSize: 11, fontWeight: 800, padding: '4px 18px', borderRadius: 99, letterSpacing: 1, whiteSpace: 'nowrap' }}>
+          <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: '#2563EB', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 18px', borderRadius: 99, letterSpacing: 1, whiteSpace: 'nowrap' }}>
             🔥 MÁS POPULAR
           </div>
           <div>
-            <div style={{ fontSize: 12, color: '#c9a96e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Plan Pro</div>
+            <div style={{ fontSize: 12, color: '#2563EB', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Plan Pro</div>
             <div style={{ fontSize: 13, color: '#86868b', marginBottom: 10 }}>Para crecer</div>
-            <div style={{ fontSize: 40, fontWeight: 800, color: '#c9a96e', letterSpacing: '-1px' }}>
+            <div style={{ fontSize: 40, fontWeight: 800, color: '#2563EB', letterSpacing: '-1px' }}>
               $14.900<span style={{ fontSize: 14, fontWeight: 400, color: '#86868b' }}>/mes</span>
             </div>
             <div style={{ fontSize: 12, color: '#86868b', marginTop: 4 }}>= $497 ARS por día. Menos que un café.</div>
@@ -243,7 +243,7 @@ export default function Planes() {
                 <span style={{ color: '#30d158', flexShrink: 0, marginTop: 1 }}>✓</span> {f}
               </div>
             ))}
-            <div style={{ borderTop: '1px solid rgba(201,169,110,0.2)', marginTop: 10, paddingTop: 10 }}>
+            <div style={{ borderTop: '1px solid rgba(37,99,235,0.2)', marginTop: 10, paddingTop: 10 }}>
               {PRO_NO_INCLUYE.map(f => (
                 <div key={f} style={{ display: 'flex', gap: 8, fontSize: 12, color: '#86868b', alignItems: 'flex-start', marginBottom: 5 }}>
                   <span style={{ flexShrink: 0, marginTop: 1 }}>🔒</span>
@@ -252,11 +252,11 @@ export default function Planes() {
               ))}
             </div>
           </div>
-          <div style={{ background: 'rgba(201,169,110,0.1)', border: '1px solid rgba(201,169,110,0.25)', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: '#c9a96e', textAlign: 'center' }}>
+          <div style={{ background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.25)', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: '#2563EB', textAlign: 'center' }}>
             🔥 El 80% de nuestros usuarios elige este plan
           </div>
           <button onClick={() => handleContratar('pro')}
-            style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 10, padding: '14px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+            style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
             Contratar ahora
           </button>
         </div>
@@ -299,3 +299,4 @@ export default function Planes() {
     </div>
   );
 }
+

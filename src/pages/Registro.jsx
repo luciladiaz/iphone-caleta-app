@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -77,7 +77,7 @@ export default function Registro() {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={{ color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>Nombre del negocio</label>
-            <input value={form.negocio} onChange={e => setForm({...form, negocio: e.target.value})} required placeholder="Ej: iPhone Caleta Córdoba"
+            <input value={form.negocio} onChange={e => setForm({...form, negocio: e.target.value})} required placeholder="Ej: ReventApp Córdoba"
               style={{ width: '100%', padding: '12px 14px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 10, color: '#fff', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
           </div>
           <div>
@@ -98,16 +98,17 @@ export default function Registro() {
 
           {error && <div style={{ background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', borderRadius: 8, padding: '10px 14px', color: '#ff3b30', fontSize: 13 }}>{error}</div>}
 
-          <button type="submit" disabled={loading} style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 10, padding: 14, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, marginTop: 8 }}>
+          <button type="submit" disabled={loading} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, padding: 14, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, marginTop: 8 }}>
             {loading ? 'Creando cuenta...' : 'Empezar prueba gratis → 7 días sin tarjeta'}
           </button>
         </form>
 
         <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: '#86868b' }}>
           ¿Ya tenés cuenta?{' '}
-          <Link to="/login" style={{ color: '#c9a96e', fontWeight: 600 }}>Iniciar sesión →</Link>
+          <Link to="/login" style={{ color: '#2563EB', fontWeight: 600 }}>Iniciar sesión →</Link>
         </p>
       </div>
     </div>
   );
 }
+

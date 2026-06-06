@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
@@ -23,7 +23,7 @@ const ESCENARIOS = [
     id: 'trial_activo',
     label: 'Trial ACTIVO (5 días)',
     emoji: '🧪',
-    color: '#c9a96e',
+    color: '#2563EB',
     email: 'trial.activo@caleta.test',
     password: 'test123456',
     nombre: 'Test Trial Activo',
@@ -68,7 +68,7 @@ const ESCENARIOS = [
     id: 'pro',
     label: 'Plan PRO',
     emoji: '⭐⭐',
-    color: '#c9a96e',
+    color: '#2563EB',
     email: 'pro@caleta.test',
     password: 'test123456',
     nombre: 'Test Plan Pro',
@@ -200,7 +200,7 @@ export default function DevSeed() {
           <button
             onClick={handleCrearTodos}
             disabled={!!creando}
-            style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: creando ? 'not-allowed' : 'pointer', opacity: creando ? 0.6 : 1 }}
+            style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: creando ? 'not-allowed' : 'pointer', opacity: creando ? 0.6 : 1 }}
           >
             Crear todos
           </button>
@@ -271,3 +271,4 @@ export default function DevSeed() {
     </div>
   );
 }
+

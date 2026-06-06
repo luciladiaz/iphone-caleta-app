@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+﻿import { useNavigate } from 'react-router-dom';
 import { PLANES } from '../config/planes';
 
 const CONFIG = {
@@ -51,7 +51,7 @@ export default function ModalLimiteAlcanzado({ tipo, planActual, cantidadActual,
         <button
           onClick={() => { onCerrar(); navigate(`/planes?upgrade=${planRequerido}`); }}
           style={{
-            width: '100%', background: '#c9a96e', color: '#000', border: 'none',
+            width: '100%', background: '#2563EB', color: '#fff', border: 'none',
             borderRadius: 10, padding: '13px', fontSize: 15, fontWeight: 700, cursor: 'pointer', marginBottom: 10,
           }}
         >
@@ -67,3 +67,4 @@ export default function ModalLimiteAlcanzado({ tipo, planActual, cantidadActual,
     </div>
   );
 }
+

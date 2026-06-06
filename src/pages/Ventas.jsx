@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { collection, getDocs, getDoc, addDoc, serverTimestamp, query, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
@@ -8,7 +8,7 @@ const inputStyle = { width: '100%', padding: '10px 12px', background: '#2c2c2e',
 const labelStyle = { color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 const estadoColor = { pendiente: '#ff9f0a', entregado: '#30d158', cancelado: '#ff3b30' };
 
-const ORIGENES = ['Instagram iPhone Caleta', 'WhatsApp', 'Local físico', 'Referido', 'Facebook', 'TikTok', 'Otro'];
+const ORIGENES = ['Instagram ReventApp', 'WhatsApp', 'Local físico', 'Referido', 'Facebook', 'TikTok', 'Otro'];
 const FORMAS_PAGO = ['Efectivo ARS', 'Efectivo USD', 'Transferencia ARS', 'Transferencia USD', 'Cuotas personales', 'iPhone como parte de pago'];
 
 export default function Ventas() {
@@ -177,7 +177,7 @@ export default function Ventas() {
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Ventas</h1>
           <p style={{ color: '#86868b', fontSize: 13, margin: '4px 0 0' }}>{ventas.length} ventas registradas</p>
         </div>
-        <button onClick={handleNuevaVenta} style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+        <button onClick={handleNuevaVenta} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
           + Nueva venta
         </button>
       </div>
@@ -190,21 +190,21 @@ export default function Ventas() {
               <div style={{ color: '#86868b', fontSize: 12, marginTop: 3 }}>
                 👤 {v.cliente || 'Sin cliente'}
                 {v.telefono ? (
-                  <a href={`tel:${v.telefono}`} style={{ color: '#c9a96e', marginLeft: 4, textDecoration: 'none' }}>
+                  <a href={`tel:${v.telefono}`} style={{ color: '#2563EB', marginLeft: 4, textDecoration: 'none' }}>
                     📞 {v.telefono}
                   </a>
                 ) : (
                   <span title="Sin teléfono — editá la venta para agregarlo" style={{ marginLeft: 4, opacity: 0.5, cursor: 'help', textDecoration: 'line-through' }}>📵</span>
                 )}
                 {' '}· 🧑‍💼 {v.vendedor || '-'} · 📣 {v.origen || '-'}
-                {v.tipoCambio && <span style={{ color: '#c9a96e', marginLeft: 6 }}>· TC ${v.tipoCambio}</span>}
+                {v.tipoCambio && <span style={{ color: '#2563EB', marginLeft: 6 }}>· TC ${v.tipoCambio}</span>}
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 99, background: `${estadoColor[v.estado]}22`, color: estadoColor[v.estado] }}>
                 {v.estado}
               </span>
-              <button onClick={() => abrirEditar(v)} style={{ background: '#2c2c2e', border: '1px solid #3a3a3c', color: '#c9a96e', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={() => abrirEditar(v)} style={{ background: '#2c2c2e', border: '1px solid #3a3a3c', color: '#2563EB', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                 ✏️ Editar
               </button>
               <button onClick={() => eliminarVenta(v)} style={{ background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', color: '#ff3b30', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
@@ -240,7 +240,7 @@ export default function Ventas() {
                 </div>
               )}
               {equipoSeleccionado && (
-                <div style={{ background: '#2c2c2e', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#c9a96e' }}>
+                <div style={{ background: '#2c2c2e', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#2563EB' }}>
                   📦 {equipoSeleccionado.modelo} · {equipoSeleccionado.gb}GB · {equipoSeleccionado.color} · Bat {equipoSeleccionado.bateria}% · Costo USD {equipoSeleccionado.costoUsd}
                 </div>
               )}
@@ -307,7 +307,7 @@ export default function Ventas() {
               <div style={{ borderTop: '1px solid #2c2c2e', paddingTop: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <label style={{ ...labelStyle, margin: 0 }}>Formas de pago</label>
-                  <button type="button" onClick={agregarCobro} style={{ background: 'none', border: '1px solid #c9a96e', color: '#c9a96e', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>+ Agregar</button>
+                  <button type="button" onClick={agregarCobro} style={{ background: 'none', border: '1px solid #c9a96e', color: '#2563EB', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>+ Agregar</button>
                 </div>
                 {form.cobros.map((cobro, i) => (
                   <div key={i} style={{ background: '#2c2c2e', borderRadius: 10, padding: 14, marginBottom: 10 }}>
@@ -363,7 +363,7 @@ export default function Ventas() {
                   {form.partesDePago.map((p, i) => (
                     <div key={i} style={{ background: '#2c2c2e', borderRadius: 8, padding: '10px 14px', marginBottom: 8, fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <span style={{ color: '#c9a96e', fontWeight: 600 }}>📱 {p.modelo} {p.gb}GB {p.color}</span>
+                        <span style={{ color: '#2563EB', fontWeight: 600 }}>📱 {p.modelo} {p.gb}GB {p.color}</span>
                         <div style={{ color: '#86868b', fontSize: 11, marginTop: 3 }}>
                           Toma: USD {p.costoUsd} · Venta: USD {p.pvUsd}
                         </div>
@@ -378,8 +378,8 @@ export default function Ventas() {
                       <div><label style={labelStyle}>Color</label><input value={nuevaParte.color} onChange={e => setNuevaParte({ ...nuevaParte, color: e.target.value })} placeholder="Negro" style={inputStyle} /></div>
                       <div><label style={labelStyle}>Batería %</label><input type="number" value={nuevaParte.bateria} onChange={e => setNuevaParte({ ...nuevaParte, bateria: e.target.value })} placeholder="85" style={inputStyle} /></div>
                       <div><label style={labelStyle}>IMEI</label><input value={nuevaParte.imei} onChange={e => setNuevaParte({ ...nuevaParte, imei: e.target.value })} style={inputStyle} /></div>
-                      <div style={{ gridColumn: '1/-1', background: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.15)', borderRadius: 8, padding: 10 }}>
-                        <div style={{ color: '#c9a96e', fontSize: 11, fontWeight: 600, marginBottom: 8 }}>VALUACIÓN DEL EQUIPO RECIBIDO</div>
+                      <div style={{ gridColumn: '1/-1', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.15)', borderRadius: 8, padding: 10 }}>
+                        <div style={{ color: '#2563EB', fontSize: 11, fontWeight: 600, marginBottom: 8 }}>VALUACIÓN DEL EQUIPO RECIBIDO</div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                           <div>
                             <label style={labelStyle}>Lo tomo a USD (costo)</label>
@@ -394,7 +394,7 @@ export default function Ventas() {
                         </div>
                       </div>
                     </div>
-                    <button type="button" onClick={agregarParte} style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>+ Agregar iPhone</button>
+                    <button type="button" onClick={agregarParte} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>+ Agregar iPhone</button>
                   </div>
                 </div>
               )}
@@ -406,7 +406,7 @@ export default function Ventas() {
 
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
                 <button type="button" onClick={cerrarModal} style={{ padding: '10px 20px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
-                <button type="submit" disabled={guardando} style={{ padding: '10px 24px', background: '#c9a96e', border: 'none', borderRadius: 8, color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                <button type="submit" disabled={guardando} style={{ padding: '10px 24px', background: '#2563EB', border: 'none', borderRadius: 8, color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
                   {guardando ? 'Guardando...' : 'Guardar venta'}
                 </button>
               </div>
@@ -424,3 +424,4 @@ export default function Ventas() {
     </div>
   );
 }
+

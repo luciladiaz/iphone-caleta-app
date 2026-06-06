@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { collection, getDocs, doc, updateDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
@@ -88,17 +88,17 @@ export default function PagosProveedores() {
                 <button onClick={() => abrirModalPago(v)} style={{ background: 'rgba(48,209,88,0.1)', border: '1px solid rgba(48,209,88,0.3)', color: '#30d158', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>✓ Registrar pago</button>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10 }}>
-                <div style={{ background: '#2c2c2e', borderRadius: 8, padding: '8px 12px' }}><div style={{ color: '#86868b', fontSize: 10, marginBottom: 2 }}>COSTO USD</div><div style={{ fontWeight: 700, color: '#c9a96e' }}>USD {v.costoUsd}</div></div>
+                <div style={{ background: '#2c2c2e', borderRadius: 8, padding: '8px 12px' }}><div style={{ color: '#86868b', fontSize: 10, marginBottom: 2 }}>COSTO USD</div><div style={{ fontWeight: 700, color: '#2563EB' }}>USD {v.costoUsd}</div></div>
                 <div style={{ background: '#2c2c2e', borderRadius: 8, padding: '8px 12px' }}><div style={{ color: '#86868b', fontSize: 10, marginBottom: 2 }}>PRECIO VENTA</div><div style={{ fontWeight: 700 }}>USD {v.pvUsd}</div></div>
                 <div style={{ background: '#2c2c2e', borderRadius: 8, padding: '8px 12px' }}><div style={{ color: '#86868b', fontSize: 10, marginBottom: 2 }}>GANANCIA</div><div style={{ fontWeight: 700, color: '#30d158' }}>USD {ganancia.toFixed(2)}</div></div>
                 <div style={{ background: '#2c2c2e', borderRadius: 8, padding: '8px 12px' }}>
                   <div style={{ color: '#86868b', fontSize: 10, marginBottom: 4 }}>GAN. PROVEEDOR</div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <input type="number" value={ganManual[v.id]} onChange={e => setGanManual(g => ({ ...g, [v.id]: e.target.value }))} style={{ width: 65, padding: '4px 8px', background: '#3a3a3c', border: '1px solid #48484a', borderRadius: 6, color: '#fff', fontSize: 13, outline: 'none' }} />
-                    <button onClick={() => guardarGanancia(v.id)} style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 6, padding: '4px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>OK</button>
+                    <button onClick={() => guardarGanancia(v.id)} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>OK</button>
                   </div>
                 </div>
-                <div style={{ background: 'rgba(201,169,110,0.1)', border: '1px solid rgba(201,169,110,0.2)', borderRadius: 8, padding: '8px 12px' }}><div style={{ color: '#86868b', fontSize: 10, marginBottom: 2 }}>TOTAL A PAGAR</div><div style={{ fontWeight: 800, color: '#c9a96e' }}>USD {total.toFixed(2)}</div></div>
+                <div style={{ background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 8, padding: '8px 12px' }}><div style={{ color: '#86868b', fontSize: 10, marginBottom: 2 }}>TOTAL A PAGAR</div><div style={{ fontWeight: 800, color: '#2563EB' }}>USD {total.toFixed(2)}</div></div>
               </div>
             </div>
           );
@@ -139,7 +139,7 @@ export default function PagosProveedores() {
               <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Registrar pago</h2>
               <button onClick={() => setModalPago(null)} style={{ background: 'none', border: 'none', color: '#86868b', fontSize: 20, cursor: 'pointer' }}>✕</button>
             </div>
-            <div style={{ background: '#2c2c2e', borderRadius: 10, padding: '10px 14px', marginBottom: 18, fontSize: 13, color: '#c9a96e' }}>📱 {modalPago.modelo} {modalPago.gb}GB · 🏭 {modalPago.proveedor}</div>
+            <div style={{ background: '#2c2c2e', borderRadius: 10, padding: '10px 14px', marginBottom: 18, fontSize: 13, color: '#2563EB' }}>📱 {modalPago.modelo} {modalPago.gb}GB · 🏭 {modalPago.proveedor}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div><label style={labelStyle}>Fecha de pago</label><input type="date" value={formPago.fecha} onChange={e => setFormPago({ ...formPago, fecha: e.target.value })} style={inputStyle} /></div>
               <div><label style={labelStyle}>Monto pagado (USD)</label><input type="number" value={formPago.monto} onChange={e => setFormPago({ ...formPago, monto: e.target.value })} placeholder="0" style={inputStyle} /></div>
@@ -155,3 +155,4 @@ export default function PagosProveedores() {
     </div>
   );
 }
+

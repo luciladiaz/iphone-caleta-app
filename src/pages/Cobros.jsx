@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { collection, getDocs, query, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
@@ -158,7 +158,7 @@ export default function Cobros() {
           {/* Filtros */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
             {FILTROS.map(f => (
-              <button key={f.key} onClick={() => setFiltro(f.key)} style={{ background: filtro === f.key ? '#c9a96e' : '#2c2c2e', color: filtro === f.key ? '#000' : '#ebebf5cc', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              <button key={f.key} onClick={() => setFiltro(f.key)} style={{ background: filtro === f.key ? '#2563EB' : '#2c2c2e', color: filtro === f.key ? '#000' : '#ebebf5cc', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                 {f.label}
               </button>
             ))}
@@ -213,14 +213,14 @@ export default function Cobros() {
               <div style={{ fontWeight: 700, fontSize: 15 }}>{v.modelo} {v.gb}GB · {v.cliente || 'Sin cliente'}</div>
               <div style={{ color: '#86868b', fontSize: 12, marginTop: 2 }}>
                 Vendedor: {v.vendedor || '-'}
-                {v.telefono && <a href={`tel:${v.telefono}`} style={{ color: '#c9a96e', marginLeft: 8 }}>📞 {v.telefono}</a>}
+                {v.telefono && <a href={`tel:${v.telefono}`} style={{ color: '#2563EB', marginLeft: 8 }}>📞 {v.telefono}</a>}
               </div>
             </div>
             {v.cobros.map((cobro, ci) => (
               <div key={ci} style={{ background: '#2c2c2e', borderRadius: 10, padding: 14, marginBottom: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <span style={{ fontWeight: 600, fontSize: 14 }}>{cobro.tipo}</span>
-                  {cobro.monto && <span style={{ color: '#c9a96e', fontWeight: 700 }}>{cobro.moneda} {cobro.monto}</span>}
+                  {cobro.monto && <span style={{ color: '#2563EB', fontWeight: 700 }}>{cobro.moneda} {cobro.monto}</span>}
                 </div>
                 {cobro.tipo === 'Cuotas personales' && cobro.cuotas && (
                   <div>
@@ -244,7 +244,7 @@ export default function Cobros() {
                     </div>
                   </div>
                 )}
-                {cobro.tipo === 'iPhone como parte de pago' && <div style={{ color: '#c9a96e', fontSize: 13 }}>📱 iPhone recibido como parte de pago</div>}
+                {cobro.tipo === 'iPhone como parte de pago' && <div style={{ color: '#2563EB', fontSize: 13 }}>📱 iPhone recibido como parte de pago</div>}
               </div>
             ))}
           </div>
@@ -259,3 +259,4 @@ export default function Cobros() {
     </div>
   );
 }
+

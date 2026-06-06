@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy, getDoc, doc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase/config';
@@ -139,13 +139,13 @@ export default function Stock() {
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Stock</h1>
           <p style={{ color: '#86868b', fontSize: 13, margin: '4px 0 0' }}>
             {stockDisponible.length} disponibles · {equipos.length} total
-            {esAdmin && tieneFeature('valorStockTiempoReal') && totalValorUSD > 0 && <span style={{ color: '#c9a96e', marginLeft: 8 }}>· USD {totalValorUSD.toFixed(0)} en stock</span>}
+            {esAdmin && tieneFeature('valorStockTiempoReal') && totalValorUSD > 0 && <span style={{ color: '#2563EB', marginLeft: 8 }}>· USD {totalValorUSD.toFixed(0)} en stock</span>}
             {esAdmin && !tieneFeature('valorStockTiempoReal') && <span style={{ color: '#3a3a3c', marginLeft: 8, fontSize: 12 }}>· 🔒 Valor total · Plan Pro</span>}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {tieneFeature('calculadoraPrecio') ? (
-            <button onClick={() => setShowCalculadora(true)} style={{ background: '#2c2c2e', color: '#c9a96e', border: '1px solid #3a3a3c', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🧮 Calculadora</button>
+            <button onClick={() => setShowCalculadora(true)} style={{ background: '#2c2c2e', color: '#2563EB', border: '1px solid #3a3a3c', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🧮 Calculadora</button>
           ) : (
             <button onClick={() => navigate('/planes')} style={{ background: '#2c2c2e', color: '#3a3a3c', border: '1px solid #2c2c2e', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🔒 Calculadora</button>
           )}
@@ -154,7 +154,7 @@ export default function Stock() {
           ) : (
             <button onClick={() => navigate('/planes')} style={{ background: '#2c2c2e', color: '#3a3a3c', border: '1px solid #2c2c2e', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🔒 Catálogo</button>
           )}
-          {esAdmin && <button onClick={handleAgregarEquipo} style={{ background: '#c9a96e', color: '#000', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>+ Agregar equipo</button>}
+          {esAdmin && <button onClick={handleAgregarEquipo} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>+ Agregar equipo</button>}
         </div>
       </div>
 
@@ -162,7 +162,7 @@ export default function Stock() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
         {equiposFiltrados.map(eq => (
-          <div key={eq.id} style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 20, borderTop: `3px solid ${estadoColor[eq.estado] || '#c9a96e'}` }}>
+          <div key={eq.id} style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 20, borderTop: `3px solid ${estadoColor[eq.estado] || '#2563EB'}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 15 }}>{eq.modelo}</div>
@@ -179,16 +179,16 @@ export default function Stock() {
                 {eq.tipo === 'consignacion' ? '🤝 Consignación' : '🛒 Compra directa'}
               </span>
               {esAdmin && eq.costoUsd && <span style={{ color: '#86868b' }}>Costo: USD {eq.costoUsd}</span>}
-              {eq.pvUsd && <span style={{ color: '#c9a96e', fontWeight: 600 }}>Venta: USD {eq.pvUsd}</span>}
+              {eq.pvUsd && <span style={{ color: '#2563EB', fontWeight: 600 }}>Venta: USD {eq.pvUsd}</span>}
               {eq.fechaIngreso && <span style={{ color: '#86868b' }}>📅 {eq.fechaIngreso.toDate ? eq.fechaIngreso.toDate().toLocaleDateString('es-AR') : new Date(eq.fechaIngreso).toLocaleDateString('es-AR')}</span>}
             </div>
             {eq.estado === 'disponible' && (
-              <button onClick={() => copiarFicha(eq)} style={{ width: '100%', background: copiado === eq.id ? 'rgba(48,209,88,0.15)' : '#2c2c2e', border: `1px solid ${copiado === eq.id ? 'rgba(48,209,88,0.3)' : '#3a3a3c'}`, color: copiado === eq.id ? '#30d158' : '#c9a96e', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={() => copiarFicha(eq)} style={{ width: '100%', background: copiado === eq.id ? 'rgba(48,209,88,0.15)' : '#2c2c2e', border: `1px solid ${copiado === eq.id ? 'rgba(48,209,88,0.3)' : '#3a3a3c'}`, color: copiado === eq.id ? '#30d158' : '#2563EB', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                 {copiado === eq.id ? '✓ Ficha copiada' : '📤 Compartir ficha WhatsApp'}
               </button>
             )}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => abrirEditar(eq)} style={{ flex: 1, background: '#2c2c2e', border: '1px solid #3a3a3c', color: '#c9a96e', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>✏️ Editar</button>
+              <button onClick={() => abrirEditar(eq)} style={{ flex: 1, background: '#2c2c2e', border: '1px solid #3a3a3c', color: '#2563EB', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>✏️ Editar</button>
               {esAdmin && <button onClick={() => eliminarEquipo(eq.id)} style={{ background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', color: '#ff3b30', borderRadius: 8, padding: '8px 12px', fontSize: 12, cursor: 'pointer' }}>🗑️</button>}
             </div>
           </div>
@@ -229,7 +229,7 @@ export default function Stock() {
               </div>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
                 <button type="button" onClick={cerrarModal} style={{ padding: '10px 20px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
-                <button type="submit" disabled={guardando} style={{ padding: '10px 24px', background: '#c9a96e', border: 'none', borderRadius: 8, color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{guardando ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Agregar equipo'}</button>
+                <button type="submit" disabled={guardando} style={{ padding: '10px 24px', background: '#2563EB', border: 'none', borderRadius: 8, color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{guardando ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Agregar equipo'}</button>
               </div>
             </form>
           </div>
@@ -245,9 +245,9 @@ export default function Stock() {
               <button onClick={() => setModalCatalogo(false)} style={{ background: 'none', border: 'none', color: '#86868b', fontSize: 20, cursor: 'pointer' }}>✕</button>
             </div>
             <p style={{ color: '#86868b', fontSize: 13, marginBottom: 16 }}>Compartí este link con tus clientes. Solo muestra los equipos disponibles, sin precios de costo.</p>
-            <div style={{ background: '#2c2c2e', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: '#c9a96e', wordBreak: 'break-all', marginBottom: 16 }}>{urlCatalogo}</div>
+            <div style={{ background: '#2c2c2e', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: '#2563EB', wordBreak: 'break-all', marginBottom: 16 }}>{urlCatalogo}</div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => { navigator.clipboard.writeText(urlCatalogo); }} style={{ flex: 1, background: '#c9a96e', color: '#000', border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Copiar link</button>
+              <button onClick={() => { navigator.clipboard.writeText(urlCatalogo); }} style={{ flex: 1, background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Copiar link</button>
               <a href={`https://wa.me/?text=Mirá mi catálogo de iPhones: ${urlCatalogo}`} target="_blank" rel="noreferrer" style={{ flex: 1, background: '#25D366', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Compartir por WhatsApp</a>
             </div>
           </div>
@@ -265,3 +265,4 @@ export default function Stock() {
     </div>
   );
 }
+

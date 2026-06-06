@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -53,7 +53,7 @@ export default function CatalogoPublico() {
         El negocio no tiene habilitada la función de catálogo público en su plan actual.
       </div>
       <div style={{ marginTop: 32, color: '#86868b', fontSize: 12 }}>
-        Gestionado con <span style={{ color: '#c9a96e' }}>iPhone Caleta App</span>
+        Gestionado con <span style={{ color: '#2563EB' }}>ReventApp</span>
       </div>
     </div>
   );
@@ -96,7 +96,7 @@ export default function CatalogoPublico() {
               {eq.pvUsd && (
                 <div style={{ background: '#2c2c2e', borderRadius: 10, padding: '10px 14px' }}>
                   <div style={{ fontSize: 11, color: '#86868b', marginBottom: 4 }}>PRECIO</div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#c9a96e' }}>USD {eq.pvUsd}</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#2563EB' }}>USD {eq.pvUsd}</div>
                   {tipoCambio > 0 && <div style={{ fontSize: 13, color: '#86868b', marginTop: 2 }}>${(eq.pvUsd * tipoCambio).toLocaleString('es-AR')} ARS</div>}
                 </div>
               )}
@@ -120,9 +120,10 @@ export default function CatalogoPublico() {
         )}
 
         <div style={{ textAlign: 'center', marginTop: 48, color: '#86868b', fontSize: 12 }}>
-          Catálogo generado con <span style={{ color: '#c9a96e' }}>iPhone Caleta App</span>
+          Catálogo generado con <span style={{ color: '#2563EB' }}>ReventApp</span>
         </div>
       </div>
     </div>
   );
 }
+

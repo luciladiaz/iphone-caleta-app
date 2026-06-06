@@ -1,4 +1,4 @@
-import { useAuth } from '../context/AuthContext';
+﻿import { useAuth } from '../context/AuthContext';
 import { PLANES } from '../config/planes';
 
 export function useSubscription() {
@@ -18,3 +18,4 @@ export function useSubscription() {
 
   return { plan, limites, puedeAgregarStock, puedeAgregarVenta, tieneAccesoWhatsApp, tieneAccesoCobrosAvanzados };
 }
+

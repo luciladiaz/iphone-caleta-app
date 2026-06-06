@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+﻿import { useNavigate } from 'react-router-dom';
 import { PLANES } from '../config/planes';
 
 const PRECIO_PLAN = { pro: '$14.900', promax: '$29.900' };
@@ -16,7 +16,7 @@ export default function FeatureBloqueada({ feature, planRequerido = 'pro', descr
     }}>
       <div style={{
         width: 56, height: 56, borderRadius: 16,
-        background: 'rgba(201,169,110,0.1)', border: '1px solid rgba(201,169,110,0.3)',
+        background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28,
       }}>
         🔒
@@ -34,7 +34,7 @@ export default function FeatureBloqueada({ feature, planRequerido = 'pro', descr
       <button
         onClick={() => navigate(`/planes?upgrade=${planRequerido}`)}
         style={{
-          background: '#c9a96e', color: '#000', border: 'none', borderRadius: 10,
+          background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10,
           padding: '12px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
         }}
       >
@@ -49,3 +49,4 @@ export default function FeatureBloqueada({ feature, planRequerido = 'pro', descr
     </div>
   );
 }
+

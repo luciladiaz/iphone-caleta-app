@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function BannerTrial() {
@@ -17,7 +17,7 @@ export default function BannerTrial() {
     icono = '⚠️';
     texto = `Tu prueba vence en ${dias} días — No pierdas el acceso`;
   } else {
-    bg = 'rgba(201,169,110,0.1)'; border = '#c9a96e'; color = '#c9a96e';
+    bg = 'rgba(37,99,235,0.1)'; border = '#2563EB'; color = '#2563EB';
     icono = '🧪';
     texto = `Estás en tu período de prueba — ${dias} días restantes`;
   }
@@ -31,7 +31,7 @@ export default function BannerTrial() {
     }}>
       <span style={{ color, fontSize: 13, fontWeight: 600 }}>{icono} {texto}</span>
       <Link to="/planes" style={{
-        color: '#000', background: color, padding: '6px 14px',
+        color: '#fff', background: color, padding: '6px 14px',
         borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap',
       }}>
         Elegir plan →
@@ -39,3 +39,4 @@ export default function BannerTrial() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import BannerTrial from './BannerTrial';
@@ -20,9 +20,9 @@ const NAV = [
 function PlanBadge({ plan, diasRestantesTrial }) {
   if (!plan) return null;
   const configs = {
-    trial:   { label: `Trial · ${diasRestantesTrial ?? '?'} días`, color: '#c9a96e', stars: '🧪' },
+    trial:   { label: `Trial · ${diasRestantesTrial ?? '?'} días`, color: '#2563EB', stars: '🧪' },
     basico:  { label: 'Plan Básico',  color: '#86868b', stars: '⭐' },
-    pro:     { label: 'Plan Pro',     color: '#c9a96e', stars: '⭐⭐' },
+    pro:     { label: 'Plan Pro',     color: '#2563EB', stars: '⭐⭐' },
     promax:  { label: 'Pro Max',      color: '#ffd700', stars: '⭐⭐⭐' },
     agencia: { label: 'Pro Max',      color: '#ffd700', stars: '⭐⭐⭐' },
   };
@@ -30,7 +30,7 @@ function PlanBadge({ plan, diasRestantesTrial }) {
   return (
     <NavLink to="/planes" style={{ textDecoration: 'none', display: 'block', margin: '8px 12px 0' }}>
       <div style={{
-        background: '#2c2c2e', borderRadius: 8, padding: '8px 12px',
+        background: 'rgba(37,99,235,0.12)', borderRadius: 8, padding: '8px 12px',
         display: 'flex', alignItems: 'center', gap: 6,
       }}>
         <span style={{ fontSize: 12 }}>{cfg.stars}</span>
@@ -54,12 +54,12 @@ export default function Layout({ children }) {
 
   const SidebarContent = () => (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '24px 20px', borderBottom: '1px solid #2c2c2e' }}>
+      <div style={{ padding: '24px 20px', borderBottom: '1px solid rgba(37,99,235,0.2)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <svg viewBox="0 0 24 24" style={{ width: 26, height: 26, fill: '#fff', flexShrink: 0 }}><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
           <div>
-            <div style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>RevendApp</div>
-            <div style={{ color: '#c9a96e', fontSize: 11, fontWeight: 600 }}>
+            <div style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>ReventApp</div>
+            <div style={{ color: '#2563EB', fontSize: 11, fontWeight: 600 }}>
               {perfil?.rol === 'admin' ? 'Administrador' : 'Vendedor'}
             </div>
           </div>
@@ -92,7 +92,7 @@ export default function Layout({ children }) {
 
       <PlanBadge plan={plan} diasRestantesTrial={diasRestantesTrial} />
 
-      <div style={{ padding: '16px 12px', borderTop: '1px solid #2c2c2e', marginTop: 8 }}>
+      <div style={{ padding: '16px 12px', borderTop: '1px solid rgba(37,99,235,0.2)', marginTop: 8 }}>
         <div style={{ color: '#86868b', fontSize: 12, marginBottom: 8, paddingLeft: 4 }}>
           {perfil?.nombre || perfil?.email}
         </div>
@@ -106,10 +106,10 @@ export default function Layout({ children }) {
   );
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#0d0d0d', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#0f172a', fontFamily: "'Inter', sans-serif" }}>
       {/* Sidebar desktop */}
       <aside style={{
-        width: 220, background: '#1c1c1e', borderRight: '1px solid #2c2c2e',
+        width: 220, background: '#1e293b', borderRight: '1px solid rgba(37,99,235,0.2)',
         position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 50,
         display: 'flex', flexDirection: 'column',
       }} className="sidebar-desktop">
@@ -119,13 +119,13 @@ export default function Layout({ children }) {
       {/* Header mobile */}
       <div style={{
         position: 'fixed', top: 0, left: 0, right: 0, height: 56,
-        background: '#1c1c1e', borderBottom: '1px solid #2c2c2e',
+        background: '#1e293b', borderBottom: '1px solid rgba(37,99,235,0.2)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 16px', zIndex: 60,
       }} className="mobile-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <svg viewBox="0 0 24 24" style={{ width: 22, height: 22, fill: '#fff' }}><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-          <span style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>RevendApp</span>
+          <span style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>ReventApp</span>
         </div>
         <button onClick={() => setMenuOpen(!menuOpen)} style={{
           background: 'none', border: 'none', color: '#fff', fontSize: 22, cursor: 'pointer',
@@ -134,7 +134,7 @@ export default function Layout({ children }) {
 
       {/* Mobile menu overlay */}
       {menuOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 70, background: '#1c1c1e' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 70, background: '#1e293b' }}>
           <div style={{ display: 'flex', justifyContent: 'flex-end', padding: 16 }}>
             <button onClick={() => setMenuOpen(false)} style={{
               background: 'none', border: 'none', color: '#fff', fontSize: 24, cursor: 'pointer',
@@ -166,3 +166,4 @@ export default function Layout({ children }) {
     </div>
   );
 }
+

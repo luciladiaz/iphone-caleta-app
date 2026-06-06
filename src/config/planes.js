@@ -1,4 +1,4 @@
-export const PLANES = {
+﻿export const PLANES = {
   trial: {
     nombre: 'Prueba gratuita',
     precio: 0,
@@ -88,3 +88,4 @@ export const PLANES = {
 
 // Alias backward-compat: "agencia" → promax
 PLANES.agencia = PLANES.promax;
+

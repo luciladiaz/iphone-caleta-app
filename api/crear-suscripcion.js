@@ -1,4 +1,4 @@
-const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+﻿const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
 const APP_URL = process.env.APP_URL || 'https://iphone-caleta-app.vercel.app';
 
 const PLANES_MP = {
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        reason: `RevendApp — ${planInfo.nombre}`,
+        reason: `ReventApp — ${planInfo.nombre}`,
         // negocioId___plan — el webhook lo parsea para saber qué actualizar
         external_reference: `${negocioId}___${plan}`,
         payer_email: email,
@@ -64,3 +64,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 }
+

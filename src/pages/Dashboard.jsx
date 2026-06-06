@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { collection, getDocs, query, orderBy, limit, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { db } from '../firebase/config';
@@ -11,7 +11,7 @@ function StatCard({ icon, label, value, sub, color, bg }) {
         <span style={{ fontSize: 20 }}>{icon}</span>
         <span style={{ color: '#86868b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px' }}>{label}</span>
       </div>
-      <div style={{ fontSize: 26, fontWeight: 800, color: color || '#c9a96e', letterSpacing: '-1px' }}>{value}</div>
+      <div style={{ fontSize: 26, fontWeight: 800, color: color || '#2563EB', letterSpacing: '-1px' }}>{value}</div>
       {sub && <div style={{ fontSize: 12, color: '#86868b' }}>{sub}</div>}
     </div>
   );
@@ -166,16 +166,16 @@ export default function Dashboard() {
             <div style={{ fontWeight: 700, marginBottom: 4 }}>🔒 Reportes de ganancia · Plan Pro</div>
             <div style={{ color: '#86868b', fontSize: 13 }}>Sabé exactamente cuánto ganaste en USD y ARS cada mes</div>
           </div>
-          <Link to="/planes" style={{ background: '#c9a96e', color: '#000', padding: '7px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>Actualizar →</Link>
+          <Link to="/planes" style={{ background: '#2563EB', color: '#fff', padding: '7px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>Actualizar →</Link>
         </div>
       )}
 
       {/* Valor del stock */}
       {tieneFeature('valorStockTiempoReal') ? (
-        <div style={{ background: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.2)', borderRadius: 14, padding: '20px 24px', marginBottom: 24 }}>
+        <div style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 14, padding: '20px 24px', marginBottom: 24 }}>
           <div style={{ color: '#86868b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>📦 Tu stock disponible vale</div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: '#c9a96e', letterSpacing: '-1px' }}>USD {stats.stockValorUSD}</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#c9a96e', opacity: 0.7, marginTop: 2 }}>ARS {stats.stockValorARS}</div>
+          <div style={{ fontSize: 32, fontWeight: 800, color: '#2563EB', letterSpacing: '-1px' }}>USD {stats.stockValorUSD}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#2563EB', opacity: 0.7, marginTop: 2 }}>ARS {stats.stockValorARS}</div>
           <div style={{ fontSize: 12, color: '#86868b', marginTop: 6 }}>{stats.stockDisponible} equipos disponibles de {stats.stockTotal} totales</div>
         </div>
       ) : (
@@ -184,7 +184,7 @@ export default function Dashboard() {
             <div style={{ fontWeight: 700, marginBottom: 4 }}>🔒 Valor del stock en tiempo real · Plan Pro</div>
             <div style={{ color: '#86868b', fontSize: 13 }}>Ves cuánto vale tu stock en USD y ARS al instante</div>
           </div>
-          <Link to="/planes" style={{ background: '#c9a96e', color: '#000', padding: '7px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>Actualizar →</Link>
+          <Link to="/planes" style={{ background: '#2563EB', color: '#fff', padding: '7px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>Actualizar →</Link>
         </div>
       )}
 
@@ -202,7 +202,7 @@ export default function Dashboard() {
             <div style={{ fontSize: 24, marginBottom: 8 }}>🔒</div>
             <div style={{ fontWeight: 600, marginBottom: 4 }}>Disponible en Plan Pro</div>
             <div style={{ color: '#86868b', fontSize: 13, marginBottom: 16 }}>Mirá quién te debe hoy y enviá recordatorios por WhatsApp</div>
-            <Link to="/planes" style={{ background: '#c9a96e', color: '#000', padding: '8px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>Ver planes →</Link>
+            <Link to="/planes" style={{ background: '#2563EB', color: '#fff', padding: '8px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>Ver planes →</Link>
           </div>
         ) : (
           <>
@@ -210,7 +210,7 @@ export default function Dashboard() {
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
               {tabs.map(t => (
                 <button key={t.key} onClick={() => setTabCobros(t.key)} style={{
-                  background: tabCobros === t.key ? '#c9a96e' : '#2c2c2e',
+                  background: tabCobros === t.key ? '#2563EB' : '#2c2c2e',
                   color: tabCobros === t.key ? '#000' : '#ebebf5cc',
                   border: 'none', borderRadius: 8, padding: '7px 14px',
                   fontSize: 13, fontWeight: 600, cursor: 'pointer',
@@ -236,7 +236,7 @@ export default function Dashboard() {
                         {c.modelo} {c.gb}GB · Cuota {c.cuotaNum} de {c.totalCuotas}
                         {c.diasAtraso > 0 && <span style={{ color: '#ff3b30', marginLeft: 8, fontWeight: 600 }}>· {c.diasAtraso} días de atraso</span>}
                       </div>
-                      <div style={{ color: '#c9a96e', fontWeight: 700, fontSize: 13, marginTop: 4 }}>
+                      <div style={{ color: '#2563EB', fontWeight: 700, fontSize: 13, marginTop: 4 }}>
                         {c.moneda} {Number(c.monto).toLocaleString('es-AR')}
                       </div>
                     </div>
@@ -291,3 +291,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { PLANES } from '../config/planes';
 
 // ── Lógica de simulación (réplica de AuthContext) ─────────────────────────────
@@ -232,7 +232,7 @@ export default function TestPagos() {
         {terminado && (
           <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
             {[
-              { label: 'Total', valor: resultados.length, color: '#c9a96e' },
+              { label: 'Total', valor: resultados.length, color: '#2563EB' },
               { label: 'Pasaron', valor: pasaron, color: '#30d158' },
               { label: 'Fallaron', valor: fallaron, color: fallaron > 0 ? '#ff3b30' : '#3a3a3c' },
             ].map(c => (
@@ -289,7 +289,7 @@ export default function TestPagos() {
           onClick={ejecutar}
           disabled={corriendo}
           style={{
-            background: corriendo ? '#2c2c2e' : '#c9a96e', color: corriendo ? '#3a3a3c' : '#000',
+            background: corriendo ? '#2c2c2e' : '#2563EB', color: corriendo ? '#3a3a3c' : '#000',
             border: 'none', borderRadius: 10, padding: '13px 28px',
             fontSize: 14, fontWeight: 700, cursor: corriendo ? 'not-allowed' : 'pointer',
           }}
@@ -304,3 +304,4 @@ export default function TestPagos() {
     </div>
   );
 }
+

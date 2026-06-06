@@ -1,4 +1,4 @@
-import { adminDb } from './_firebase.js';
+﻿import { adminDb } from './_firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
@@ -160,3 +160,4 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: false, error: err.message });
   }
 }
+

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { useState } from 'react';
 
 const C = {
@@ -121,7 +121,7 @@ export default function Landing() {
       <nav style={{ position: 'sticky', top: 0, background: 'rgba(15,23,42,0.92)', backdropFilter: 'blur(20px)', borderBottom: `1px solid ${C.border}`, padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <svg viewBox="0 0 24 24" style={{ width: 22, height: 22, fill: C.accentLight }}><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" /></svg>
-          <span style={{ fontWeight: 700, fontSize: 15 }}>RevendApp</span>
+          <span style={{ fontWeight: 700, fontSize: 15 }}>ReventApp</span>
         </div>
         <Link to="/registro" style={{ background: C.gradientCTA, color: '#fff', padding: '8px 18px', borderRadius: 99, fontSize: 13, fontWeight: 700, textDecoration: 'none', boxShadow: '0 0 16px rgba(37,99,235,0.35)' }}>
           Empezar gratis
@@ -318,7 +318,7 @@ export default function Landing() {
 
       {/* BOTÓN FLOTANTE WHATSAPP */}
       <a
-        href="https://wa.me/5493364400111?text=Hola%2C%20tengo%20dudas%20sobre%20RevendApp"
+        href="https://wa.me/5493364400111?text=Hola%2C%20tengo%20dudas%20sobre%20ReventApp"
         target="_blank"
         rel="noopener noreferrer"
         style={{
@@ -341,7 +341,7 @@ export default function Landing() {
       <footer style={{ background: '#080e1e', borderTop: `1px solid ${C.border}`, padding: '32px 24px', textAlign: 'center', color: C.textSecondary, fontSize: 13 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
           <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, fill: C.textSecondary }}><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" /></svg>
-          <span>RevendApp</span>
+          <span>ReventApp</span>
         </div>
         <div>© 2025 · Para revendedores de iPhone en Argentina</div>
       </footer>
@@ -349,3 +349,4 @@ export default function Landing() {
     </div>
   );
 }
+

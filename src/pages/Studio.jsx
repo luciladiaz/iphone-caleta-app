@@ -525,19 +525,16 @@ const TAB_LABELS = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function Studio() {
-  const { perfil, user } = useAuth();
+  const { user } = useAuth();
   const [tab, setTab]             = useState('feed');
   const [selected, setSelected]   = useState(null);
   const [editData, setEditData]   = useState({});
   const [downloading, setDownloading] = useState(false);
   const templateRef = useRef(null);
 
-  // Mientras carga auth, mostrar nada
-  if (user === undefined) return null;
-
-  // Acceso restringido
-  if (!user || !perfil) return <Navigate to="/login" />;
-  if (perfil.email !== 'luucila20@gmail.com') return <Navigate to="/" />;
+  // AuthProvider ya maneja el loading (renderiza children solo cuando loading=false)
+  if (!user) return <Navigate to="/login" />;
+  if (user.email !== 'luucila20@gmail.com') return <Navigate to="/" />;
 
   const handleSelect = (tpl) => {
     setSelected(tpl);

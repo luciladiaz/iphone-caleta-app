@@ -22,19 +22,37 @@ const C = {
 
 const PROBLEMAS = [
   {
-    icon: '💰',
     titulo: 'Sin control de ganancias',
     desc: 'Comprás en dólares, vendés en pesos y recibís partes de pago. Al final del mes no sabés si ganaste o perdiste.',
+    gradient: 'linear-gradient(135deg, #dc2626, #f87171)',
+    shadow: 'rgba(220,38,38,0.45)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+        <polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/>
+      </svg>
+    ),
   },
   {
-    icon: '📱',
     titulo: 'Stock desorganizado',
     desc: 'Cuando un cliente pregunta si tenés un 13 Pro 256 azul, tardás 5 minutos en encontrarlo.',
+    gradient: 'linear-gradient(135deg, #ea580c, #fb923c)',
+    shadow: 'rgba(234,88,12,0.45)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+        <path d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
+      </svg>
+    ),
   },
   {
-    icon: '💸',
     titulo: 'Cobros sin seguimiento',
     desc: 'Sabés que alguien te debe pero no recordás cuánto, ni cuándo fue la última cuota.',
+    gradient: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
+    shadow: 'rgba(124,58,237,0.45)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+    ),
   },
 ];
 
@@ -259,8 +277,16 @@ export default function Landing() {
           <h2 style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 800, letterSpacing: '-1px', marginBottom: 48 }}>¿Te pasa esto?</h2>
           <div className="landing-grid-3">
             {PROBLEMAS.map(p => (
-              <div key={p.titulo} style={{ background: C.bgCard, borderRadius: 14, padding: 24, textAlign: 'left', borderLeft: `3px solid ${C.accentBlue}` }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>{p.icon}</div>
+              <div key={p.titulo} style={{ background: C.bgCard, borderRadius: 16, padding: 24, textAlign: 'left', borderLeft: `3px solid ${C.accentBlue}` }}>
+                <div style={{
+                  width: 54, height: 54, borderRadius: 14,
+                  background: p.gradient,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: `0 6px 18px ${p.shadow}`,
+                  marginBottom: 16,
+                }}>
+                  {p.icon}
+                </div>
                 <div style={{ fontWeight: 700, fontSize: 16, color: C.textPrimary, marginBottom: 8 }}>{p.titulo}</div>
                 <div style={{ color: C.textSecondary, fontSize: 13, lineHeight: 1.6 }}>{p.desc}</div>
               </div>

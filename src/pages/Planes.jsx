@@ -144,7 +144,7 @@ export default function Planes() {
       )}
 
       {/* ── Banner: cuenta suspendida por pago fallido ────────────────────── */}
-      {motivo === 'suspendido' && (
+      {motivo === 'suspendido' && !planActivo && (
         <div style={{ background: 'rgba(255,59,48,0.12)', border: '1px solid rgba(255,59,48,0.5)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
           <div style={{ fontSize: 20, marginBottom: 6 }}>⚠️</div>
           <div style={{ fontWeight: 700, fontSize: 16, color: '#ff3b30', marginBottom: 6 }}>
@@ -164,7 +164,7 @@ export default function Planes() {
       )}
 
       {/* ── Banner: trial vencido ──────────────────────────────────────────── */}
-      {motivo === 'vencido' && (
+      {motivo === 'vencido' && !planActivo && (
         <div style={{ background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
           <div style={{ fontSize: 20, marginBottom: 6 }}>⏰</div>
           <div style={{ fontWeight: 700, fontSize: 16, color: '#ff3b30', marginBottom: 6 }}>

@@ -39,12 +39,72 @@ const PROBLEMAS = [
 ];
 
 const FEATURES = [
-  { icon: '📦', titulo: 'Stock',         desc: 'Modelo, GB, color, batería e IMEI. Buscá en segundos.' },
-  { icon: '💰', titulo: 'Ventas',        desc: 'Pesos, dólares, cuotas o parte de pago. Todo en una operación.' },
-  { icon: '📊', titulo: 'Ganancias',     desc: 'Cuánto ganaste en USD y ARS con el tipo de cambio del día.' },
-  { icon: '💳', titulo: 'Cobros',        desc: 'Quién te debe, cuánto y hace cuántos días. Semáforo de urgencia.' },
-  { icon: '📲', titulo: 'Recordatorios', desc: 'Mandá el recordatorio a WhatsApp con un solo toque.' },
-  { icon: '🔗', titulo: 'Catálogo',      desc: 'Un link con tu stock disponible listo para mandar por WhatsApp.' },
+  {
+    titulo: 'Stock',
+    desc: 'Modelo, GB, color, batería e IMEI. Buscá en segundos.',
+    gradient: 'linear-gradient(135deg, #1d4ed8, #3b82f6)',
+    shadow: 'rgba(37,99,235,0.45)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+        <path d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
+      </svg>
+    ),
+  },
+  {
+    titulo: 'Ventas',
+    desc: 'Pesos, dólares, cuotas o parte de pago. Todo en una operación.',
+    gradient: 'linear-gradient(135deg, #059669, #34d399)',
+    shadow: 'rgba(5,150,105,0.45)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+        <rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/>
+      </svg>
+    ),
+  },
+  {
+    titulo: 'Ganancias',
+    desc: 'Cuánto ganaste en USD y ARS con el tipo de cambio del día.',
+    gradient: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
+    shadow: 'rgba(124,58,237,0.45)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>
+      </svg>
+    ),
+  },
+  {
+    titulo: 'Cobros',
+    desc: 'Quién te debe, cuánto y hace cuántos días. Semáforo de urgencia.',
+    gradient: 'linear-gradient(135deg, #d97706, #fbbf24)',
+    shadow: 'rgba(217,119,6,0.45)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+        <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><path d="M6 14.5h4"/>
+      </svg>
+    ),
+  },
+  {
+    titulo: 'Recordatorios',
+    desc: 'Mandá el recordatorio a WhatsApp con un solo toque.',
+    gradient: 'linear-gradient(135deg, #dc2626, #f87171)',
+    shadow: 'rgba(220,38,38,0.45)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+        <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
+      </svg>
+    ),
+  },
+  {
+    titulo: 'Catálogo',
+    desc: 'Un link con tu stock disponible listo para mandar por WhatsApp.',
+    gradient: 'linear-gradient(135deg, #0891b2, #22d3ee)',
+    shadow: 'rgba(8,145,178,0.45)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+        <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+      </svg>
+    ),
+  },
 ];
 
 const FAQS = [
@@ -77,7 +137,7 @@ function FaqItem({ q, a }) {
   );
 }
 
-function CardFeature({ icon, titulo, desc }) {
+function CardFeature({ icon, titulo, desc, gradient, shadow }) {
   const [hover, setHover] = useState(false);
   return (
     <div
@@ -86,13 +146,20 @@ function CardFeature({ icon, titulo, desc }) {
       style={{
         background: C.bgCard,
         border: `1px solid ${hover ? C.accentBlue : C.border}`,
-        borderRadius: 14,
-        padding: 20,
+        borderRadius: 16,
+        padding: 22,
         transition: 'all 0.2s ease',
         boxShadow: hover ? `0 8px 32px rgba(37, 99, 235, 0.15)` : 'none',
       }}
     >
-      <div style={{ width: 44, height: 44, borderRadius: 10, background: 'rgba(37,99,235,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+      <div style={{
+        width: 54, height: 54, borderRadius: 14,
+        background: gradient,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: `0 6px 18px ${shadow}`,
+        transition: 'transform 0.2s ease',
+        transform: hover ? 'scale(1.08)' : 'scale(1)',
+      }}>
         {icon}
       </div>
       <h3 style={{ fontWeight: 700, fontSize: 15, color: C.textPrimary, margin: '14px 0 0', padding: 0 }}>{titulo}</h3>

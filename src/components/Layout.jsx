@@ -3,18 +3,65 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import BannerTrial from './BannerTrial';
 
+const SZ = { width: 17, height: 17, flexShrink: 0 };
+const SA = { fill: 'none', stroke: 'currentColor', strokeWidth: '1.75', strokeLinecap: 'round', strokeLinejoin: 'round' };
+
 const NAV = [
-  { to: '/',            label: 'Dashboard',    icon: '📊', modulo: 'dashboard',   siempre: true },
-  { to: '/stock',       label: 'Stock',        icon: '📦', modulo: 'stock',        siempre: true },
-  { to: '/ventas',      label: 'Ventas',       icon: '💰', modulo: 'ventas',       siempre: true },
-  { to: '/cobros',      label: 'Cobros',       icon: '💳', modulo: 'cobros',       siempre: true },
-  { to: '/proveedores', label: 'Proveedores',  icon: '🏭', modulo: 'proveedores',  siempre: true },
-  { to: '/pagos',       label: 'Pagos Prov.',  icon: '📤', modulo: 'pagos',        siempre: true },
-  { to: '/gerencial',   label: 'Gerencial',    icon: '📈', modulo: 'gerencial',    feature: 'dashboardGerencial' },
-  { to: '/vendedores',  label: 'Rendimiento',  icon: '🤝', modulo: 'vendedores',   feature: 'reportesPorVendedor' },
-  { to: '/config',      label: 'Configuración',icon: '⚙️', modulo: 'config',       siempre: true },
-  { to: '/usuarios',    label: 'Usuarios',     icon: '👥', modulo: 'usuarios',     siempre: true },
-  { to: '/planes',      label: 'Mi Plan',      icon: '⭐', modulo: 'planes',       siempre: true },
+  { to: '/', label: 'Dashboard', modulo: 'dashboard', siempre: true, icon: (
+    <svg viewBox="0 0 24 24" style={SZ} {...SA}>
+      <rect x="3" y="10" width="4" height="11" rx="1"/><rect x="10" y="5" width="4" height="16" rx="1"/><rect x="17" y="1" width="4" height="20" rx="1"/>
+    </svg>
+  )},
+  { to: '/stock', label: 'Stock', modulo: 'stock', siempre: true, icon: (
+    <svg viewBox="0 0 24 24" style={SZ} {...SA}>
+      <path d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
+    </svg>
+  )},
+  { to: '/ventas', label: 'Ventas', modulo: 'ventas', siempre: true, icon: (
+    <svg viewBox="0 0 24 24" style={SZ} {...SA}>
+      <rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/>
+    </svg>
+  )},
+  { to: '/cobros', label: 'Cobros', modulo: 'cobros', siempre: true, icon: (
+    <svg viewBox="0 0 24 24" style={SZ} {...SA}>
+      <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><path d="M6 14.5h2M11 14.5h3"/>
+    </svg>
+  )},
+  { to: '/proveedores', label: 'Proveedores', modulo: 'proveedores', siempre: true, icon: (
+    <svg viewBox="0 0 24 24" style={SZ} {...SA}>
+      <path d="M3 21V9.5L12 3l9 6.5V21H3z"/><path d="M9 21V14h6v7"/>
+    </svg>
+  )},
+  { to: '/pagos', label: 'Pagos Prov.', modulo: 'pagos', siempre: true, icon: (
+    <svg viewBox="0 0 24 24" style={SZ} {...SA}>
+      <path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 7.5m0 0L7.5 12M12 7.5V18"/>
+    </svg>
+  )},
+  { to: '/gerencial', label: 'Gerencial', modulo: 'gerencial', feature: 'dashboardGerencial', icon: (
+    <svg viewBox="0 0 24 24" style={SZ} {...SA}>
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>
+    </svg>
+  )},
+  { to: '/vendedores', label: 'Rendimiento', modulo: 'vendedores', feature: 'reportesPorVendedor', icon: (
+    <svg viewBox="0 0 24 24" style={SZ} {...SA}>
+      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+    </svg>
+  )},
+  { to: '/config', label: 'Configuración', modulo: 'config', siempre: true, icon: (
+    <svg viewBox="0 0 24 24" style={SZ} {...SA}>
+      <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+    </svg>
+  )},
+  { to: '/usuarios', label: 'Usuarios', modulo: 'usuarios', siempre: true, icon: (
+    <svg viewBox="0 0 24 24" style={SZ} {...SA}>
+      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+    </svg>
+  )},
+  { to: '/planes', label: 'Mi Plan', modulo: 'planes', siempre: true, icon: (
+    <svg viewBox="0 0 24 24" style={SZ} {...SA}>
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+  )},
 ];
 
 function PlanBadge({ plan, diasRestantesTrial }) {
@@ -82,7 +129,7 @@ export default function Layout({ children }) {
                 transition: 'all .15s',
               })}
             >
-              <span style={{ fontSize: 18 }}>{icon}</span>
+              {icon}
               <span>{label}</span>
               {bloqueado && <span style={{ fontSize: 11, color: '#3a3a3c', marginLeft: 'auto' }}>🔒</span>}
             </NavLink>

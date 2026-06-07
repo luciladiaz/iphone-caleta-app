@@ -19,6 +19,7 @@ import ReporteVendedores from './pages/ReporteVendedores';
 import DevSeed from './pages/DevSeed';
 import AppTest from './pages/AppTest';
 import TestPagos from './pages/TestPagos';
+import Studio from './pages/Studio';
 
 function PrivateRoute({ children, modulo }) {
   const { user, puedeVer, planActivo, motivoBloqueo } = useAuth();
@@ -54,6 +55,9 @@ function AppRoutes() {
 
       {/* /planes no usa PrivateRoute con planActivo para evitar loop cuando vence */}
       <Route path="/planes" element={user ? <Layout><Planes /></Layout> : <Navigate to="/landing" />} />
+
+      {/* /studio — privado, acceso solo al owner. El componente hace la verificación de email. */}
+      <Route path="/studio" element={<Studio />} />
 
       {/* Rutas privadas */}
       <Route path="/" element={<PrivateRoute modulo="dashboard"><Layout><Dashboard /></Layout></PrivateRoute>} />

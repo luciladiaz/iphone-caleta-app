@@ -492,26 +492,28 @@ function AdPricing({ headline, feature1, feature2, feature3, precio, cta }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const CAPTIONS = {
-  'feed-pain': `¿Cuánto ganaste exactamente este mes con tus iPhones?
+  'feed-pain': `📊 ¿Cuánto ganaste exactamente este mes con tus iPhones?
 
-Si la respuesta es "más o menos" o "creo que bien"... hay un problema.
+Si la respuesta es "más o menos" o "creo que bien"... hay un problema. 🚨
 
-ReventApp te da el número exacto: ganancia por equipo, en pesos y en dólares, con el tipo de cambio del día.
+✅ ReventApp te da el número exacto: ganancia por equipo, en pesos y en dólares, con el tipo de cambio del día.
 
-Probalo 7 días gratis, sin tarjeta → reventapp.com.ar
+🎯 Probalo 7 días gratis, sin tarjeta → reventapp.com.ar
 
 .
 .
 .
 #revendedoriphone #iphoneargentina #reventacelulares #stockiphone #negociodecelulares #celularesargentina #emprendedorargentino #reventapp #gestiondestock #pymes #iphone #argentina #vendedordecelulares #celularesusados #emprendimiento #iphone15 #revendedoresargentina`,
 
-  'feed-feature': `Cargá tu stock en minutos. Buscalo en segundos.
+  'feed-feature': `📦 Cargá tu stock en minutos. Buscalo en segundos.
 
-Modelo, GB, color, batería e IMEI. Todo en un solo lugar desde el celular.
+✅ Modelo, GB, color, batería e IMEI
+✅ Todo en un solo lugar desde el celular
+✅ Buscá el equipo antes de que el cliente pregunte
 
-Cuando el cliente pregunta si tenés el equipo, vos ya sabés la respuesta antes de que termine la frase.
+⚡ Cuando el cliente pregunta si tenés el equipo, vos ya sabés la respuesta.
 
-Empezá gratis → reventapp.com.ar
+📲 Empezá gratis → reventapp.com.ar
 
 .
 .
@@ -520,51 +522,54 @@ Empezá gratis → reventapp.com.ar
 
   'feed-tip': `3 errores que le hacen perder plata a todo revendedor de iPhone 👇
 
-Guardá este post y compartilo con alguien que lo necesite.
+❌ No llevar los costos en USD → el tipo de cambio te come la ganancia
+❌ No controlar cobros en cuotas → un cliente que no paga es plata perdida
+❌ No tener catálogo actualizado → el cliente compra donde encuentra precio rápido
 
-¿Cuál de estos errores cometés vos? Contame en los comentarios.
+💾 Guardá este post y compartilo con alguien que lo necesite.
 
-ReventApp te ayuda a evitar los tres → reventapp.com.ar
+✅ ReventApp te ayuda a evitar los tres → reventapp.com.ar
 
 .
 .
 .
 #revendedoriphone #tipsventas #negociodecelulares #iphoneargentina #reventacelulares #celularesargentina #erroresemprendedor #emprendedorargentino #reventapp #pymes #consejosventas #iphone #gestiondestock #stockiphone #revendedordecelulares #negocioargentino`,
 
-  'feed-social': `Más de 200 revendedores en Argentina ya usan ReventApp para organizar su negocio.
+  'feed-social': `🏆 Más de 200 revendedores en Argentina ya usan ReventApp.
 
-CABA, Córdoba, Rosario, Mendoza, Mar del Plata y creciendo.
+📍 CABA · Córdoba · Rosario · Mendoza · Mar del Plata y creciendo
 
-No es casualidad. Es que cuando empezás a llevar los números en serio, no podés volver a la libreta.
+No es casualidad. Es que cuando empezás a llevar los números en serio, no podés volver a la libreta. 📒 ➡️ 📱
 
-¿Cuándo te sumás? → reventapp.com.ar
+🚀 ¿Cuándo te sumás? → reventapp.com.ar
 
 .
 .
 .
 #revendedoriphone #iphoneargentina #reventacelulares #celularesargentina #reventapp #negociodecelulares #comunidadrevendedores #iphone #argentina #emprendedorargentino #pymes #sistemaventas #stockiphone #gestiondestock #revendedoresargentina`,
 
-  'feed-cta': `7 días gratis. Sin tarjeta. Sin compromisos.
+  'feed-cta': `🎯 7 días gratis. Sin tarjeta. Sin compromisos.
 
 La única excusa que te quedaba para no tener todo organizado era el precio.
 
-La sacamos.
+La sacamos. ✅
 
-Empezá hoy → reventapp.com.ar
-Desde $7.900/mes después. Cancelás cuando quieras.
+🚀 Empezá hoy → reventapp.com.ar
+💰 Desde $7.900/mes después. Cancelás cuando quieras.
 
 .
 .
 .
 #reventapp #revendedoriphone #iphoneargentina #probalogratis #reventacelulares #negociodecelulares #celularesargentina #emprendedorargentino #pymes #sistemaventas #gestiondestock #stockiphone #iphone #argentina #negociodigital #emprendimiento`,
 
-  'feed-intro': `Somos ReventApp. 👋
+  'feed-intro': `👋 Somos ReventApp.
 
-La primera app diseñada específicamente para revendedores de iPhone en Argentina.
+La primera app diseñada específicamente para revendedores de iPhone en Argentina. 🇦🇷 📱
 
-Stock · Ventas · Cobros · Ganancias. Todo desde el celular, en tiempo real.
+📦 Stock · 💰 Ventas · 💳 Cobros · 📊 Ganancias
+Todo desde el celular, en tiempo real.
 
-Si revendés iPhones, seguinos. Acá vas a encontrar tips, datos del mercado y todo lo que necesitás para llevar tu negocio en serio.
+Si revendés iPhones, seguinos 👉 Acá vas a encontrar tips, datos del mercado y todo lo que necesitás para llevar tu negocio en serio. 💪
 
 → reventapp.com.ar
 
@@ -575,105 +580,119 @@ Si revendés iPhones, seguinos. Acá vas a encontrar tips, datos del mercado y t
 
   'feed-antesdespues': `¿Qué cambia cuando empezás a usar ReventApp? Esto 👇
 
-Sin la app → todo es intuición, papeles y dudas.
-Con la app → todo es datos, claridad y control.
+❌ SIN REVENTAPP
+• No sabés exactamente cuánto tenés en stock
+• Perdés cobros en cuotas sin registrar
+• Las ganancias son un misterio 😵
 
-El revendedor que conoce sus números siempre toma mejores decisiones.
+✅ CON REVENTAPP
+• Stock actualizado en tiempo real 📦
+• Todos los cobros controlados con alerta 💳
+• Ganancia exacta en pesos y dólares 💰
 
-Probalo 7 días sin tarjeta → reventapp.com.ar
+El revendedor que conoce sus números siempre toma mejores decisiones. 📊
+
+🎯 Probalo 7 días sin tarjeta → reventapp.com.ar
 
 .
 .
 .
 #revendedoriphone #antesydespues #iphoneargentina #reventacelulares #gestiondestock #stockiphone #negociodecelulares #celularesargentina #reventapp #emprendedorargentino #pymes #sistemaventas #organizarnegocio #iphone #emprendimiento #revendedoresargentina`,
 
-  'feed-testimonio': `"Antes perdía plata y no sabía por qué. Ahora sé exactamente cuánto gané en el mes."
+  'feed-testimonio': `💬 "Antes perdía plata y no sabía por qué. Ahora sé exactamente cuánto gané en el mes."
 
-Esto es lo que pasa cuando empezás a llevar los números en serio.
+⭐⭐⭐⭐⭐
 
-¿Querés el mismo resultado? Probá ReventApp 7 días gratis, sin tarjeta → reventapp.com.ar
+Esto es lo que pasa cuando empezás a llevar los números en serio. 📊
+
+¿Querés el mismo resultado?
+🎯 Probá ReventApp 7 días gratis, sin tarjeta → reventapp.com.ar
 
 .
 .
 .
 #revendedoriphone #testimonios #iphoneargentina #reventacelulares #resultados #negociodecelulares #celularesargentina #reventapp #emprendedorargentino #pymes #gestiondestock #stockiphone #iphone #argentina #emprendimiento #reventadigital #revendedoresargentina`,
 
-  'feed-dato': `7 de cada 10 revendedores no controla sus costos en dólares.
+  'feed-dato': `📊 7 de cada 10 revendedores no controla sus costos en dólares.
 
-¿El resultado? No saben si realmente están ganando o perdiendo plata en cada venta.
+🚨 ¿El resultado? No saben si realmente están ganando o perdiendo plata en cada venta.
 
-Con el tipo de cambio que tenemos en Argentina, esta diferencia puede ser enorme.
+💡 Con el tipo de cambio de Argentina, esta diferencia puede ser enorme.
 
-ReventApp registra cada compra en USD y cada venta en ARS, con el tipo de cambio del día. Automáticamente.
+✅ ReventApp registra cada compra en USD y cada venta en ARS, con el tipo de cambio del día. Automáticamente.
 
-→ reventapp.com.ar
+👉 reventapp.com.ar
 
 .
 .
 .
 #revendedoriphone #datosdemercado #iphoneargentina #reventacelulares #celularesargentina #tipodecambio #dolaresypesos #negociodecelulares #reventapp #emprendedorargentino #pymes #gestiondestock #stockiphone #iphone #argentina #multimoneda`,
 
-  'feed-pasos': `¿Querés organizar tu negocio de reventa de iPhones? Tres pasos, cero complicaciones 👇
+  'feed-pasos': `¿Querés organizar tu negocio de reventa de iPhones? 3 pasos, 0 complicaciones 👇
 
-1️⃣ Cargá tu stock: modelo, GB, color y precio de compra
-2️⃣ Registrá cada venta con el método de pago
-3️⃣ Controlá los cobros y mirá cuánto ganaste
+1️⃣ Cargá tu stock: modelo, GB, color y precio de compra 📦
+2️⃣ Registrá cada venta con el método de pago 💳
+3️⃣ Controlá los cobros y mirá cuánto ganaste 📊
 
-Sin planillas. Sin papeles. Todo desde el celular.
+Sin planillas. Sin papeles. Todo desde el celular. 📱
 
-Empezá gratis → reventapp.com.ar
+🚀 Empezá gratis → reventapp.com.ar
 
 .
 .
 .
 #revendedoriphone #guiapasoapaso #iphoneargentina #reventacelulares #negociodecelulares #celularesargentina #reventapp #emprendedorargentino #pymes #sistemaventas #gestiondestock #stockiphone #iphone #argentina #emprendimiento #organizartunegocio`,
 
-  'story-hook': `¿Llevás el stock en una libreta?
+  'story-hook': `📱 ¿Llevás el stock en una libreta?
 
-Hay una mejor forma. Y es más fácil de lo que pensás.
+Hay una mejor forma. Y es más fácil de lo que pensás. 💡
 
-→ reventapp.com.ar
+👉 reventapp.com.ar
 
 .
 .
 .
 #revendedoriphone #iphoneargentina #reventacelulares #stockiphone #negociodecelulares #celularesargentina #reventapp #emprendedorargentino #pymes #iphone #argentina #gestiondestock`,
 
-  'story-feature': `Compartí tu catálogo de iPhones por WhatsApp en un toque.
+  'story-feature': `📲 Compartí tu catálogo de iPhones por WhatsApp en un toque.
 
-Un link, todos tus equipos disponibles. Actualizado en tiempo real.
+✅ Un link, todos tus equipos disponibles
+✅ Actualizado en tiempo real
+✅ El cliente ve precio y disponibilidad al instante ⚡
 
-→ reventapp.com.ar
+👉 reventapp.com.ar
 
 .
 .
 .
 #catalogoiphone #revendedoriphone #iphoneargentina #reventacelulares #celularesargentina #reventapp #emprendedorargentino #stockiphone #iphone #argentina #whatsappnegocios`,
 
-  'story-cta': `7 días gratis. Sin tarjeta.
+  'story-cta': `🎯 7 días gratis. Sin tarjeta.
 
-Probá ReventApp y organizá tu negocio de iPhones desde el celular.
+✅ Stock en tiempo real 📦
+✅ Cobros controlados 💳
+✅ Ganancias exactas en $ y USD 💰
 
-→ reventapp.com.ar
+🚀 Probá ReventApp → reventapp.com.ar
 
 .
 .
 .
 #reventapp #revendedoriphone #iphoneargentina #probalogratis #reventacelulares #negociodecelulares #celularesargentina #emprendedorargentino #pymes #iphone #argentina`,
 
-  'ad-split': `¿Te pasa esto? ReventApp lo soluciona.
+  'ad-split': `🚨 ¿Te pasa esto? ReventApp lo soluciona.
 
-Stock, ventas y cobros en tiempo real desde el celular.
+📦 Stock, ventas y cobros en tiempo real desde el celular.
 
-Probalo 7 días gratis → reventapp.com.ar
+🎯 Probalo 7 días gratis → reventapp.com.ar
 
 #reventapp #revendedoriphone #iphoneargentina #reventacelulares #stockiphone #negociodecelulares #celularesargentina #emprendedorargentino`,
 
-  'ad-pricing': `Probá ReventApp 7 días gratis. Sin tarjeta.
+  'ad-pricing': `✅ Probá ReventApp 7 días gratis. Sin tarjeta.
 
-Stock · Ventas · Cobros · Catálogo. Todo en un lugar.
+📦 Stock · 💰 Ventas · 💳 Cobros · 📊 Ganancias
 
-Desde $7.900/mes → reventapp.com.ar
+🚀 Desde $7.900/mes → reventapp.com.ar
 
 #reventapp #revendedoriphone #iphoneargentina #reventacelulares #stockiphone #negociodecelulares`,
 };

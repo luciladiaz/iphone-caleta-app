@@ -173,6 +173,168 @@ function FeedCTA({ tag, titulo, subtitulo, precio, url }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// FEED EXTRA — Presentación, Antes/Después, Testimonio, Dato, Pasos
+// ═══════════════════════════════════════════════════════════════════════════
+
+function FeedIntro({ tagline, titulo, subtitulo, pill1, pill2, pill3, handle }) {
+  return (
+    <div style={{ width: 540, height: 540, background: B.navy, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: -80, right: -80, width: 300, height: 300, borderRadius: '50%', border: '1px solid rgba(37,99,235,0.12)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: 70, left: -60, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 52px 20px' }}>
+        <div style={{ width: 70, height: 70, borderRadius: 16, background: 'linear-gradient(135deg, #1d4ed8, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+          <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: 'Inter, sans-serif', letterSpacing: '-2px' }}>R</span>
+        </div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: B.sky, letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 10, textAlign: 'center' }}>{tagline}</div>
+        <div style={{ fontSize: 40, fontWeight: 900, color: B.white, lineHeight: 1.1, letterSpacing: '-2px', marginBottom: 12, textAlign: 'center', whiteSpace: 'pre-line' }}>{titulo}</div>
+        <div style={{ fontSize: 15, color: B.gray, lineHeight: 1.6, textAlign: 'center', marginBottom: 28, maxWidth: 360 }}>{subtitulo}</div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {[pill1, pill2, pill3].filter(Boolean).map(p => (
+            <span key={p} style={{ background: 'rgba(37,99,235,0.15)', border: '1px solid rgba(37,99,235,0.3)', color: B.sky, borderRadius: 99, padding: '6px 14px', fontSize: 12, fontWeight: 700 }}>{p}</span>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ background: B.slate, padding: '15px 52px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <LogoMark iconSize={28} />
+        <span style={{ fontSize: 12, color: B.gray, fontWeight: 600 }}>{handle}</span>
+      </div>
+    </div>
+  );
+}
+
+function FeedAntesDespues({ titulo, antes1, antes2, antes3, despues1, despues2, despues3 }) {
+  return (
+    <div style={{ width: 540, height: 540, background: B.navy, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', overflow: 'hidden' }}>
+      <div style={{ background: B.slate, padding: '18px 40px', textAlign: 'center', borderBottom: `2px solid ${B.blue}` }}>
+        <div style={{ fontSize: 14, fontWeight: 900, color: B.white, letterSpacing: '-0.5px' }}>{titulo}</div>
+      </div>
+      <div style={{ flex: 1, display: 'flex' }}>
+        <div style={{ flex: 1, background: '#070e1f', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center', borderRight: `3px solid ${B.blue}` }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: '#f87171', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 16 }}>SIN REVENTAPP</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {[antes1, antes2, antes3].filter(Boolean).map((item, i) => (
+              <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 10, color: '#f87171', fontWeight: 800, marginTop: 1 }}>×</div>
+                <span style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ flex: 1, background: `linear-gradient(145deg, ${B.deep} 0%, #1a4db0 100%)`, padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: B.green, letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 16 }}>CON REVENTAPP</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {[despues1, despues2, despues3].filter(Boolean).map((item, i) => (
+              <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(16,185,129,0.18)', border: '1px solid rgba(16,185,129,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 10, color: B.green, fontWeight: 800, marginTop: 1 }}>✓</div>
+                <span style={{ fontSize: 13, color: B.white, lineHeight: 1.5 }}>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div style={{ background: B.slate, padding: '13px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <LogoMark iconSize={24} />
+        <span style={{ fontSize: 11, color: B.gray, fontWeight: 600, letterSpacing: 1 }}>@reventapp.iphone</span>
+      </div>
+    </div>
+  );
+}
+
+function FeedTestimonio({ cita, nombre, ciudad }) {
+  return (
+    <div style={{ width: 540, height: 540, background: B.navy, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: -60, left: -60, width: 250, height: 250, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: 60, right: -40, width: 180, height: 180, borderRadius: '50%', border: '1px solid rgba(37,99,235,0.1)', pointerEvents: 'none' }} />
+
+      <div style={{ flex: 1, padding: '36px 52px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ fontSize: 70, fontWeight: 900, color: B.blue, lineHeight: 0.9, marginBottom: 14, opacity: 0.65 }}>"</div>
+        <div style={{ fontSize: 15, color: B.blue, letterSpacing: 4, marginBottom: 18 }}>★★★★★</div>
+        <div style={{ fontSize: 21, fontWeight: 700, color: B.white, lineHeight: 1.55, letterSpacing: '-0.5px', marginBottom: 28, whiteSpace: 'pre-line' }}>{cita}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 44, height: 44, borderRadius: '50%', background: `linear-gradient(135deg, ${B.deep}, ${B.blue})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 900, color: '#fff', flexShrink: 0 }}>
+            {(nombre || 'U').charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: B.white }}>{nombre}</div>
+            <div style={{ fontSize: 12, color: B.gray }}>{ciudad}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ background: B.slate, padding: '14px 52px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <LogoMark iconSize={26} />
+        <span style={{ fontSize: 11, color: B.gray, fontWeight: 600, letterSpacing: 1 }}>@reventapp.iphone</span>
+      </div>
+    </div>
+  );
+}
+
+function FeedDato({ label, numero, unidad, contexto, cta }) {
+  return (
+    <div style={{ width: 540, height: 540, background: B.navy, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: '15%', left: '50%', transform: 'translateX(-50%)', width: 460, height: 360, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 65%)', pointerEvents: 'none' }} />
+
+      <div style={{ flex: 1, padding: '48px 52px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: B.sky, letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 16 }}>{label}</div>
+        <div style={{ fontSize: 80, fontWeight: 900, color: B.blue, lineHeight: 1, letterSpacing: '-3px', marginBottom: 4 }}>{numero}</div>
+        {unidad && <div style={{ fontSize: 20, fontWeight: 800, color: B.white, marginBottom: 16, letterSpacing: '-0.5px', lineHeight: 1.25, whiteSpace: 'pre-line' }}>{unidad}</div>}
+        <div style={{ fontSize: 15, color: B.gray, lineHeight: 1.65, marginBottom: 28, maxWidth: 380 }}>{contexto}</div>
+        <div style={{ display: 'inline-flex', background: 'rgba(37,99,235,0.15)', border: '1px solid rgba(37,99,235,0.3)', borderRadius: 99, padding: '7px 18px', width: 'fit-content' }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: B.sky }}>{cta}</span>
+        </div>
+      </div>
+
+      <div style={{ background: B.slate, padding: '14px 52px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <LogoMark iconSize={26} />
+        <span style={{ fontSize: 11, color: B.gray, fontWeight: 600, letterSpacing: 1 }}>@reventapp.iphone</span>
+      </div>
+    </div>
+  );
+}
+
+function FeedPasos({ titulo, subtitulo, paso1, paso2, paso3, cta }) {
+  const pasos = [paso1, paso2, paso3].filter(Boolean);
+  return (
+    <div style={{ width: 540, height: 540, background: B.slate, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: -60, right: -60, width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+      <div style={{ flex: 1, padding: '36px 48px 16px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: B.sky, letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 10 }}>GUÍA RÁPIDA</div>
+        <div style={{ fontSize: 30, fontWeight: 900, color: B.white, lineHeight: 1.2, letterSpacing: '-1px', marginBottom: subtitulo ? 6 : 24 }}>{titulo}</div>
+        {subtitulo && <div style={{ fontSize: 14, color: B.gray, marginBottom: 24, lineHeight: 1.5 }}>{subtitulo}</div>}
+
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center' }}>
+          {pasos.map((paso, i) => (
+            <div key={i} style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: B.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 15, color: '#fff' }}>{i + 1}</div>
+                {i < pasos.length - 1 && <div style={{ width: 2, height: 28, background: 'rgba(37,99,235,0.3)', margin: '4px 0' }} />}
+              </div>
+              <div style={{ paddingBottom: i < pasos.length - 1 ? 28 : 0, paddingTop: 6 }}>
+                <div style={{ fontSize: 15, color: B.white, fontWeight: 600, lineHeight: 1.5 }}>{paso}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {cta && (
+          <div style={{ display: 'inline-flex', background: B.blue, borderRadius: 99, padding: '9px 22px', marginTop: 16, width: 'fit-content' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{cta} →</span>
+          </div>
+        )}
+      </div>
+
+      <div style={{ padding: '13px 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(37,99,235,0.15)' }}>
+        <LogoMark iconSize={24} />
+        <span style={{ fontSize: 11, color: B.gray, fontWeight: 600, letterSpacing: 1 }}>@reventapp.iphone</span>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // HISTORIAS  (405 × 720 preview — exporta 1080 × 1920 con scale 2.666)
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -415,6 +577,100 @@ const TEMPLATES = {
         { key: 'subtitulo', label: 'Complemento' },
         { key: 'precio', label: 'Texto de precio' },
         { key: 'url', label: 'URL' },
+      ],
+    },
+    {
+      id: 'feed-intro', nombre: 'Presentación · Día 1', desc: 'Post de introducción. Ideal para el primer post.',
+      component: FeedIntro, exportW: 1080, exportH: 1080, previewW: 540, previewH: 540,
+      defaults: {
+        tagline: 'PARA REVENDEDORES DE iPHONE',
+        titulo: 'Somos\nReventApp.',
+        subtitulo: 'La app que te ayuda a controlar tu stock, ventas y cobros desde el celular.',
+        pill1: 'Stock', pill2: 'Ventas', pill3: 'Cobros',
+        handle: '@reventapp.iphone',
+      },
+      campos: [
+        { key: 'tagline', label: 'Etiqueta superior' },
+        { key: 'titulo', label: 'Título (\\n para salto)', multiline: true, rows: 2 },
+        { key: 'subtitulo', label: 'Descripción' },
+        { key: 'pill1', label: 'Chip 1' },
+        { key: 'pill2', label: 'Chip 2' },
+        { key: 'pill3', label: 'Chip 3' },
+        { key: 'handle', label: 'Handle' },
+      ],
+    },
+    {
+      id: 'feed-antesdespues', nombre: 'Antes / Después', desc: 'Sin vs Con ReventApp. Muy efectivo para conversión.',
+      component: FeedAntesDespues, exportW: 1080, exportH: 1080, previewW: 540, previewH: 540,
+      defaults: {
+        titulo: '¿Qué cambia cuando usás ReventApp?',
+        antes1: 'No sabés exactamente cuánto stock tenés',
+        antes2: 'Perdés cobros en cuotas sin registrar',
+        antes3: 'Calculás las ganancias a ojo',
+        despues1: 'Stock actualizado en tiempo real',
+        despues2: 'Todos los cobros controlados con alerta',
+        despues3: 'Ganancia exacta en pesos y dólares',
+      },
+      campos: [
+        { key: 'titulo', label: 'Título central', multiline: true, rows: 2 },
+        { key: 'antes1', label: 'Sin ReventApp 1' },
+        { key: 'antes2', label: 'Sin ReventApp 2' },
+        { key: 'antes3', label: 'Sin ReventApp 3' },
+        { key: 'despues1', label: 'Con ReventApp 1' },
+        { key: 'despues2', label: 'Con ReventApp 2' },
+        { key: 'despues3', label: 'Con ReventApp 3' },
+      ],
+    },
+    {
+      id: 'feed-testimonio', nombre: 'Testimonio', desc: 'Cita de un usuario real. Genera confianza instantánea.',
+      component: FeedTestimonio, exportW: 1080, exportH: 1080, previewW: 540, previewH: 540,
+      defaults: {
+        cita: 'Antes perdía plata y no sabía por qué. Ahora sé exactamente cuánto gané en el mes.',
+        nombre: 'Martín G.',
+        ciudad: 'Revendedor de iPhone · Córdoba',
+      },
+      campos: [
+        { key: 'cita', label: 'Cita del usuario', multiline: true, rows: 4 },
+        { key: 'nombre', label: 'Nombre' },
+        { key: 'ciudad', label: 'Ciudad / descripción' },
+      ],
+    },
+    {
+      id: 'feed-dato', nombre: 'Dato de Mercado', desc: 'Estadística del rubro que genera impacto.',
+      component: FeedDato, exportW: 1080, exportH: 1080, previewW: 540, previewH: 540,
+      defaults: {
+        label: 'DATO DEL MERCADO',
+        numero: '7 de 10',
+        unidad: 'revendedores no controla\nsus costos en dólares.',
+        contexto: 'Eso significa que no saben si realmente están ganando plata. El tipo de cambio hace la diferencia.',
+        cta: 'ReventApp lo soluciona →',
+      },
+      campos: [
+        { key: 'label', label: 'Etiqueta' },
+        { key: 'numero', label: 'Número/stat grande' },
+        { key: 'unidad', label: 'Complemento (\\n para salto)', multiline: true, rows: 2 },
+        { key: 'contexto', label: 'Contexto', multiline: true, rows: 3 },
+        { key: 'cta', label: 'CTA pill' },
+      ],
+    },
+    {
+      id: 'feed-pasos', nombre: 'Paso a Paso', desc: 'Guía de 3 pasos. Educa y acerca a la prueba.',
+      component: FeedPasos, exportW: 1080, exportH: 1080, previewW: 540, previewH: 540,
+      defaults: {
+        titulo: 'Organizá tu negocio en 3 pasos.',
+        subtitulo: 'Sin complicaciones. Desde el celular.',
+        paso1: 'Cargá tu stock: modelo, GB, color y precio de compra.',
+        paso2: 'Registrá cada venta con el método de pago.',
+        paso3: 'Controlá los cobros y mirá cuánto ganaste.',
+        cta: 'Empezar gratis',
+      },
+      campos: [
+        { key: 'titulo', label: 'Título', multiline: true, rows: 2 },
+        { key: 'subtitulo', label: 'Bajada' },
+        { key: 'paso1', label: 'Paso 1', multiline: true, rows: 2 },
+        { key: 'paso2', label: 'Paso 2', multiline: true, rows: 2 },
+        { key: 'paso3', label: 'Paso 3', multiline: true, rows: 2 },
+        { key: 'cta', label: 'Texto botón' },
       ],
     },
   ],

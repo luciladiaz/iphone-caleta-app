@@ -488,6 +488,197 @@ function AdPricing({ headline, feature1, feature2, feature3, precio, cta }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// CAPTIONS — texto + hashtags para Instagram, uno por template
+// ═══════════════════════════════════════════════════════════════════════════
+
+const CAPTIONS = {
+  'feed-pain': `¿Cuánto ganaste exactamente este mes con tus iPhones?
+
+Si la respuesta es "más o menos" o "creo que bien"... hay un problema.
+
+ReventApp te da el número exacto: ganancia por equipo, en pesos y en dólares, con el tipo de cambio del día.
+
+Probalo 7 días gratis, sin tarjeta → reventapp.com.ar
+
+.
+.
+.
+#revendedoriphone #iphoneargentina #reventacelulares #stockiphone #negociodecelulares #celularesargentina #emprendedorargentino #reventapp #gestiondestock #pymes #iphone #argentina #vendedordecelulares #celularesusados #emprendimiento #iphone15 #revendedoresargentina`,
+
+  'feed-feature': `Cargá tu stock en minutos. Buscalo en segundos.
+
+Modelo, GB, color, batería e IMEI. Todo en un solo lugar desde el celular.
+
+Cuando el cliente pregunta si tenés el equipo, vos ya sabés la respuesta antes de que termine la frase.
+
+Empezá gratis → reventapp.com.ar
+
+.
+.
+.
+#stockiphone #gestiondestock #revendedoriphone #iphoneargentina #reventacelulares #celularesargentina #negociodecelulares #reventapp #emprendedorargentino #pymes #iphone15 #iphone14 #inventariocelulares #sistemaventas #controldestock`,
+
+  'feed-tip': `3 errores que le hacen perder plata a todo revendedor de iPhone 👇
+
+Guardá este post y compartilo con alguien que lo necesite.
+
+¿Cuál de estos errores cometés vos? Contame en los comentarios.
+
+ReventApp te ayuda a evitar los tres → reventapp.com.ar
+
+.
+.
+.
+#revendedoriphone #tipsventas #negociodecelulares #iphoneargentina #reventacelulares #celularesargentina #erroresemprendedor #emprendedorargentino #reventapp #pymes #consejosventas #iphone #gestiondestock #stockiphone #revendedordecelulares #negocioargentino`,
+
+  'feed-social': `Más de 200 revendedores en Argentina ya usan ReventApp para organizar su negocio.
+
+CABA, Córdoba, Rosario, Mendoza, Mar del Plata y creciendo.
+
+No es casualidad. Es que cuando empezás a llevar los números en serio, no podés volver a la libreta.
+
+¿Cuándo te sumás? → reventapp.com.ar
+
+.
+.
+.
+#revendedoriphone #iphoneargentina #reventacelulares #celularesargentina #reventapp #negociodecelulares #comunidadrevendedores #iphone #argentina #emprendedorargentino #pymes #sistemaventas #stockiphone #gestiondestock #revendedoresargentina`,
+
+  'feed-cta': `7 días gratis. Sin tarjeta. Sin compromisos.
+
+La única excusa que te quedaba para no tener todo organizado era el precio.
+
+La sacamos.
+
+Empezá hoy → reventapp.com.ar
+Desde $7.900/mes después. Cancelás cuando quieras.
+
+.
+.
+.
+#reventapp #revendedoriphone #iphoneargentina #probalogratis #reventacelulares #negociodecelulares #celularesargentina #emprendedorargentino #pymes #sistemaventas #gestiondestock #stockiphone #iphone #argentina #negociodigital #emprendimiento`,
+
+  'feed-intro': `Somos ReventApp. 👋
+
+La primera app diseñada específicamente para revendedores de iPhone en Argentina.
+
+Stock · Ventas · Cobros · Ganancias. Todo desde el celular, en tiempo real.
+
+Si revendés iPhones, seguinos. Acá vas a encontrar tips, datos del mercado y todo lo que necesitás para llevar tu negocio en serio.
+
+→ reventapp.com.ar
+
+.
+.
+.
+#reventapp #revendedoriphone #iphoneargentina #reventacelulares #stockiphone #negociodecelulares #celularesargentina #emprendedorargentino #iphone #argentina #pymes #sistemaventas #gestiondestock #negociodigital #emprendimiento #revendedordecelulares`,
+
+  'feed-antesdespues': `¿Qué cambia cuando empezás a usar ReventApp? Esto 👇
+
+Sin la app → todo es intuición, papeles y dudas.
+Con la app → todo es datos, claridad y control.
+
+El revendedor que conoce sus números siempre toma mejores decisiones.
+
+Probalo 7 días sin tarjeta → reventapp.com.ar
+
+.
+.
+.
+#revendedoriphone #antesydespues #iphoneargentina #reventacelulares #gestiondestock #stockiphone #negociodecelulares #celularesargentina #reventapp #emprendedorargentino #pymes #sistemaventas #organizarnegocio #iphone #emprendimiento #revendedoresargentina`,
+
+  'feed-testimonio': `"Antes perdía plata y no sabía por qué. Ahora sé exactamente cuánto gané en el mes."
+
+Esto es lo que pasa cuando empezás a llevar los números en serio.
+
+¿Querés el mismo resultado? Probá ReventApp 7 días gratis, sin tarjeta → reventapp.com.ar
+
+.
+.
+.
+#revendedoriphone #testimonios #iphoneargentina #reventacelulares #resultados #negociodecelulares #celularesargentina #reventapp #emprendedorargentino #pymes #gestiondestock #stockiphone #iphone #argentina #emprendimiento #reventadigital #revendedoresargentina`,
+
+  'feed-dato': `7 de cada 10 revendedores no controla sus costos en dólares.
+
+¿El resultado? No saben si realmente están ganando o perdiendo plata en cada venta.
+
+Con el tipo de cambio que tenemos en Argentina, esta diferencia puede ser enorme.
+
+ReventApp registra cada compra en USD y cada venta en ARS, con el tipo de cambio del día. Automáticamente.
+
+→ reventapp.com.ar
+
+.
+.
+.
+#revendedoriphone #datosdemercado #iphoneargentina #reventacelulares #celularesargentina #tipodecambio #dolaresypesos #negociodecelulares #reventapp #emprendedorargentino #pymes #gestiondestock #stockiphone #iphone #argentina #multimoneda`,
+
+  'feed-pasos': `¿Querés organizar tu negocio de reventa de iPhones? Tres pasos, cero complicaciones 👇
+
+1️⃣ Cargá tu stock: modelo, GB, color y precio de compra
+2️⃣ Registrá cada venta con el método de pago
+3️⃣ Controlá los cobros y mirá cuánto ganaste
+
+Sin planillas. Sin papeles. Todo desde el celular.
+
+Empezá gratis → reventapp.com.ar
+
+.
+.
+.
+#revendedoriphone #guiapasoapaso #iphoneargentina #reventacelulares #negociodecelulares #celularesargentina #reventapp #emprendedorargentino #pymes #sistemaventas #gestiondestock #stockiphone #iphone #argentina #emprendimiento #organizartunegocio`,
+
+  'story-hook': `¿Llevás el stock en una libreta?
+
+Hay una mejor forma. Y es más fácil de lo que pensás.
+
+→ reventapp.com.ar
+
+.
+.
+.
+#revendedoriphone #iphoneargentina #reventacelulares #stockiphone #negociodecelulares #celularesargentina #reventapp #emprendedorargentino #pymes #iphone #argentina #gestiondestock`,
+
+  'story-feature': `Compartí tu catálogo de iPhones por WhatsApp en un toque.
+
+Un link, todos tus equipos disponibles. Actualizado en tiempo real.
+
+→ reventapp.com.ar
+
+.
+.
+.
+#catalogoiphone #revendedoriphone #iphoneargentina #reventacelulares #celularesargentina #reventapp #emprendedorargentino #stockiphone #iphone #argentina #whatsappnegocios`,
+
+  'story-cta': `7 días gratis. Sin tarjeta.
+
+Probá ReventApp y organizá tu negocio de iPhones desde el celular.
+
+→ reventapp.com.ar
+
+.
+.
+.
+#reventapp #revendedoriphone #iphoneargentina #probalogratis #reventacelulares #negociodecelulares #celularesargentina #emprendedorargentino #pymes #iphone #argentina`,
+
+  'ad-split': `¿Te pasa esto? ReventApp lo soluciona.
+
+Stock, ventas y cobros en tiempo real desde el celular.
+
+Probalo 7 días gratis → reventapp.com.ar
+
+#reventapp #revendedoriphone #iphoneargentina #reventacelulares #stockiphone #negociodecelulares #celularesargentina #emprendedorargentino`,
+
+  'ad-pricing': `Probá ReventApp 7 días gratis. Sin tarjeta.
+
+Stock · Ventas · Cobros · Catálogo. Todo en un lugar.
+
+Desde $7.900/mes → reventapp.com.ar
+
+#reventapp #revendedoriphone #iphoneargentina #reventacelulares #stockiphone #negociodecelulares`,
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
 // REGISTRO DE TEMPLATES
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -786,6 +977,8 @@ export default function Studio() {
   const [selected, setSelected]   = useState(null);
   const [editData, setEditData]   = useState({});
   const [downloading, setDownloading] = useState(false);
+  const [caption, setCaption]         = useState('');
+  const [copied, setCopied]           = useState(false);
   const templateRef = useRef(null);
 
   // AuthProvider ya maneja el loading (renderiza children solo cuando loading=false)
@@ -795,6 +988,8 @@ export default function Studio() {
   const handleSelect = (tpl) => {
     setSelected(tpl);
     setEditData({ ...tpl.defaults });
+    setCaption(CAPTIONS[tpl.id] || '');
+    setCopied(false);
   };
 
   const handleDownload = async () => {
@@ -952,6 +1147,49 @@ export default function Studio() {
           </div>
         )}
       </div>
+
+      {/* Caption section */}
+      {selected && (
+        <div style={{ marginTop: 28, background: ui.surface, borderRadius: 14, padding: '20px 24px', border: `1px solid ${ui.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12, gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: ui.muted, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 3 }}>
+                TEXTO PARA INSTAGRAM
+              </div>
+              <div style={{ fontSize: 12, color: ui.muted }}>
+                Copy + hashtags listos para pegar cuando publiques la imagen
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+              <span style={{ fontSize: 11, color: caption.length > 2100 ? '#f87171' : ui.muted }}>
+                {caption.length}/2200
+              </span>
+              <button
+                onClick={() => { navigator.clipboard.writeText(caption); setCopied(true); setTimeout(() => setCopied(false), 2500); }}
+                style={{
+                  background: copied ? B.green : ui.blue, color: '#fff',
+                  border: 'none', borderRadius: 8, padding: '9px 22px',
+                  fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 700,
+                  cursor: 'pointer', outline: 'none', transition: 'all 0.2s', whiteSpace: 'nowrap',
+                }}>
+                {copied ? '✓ ¡Copiado!' : 'Copiar texto'}
+              </button>
+            </div>
+          </div>
+          <textarea
+            value={caption}
+            rows={8}
+            onChange={e => setCaption(e.target.value)}
+            style={{
+              width: '100%', boxSizing: 'border-box',
+              background: '#0a1628', border: `1px solid ${ui.border}`,
+              borderRadius: 8, padding: '12px 14px', color: ui.text,
+              fontFamily: 'Inter, sans-serif', fontSize: 13, lineHeight: 1.7,
+              resize: 'vertical', outline: 'none',
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyA-VTMVqBp4ItHan0ndJ4csXgSDx4NxYcI",
   authDomain: "app-iphone-61c85.firebaseapp.com",
   projectId: "app-iphone-61c85",

@@ -54,7 +54,7 @@ const PROMAX_INCLUYE = [
 ];
 
 export default function Planes() {
-  const { perfil, negocioId, plan, planActivo } = useAuth();
+  const { user, perfil, negocioId, plan, planActivo } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const motivo = searchParams.get('motivo');
@@ -75,20 +75,24 @@ export default function Planes() {
     }
   }, [upgrade]);
 
+  const PRECIO_PLAN = { basico: 7900, pro: 14900, promax: 29900 };
+
   // Cuando el webhook activa el plan, redirigir al panel automáticamente
   useEffect(() => {
     if (pago === 'exitoso' && planActivo && plan && plan !== 'trial') {
+      if (typeof fbq !== 'undefined') fbq('track', 'Purchase', { value: PRECIO_PLAN[plan] ?? 0, currency: 'ARS' });
       const t = setTimeout(() => navigate('/'), 2500);
       return () => clearTimeout(t);
     }
   }, [pago, planActivo, plan, navigate]);
 
   const handleContratar = async (planId) => {
+    if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO_PLAN[planId] ?? 0, currency: 'ARS' });
     try {
       const res = await fetch('/api/crear-suscripcion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: planId, negocioId, email: perfil?.email }),
+        body: JSON.stringify({ plan: planId, negocioId, email: user?.email || perfil?.email }),
       });
       const data = await res.json();
       if (data.init_point) window.location.href = data.init_point;

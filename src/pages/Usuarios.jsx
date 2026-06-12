@@ -1,7 +1,8 @@
 ﻿import { useEffect, useState } from 'react';
 import { collection, getDocs, doc, setDoc, updateDoc } from 'firebase/firestore';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth, db } from '../firebase/config';
+import { initializeApp, deleteApp } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { db, firebaseConfig } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
 
@@ -50,9 +51,14 @@ export default function Usuarios() {
     setGuardando(true);
     setError('');
     try {
-      const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);
+      // App secundaria para no cerrar la sesión del admin al crear el usuario
+      const tempApp = initializeApp(firebaseConfig, `crear-usuario-${Date.now()}`);
+      const tempAuth = getAuth(tempApp);
+      const cred = await createUserWithEmailAndPassword(tempAuth, form.email, form.password);
+      await deleteApp(tempApp);
+
       const userData = { nombre: form.nombre, email: form.email, rol: form.rol, puntoVenta: form.puntoVenta, activo: form.activo, permisos: form.permisos, negocioId };
-      // Guardar en colección global de usuarios (para auth lookup)
+      // Guardar en colección global de usuarios (para auth lookup al iniciar sesión)
       await setDoc(doc(db, 'usuarios', cred.user.uid), userData);
       // Guardar también en el negocio
       await setDoc(doc(db, ...base, 'usuarios', cred.user.uid), userData);

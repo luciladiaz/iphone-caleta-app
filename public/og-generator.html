@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>OG Image Generator — ReventApp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: 'Inter', sans-serif; gap: 24px; padding: 32px; }
+    #btn {
+      background: #2563EB; color: #fff; border: none; border-radius: 12px;
+      padding: 14px 36px; font-size: 16px; font-weight: 700; cursor: pointer;
+      font-family: 'Inter', sans-serif;
+    }
+    #btn:hover { background: #1d4ed8; }
+    p { color: #94a3b8; font-size: 14px; text-align: center; }
+
+    /* ── OG IMAGE — 1200 × 630 ── */
+    #og {
+      width: 1200px;
+      height: 630px;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* Glow decorativo */
+    #og .glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 720px;
+      height: 720px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(37,99,235,0.18) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    #og .circle-1 {
+      position: absolute;
+      top: -120px; right: -120px;
+      width: 480px; height: 480px;
+      border-radius: 50%;
+      border: 1px solid rgba(37,99,235,0.15);
+    }
+    #og .circle-2 {
+      position: absolute;
+      bottom: -80px; left: -80px;
+      width: 320px; height: 320px;
+      border-radius: 50%;
+      border: 1px solid rgba(37,99,235,0.1);
+    }
+    #og .stripe {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 5px;
+      background: linear-gradient(180deg, #2563EB, transparent);
+    }
+
+    #og .content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 0 80px;
+      width: 100%;
+    }
+
+    #og .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(37,99,235,0.18);
+      border: 1px solid rgba(37,99,235,0.45);
+      color: #7DD3FC;
+      padding: 6px 18px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-bottom: 28px;
+    }
+
+    #og h1 {
+      font-size: 62px;
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1.05;
+      letter-spacing: -2.5px;
+      margin-bottom: 20px;
+      max-width: 780px;
+    }
+    #og h1 span { color: #7DD3FC; }
+
+    #og .sub {
+      font-size: 20px;
+      color: #94a3b8;
+      font-weight: 400;
+      margin-bottom: 36px;
+      line-height: 1.5;
+    }
+
+    #og .pills {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 36px;
+    }
+    #og .pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #e2e8f0;
+      border-radius: 999px;
+      padding: 8px 20px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    #og .cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #1a3a8f, #2563EB);
+      color: #fff;
+      padding: 14px 32px;
+      border-radius: 999px;
+      font-size: 17px;
+      font-weight: 800;
+      box-shadow: 0 0 32px rgba(37,99,235,0.45);
+    }
+
+    #og .logo {
+      position: absolute;
+      bottom: 32px;
+      right: 60px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 2;
+    }
+    #og .logo-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 18px; color: #fff;
+      letter-spacing: -1px;
+    }
+    #og .logo-text {
+      font-size: 20px; font-weight: 800; color: #fff;
+    }
+    #og .logo-text span { color: #7DD3FC; }
+
+    #og .domain {
+      position: absolute;
+      bottom: 40px;
+      left: 80px;
+      color: #475569;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 2;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PREVIEW ESCALADA al 50% para que entre en pantalla -->
+  <div style="transform: scale(0.5); transform-origin: top center; margin-bottom: -310px;">
+    <div id="og">
+      <div class="glow"></div>
+      <div class="circle-1"></div>
+      <div class="circle-2"></div>
+      <div class="stripe"></div>
+
+      <div class="content">
+        <div class="badge">✦ Diseñado para el mercado argentino</div>
+
+        <h1>El sistema que necesita<br/>todo <span>revendedor de iPhone</span></h1>
+
+        <p class="sub">Stock · Ventas · Cobros · Ganancias en ARS y USD</p>
+
+        <div class="pills">
+          <div class="pill">Control de IMEI</div>
+          <div class="pill">Multi-moneda ARS/USD</div>
+          <div class="pill">Cobros en cuotas</div>
+          <div class="pill">Catálogo por WhatsApp</div>
+        </div>
+
+        <div class="cta">Probalo gratis 7 días — sin tarjeta →</div>
+      </div>
+
+      <div class="logo">
+        <div class="logo-icon">R</div>
+        <div class="logo-text">Revent<span>App</span></div>
+      </div>
+
+      <div class="domain">reventapp.com.ar</div>
+    </div>
+  </div>
+
+  <button id="btn" onclick="descargar()">Descargar og-image.png</button>
+  <p>La imagen se guarda en tu carpeta de Descargas.<br/>Después la movés a <strong style="color:#fff">iphone-caleta-app/public/</strong> y la renombrás <strong style="color:#fff">og-image.png</strong></p>
+
+  <script>
+    async function descargar() {
+      const btn = document.getElementById('btn');
+      btn.textContent = 'Generando...';
+      btn.disabled = true;
+
+      const el = document.getElementById('og');
+      // Capturamos el elemento real a 1200×630 (sin el scale)
+      const canvas = await html2canvas(el, {
+        width: 1200,
+        height: 630,
+        scale: 1,
+        useCORS: true,
+        backgroundColor: null,
+      });
+
+      const link = document.createElement('a');
+      link.download = 'og-image.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+
+      btn.textContent = 'Descargar og-image.png';
+      btn.disabled = false;
+    }
+  </script>
+</body>
+</html>

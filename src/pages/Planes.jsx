@@ -96,7 +96,7 @@ export default function Planes() {
       });
       const data = await res.json();
       if (data.init_point) window.location.href = data.init_point;
-      else alert('Error al crear el pago. Contactanos por WhatsApp.');
+      else alert(`Error al crear el pago: ${data.error || JSON.stringify(data)}`);
     } catch {
       alert('Error al conectar con MercadoPago. Contactanos por WhatsApp.');
     }

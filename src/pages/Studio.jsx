@@ -424,32 +424,44 @@ function StoryCTA({ tag, titulo, subtitulo, precio, url, handle }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// META ADS  (600 × 314 preview — exporta 1200 × 628 con scale 2)
+// META ADS  (405 × 720 preview — exporta 1080 × 1920 · formato 9:16)
 // ═══════════════════════════════════════════════════════════════════════════
 
 function AdSplit({ problema, solucion, cta, precio }) {
   return (
-    <div style={{ width: 600, height: 314, background: B.navy, display: 'flex', fontFamily: 'Inter, sans-serif', overflow: 'hidden' }}>
-      <div style={{ width: '45%', background: B.slate, padding: '28px 26px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRight: `4px solid ${B.blue}` }}>
-        <div>
-          <div style={{ fontSize: 9, fontWeight: 700, color: '#f87171', letterSpacing: '2.5px', textTransform: 'uppercase', marginBottom: 10 }}>EL PROBLEMA</div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: B.white, lineHeight: 1.3, letterSpacing: '-0.5px' }}>{problema}</div>
-        </div>
-        <div style={{ fontSize: 11, color: B.gray }}>¿Te pasa esto?</div>
+    <div style={{ width: 405, height: 720, background: B.navy, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', overflow: 'hidden', position: 'relative' }}>
+      <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', width: 420, height: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.1) 0%, transparent 65%)', pointerEvents: 'none' }} />
+
+      {/* Logo */}
+      <div style={{ padding: '28px 32px 0', display: 'flex', justifyContent: 'center' }}>
+        <LogoMark iconSize={28} />
       </div>
 
-      <div style={{ flex: 1, padding: '28px 28px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', bottom: -60, right: -60, width: 240, height: 240, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div>
-          <div style={{ fontSize: 9, fontWeight: 700, color: B.green, letterSpacing: '2.5px', textTransform: 'uppercase', marginBottom: 10 }}>LA SOLUCIÓN</div>
-          <div style={{ fontSize: 17, fontWeight: 800, color: B.white, lineHeight: 1.3, marginBottom: 8, letterSpacing: '-0.5px' }}>{solucion}</div>
-          <div style={{ fontSize: 11, color: B.gray, lineHeight: 1.5 }}>{precio}</div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ background: B.blue, borderRadius: 8, padding: '8px 18px' }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{cta} →</span>
-          </div>
-          <LogoMark iconSize={22} />
+      {/* Problema */}
+      <div style={{ margin: '24px 28px 0', background: 'rgba(248,113,113,0.07)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 14, padding: '22px 24px', flex: 1 }}>
+        <div style={{ fontSize: 9, fontWeight: 800, color: '#f87171', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 12 }}>❌ EL PROBLEMA</div>
+        <div style={{ fontSize: 20, fontWeight: 900, color: B.white, lineHeight: 1.25, letterSpacing: '-0.5px' }}>{problema}</div>
+        <div style={{ marginTop: 16, fontSize: 13, color: '#94a3b8' }}>¿Te pasa esto?</div>
+      </div>
+
+      {/* Divider */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 28px' }}>
+        <div style={{ flex: 1, height: 1, background: 'rgba(37,99,235,0.25)' }} />
+        <div style={{ width: 28, height: 28, borderRadius: '50%', background: B.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>↓</div>
+        <div style={{ flex: 1, height: 1, background: 'rgba(37,99,235,0.25)' }} />
+      </div>
+
+      {/* Solución */}
+      <div style={{ margin: '0 28px', background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 14, padding: '22px 24px', flex: 1 }}>
+        <div style={{ fontSize: 9, fontWeight: 800, color: B.green, letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 12 }}>✅ LA SOLUCIÓN</div>
+        <div style={{ fontSize: 20, fontWeight: 900, color: B.white, lineHeight: 1.25, letterSpacing: '-0.5px', marginBottom: 10 }}>{solucion}</div>
+        <div style={{ fontSize: 12, color: B.gray }}>{precio}</div>
+      </div>
+
+      {/* CTA */}
+      <div style={{ padding: '20px 28px 28px' }}>
+        <div style={{ background: 'linear-gradient(135deg, #1a3a8f, #2563EB)', borderRadius: 12, padding: '14px', textAlign: 'center', boxShadow: '0 0 24px rgba(37,99,235,0.4)' }}>
+          <span style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>{cta} →</span>
         </div>
       </div>
     </div>
@@ -458,29 +470,41 @@ function AdSplit({ problema, solucion, cta, precio }) {
 
 function AdPricing({ headline, feature1, feature2, feature3, precio, cta }) {
   return (
-    <div style={{ width: 600, height: 314, background: `linear-gradient(135deg, ${B.deep} 0%, ${B.blue} 100%)`, display: 'flex', fontFamily: 'Inter, sans-serif', overflow: 'hidden', position: 'relative' }}>
-      <div style={{ position: 'absolute', bottom: -60, right: 160, width: 280, height: 280, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
+    <div style={{ width: 405, height: 720, background: `linear-gradient(160deg, ${B.deep} 0%, #1a4db0 50%, ${B.navy} 100%)`, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', overflow: 'hidden', position: 'relative' }}>
+      <div style={{ position: 'absolute', bottom: -80, right: -80, width: 340, height: 340, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: -60, left: -60, width: 220, height: 220, borderRadius: '50%', background: 'rgba(0,0,0,0.1)', pointerEvents: 'none' }} />
 
-      <div style={{ flex: 1, padding: '28px 32px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1.2, letterSpacing: '-1px', marginBottom: 18 }}>{headline}</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {[feature1, feature2, feature3].filter(Boolean).map((f, i) => (
-              <div key={i} style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', fontWeight: 500 }}>{f}</div>
-            ))}
-          </div>
-        </div>
-        <LogoMark iconSize={24} />
+      {/* Logo */}
+      <div style={{ padding: '28px 32px 0', display: 'flex', justifyContent: 'center' }}>
+        <LogoMark iconSize={28} />
       </div>
 
-      <div style={{ width: 190, background: 'rgba(255,255,255,0.1)', borderLeft: '1px solid rgba(255,255,255,0.15)', padding: '28px 22px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center', textAlign: 'center', flexShrink: 0 }}>
-        <div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600 }}>Precio</div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-1px', lineHeight: 1.1 }}>{precio}</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>7 días de prueba gratis</div>
+      {/* Headline */}
+      <div style={{ flex: 1, padding: '24px 32px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ fontSize: 30, fontWeight: 900, color: '#fff', lineHeight: 1.1, letterSpacing: '-1.5px', marginBottom: 24, whiteSpace: 'pre-line' }}>{headline}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
+          {[feature1, feature2, feature3].filter(Boolean).map((f, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontSize: 11, color: '#fff', fontWeight: 900 }}>✓</span>
+              </div>
+              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.88)', fontWeight: 500 }}>{f}</span>
+            </div>
+          ))}
         </div>
-        <div style={{ background: '#fff', borderRadius: 8, padding: '10px 18px', width: '100%' }}>
-          <span style={{ fontSize: 14, fontWeight: 800, color: B.deep }}>{cta} →</span>
+
+        {/* Precio card */}
+        <div style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 14, padding: '16px 20px', textAlign: 'center', marginBottom: 20 }}>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Precio</div>
+          <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: '-1px' }}>{precio}</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>7 días de prueba gratis</div>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div style={{ padding: '0 32px 32px' }}>
+        <div style={{ background: '#fff', borderRadius: 12, padding: '14px', textAlign: 'center' }}>
+          <span style={{ fontSize: 16, fontWeight: 900, color: B.deep }}>{cta} →</span>
         </div>
       </div>
     </div>

@@ -87,11 +87,7 @@ export default function Planes() {
   }, [pago, planActivo, plan, navigate]);
 
   const handleContratar = async (planId) => {
-    if (user && !user.emailVerified) {
-      alert('Necesitás verificar tu email antes de contratar. Revisá tu casilla de correo y hacé click en el link que te enviamos al registrarte.');
-      return;
-    }
-    if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO_PLAN[planId] ?? 0, currency: 'ARS' });
+if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO_PLAN[planId] ?? 0, currency: 'ARS' });
     try {
       const res = await fetch('/api/crear-suscripcion', {
         method: 'POST',

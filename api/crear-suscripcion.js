@@ -17,6 +17,8 @@ export default async function handler(req, res) {
 
   const { plan, negocioId, email } = req.body || {};
 
+  console.log('crear-suscripcion recibido:', { plan, negocioId, email: email || 'VACIO' });
+
   if (!plan || !negocioId || !email)
     return res.status(400).json({ error: 'Faltan datos: plan, negocioId, email' });
 
@@ -28,27 +30,29 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: `Plan inválido: ${plan}. Valores permitidos: basico, pro, promax` });
 
   try {
+    const mpBody = {
+      reason: `ReventApp — ${planInfo.nombre}`,
+      external_reference: `${negocioId}___${plan}`,
+      payer_email: email,
+      back_url: `${APP_URL}/planes?pago=exitoso`,
+      notification_url: `${APP_URL}/api/webhook-mp`,
+      auto_recurring: {
+        frequency: 1,
+        frequency_type: 'months',
+        transaction_amount: planInfo.monto,
+        currency_id: 'ARS',
+      },
+      status: 'pending',
+    };
+    console.log('Enviando a MP:', JSON.stringify(mpBody));
+
     const response = await fetch('https://api.mercadopago.com/preapproval', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        reason: `ReventApp — ${planInfo.nombre}`,
-        // negocioId___plan — el webhook lo parsea para saber qué actualizar
-        external_reference: `${negocioId}___${plan}`,
-        payer_email: email,
-        back_url: `${APP_URL}/planes?pago=exitoso`,
-        notification_url: `${APP_URL}/api/webhook-mp`,
-        auto_recurring: {
-          frequency: 1,
-          frequency_type: 'months',
-          transaction_amount: planInfo.monto,
-          currency_id: 'ARS',
-        },
-        status: 'pending',
-      }),
+      body: JSON.stringify(mpBody),
     });
 
     const data = await response.json();

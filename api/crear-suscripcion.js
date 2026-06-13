@@ -55,7 +55,7 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       console.error('MP preapproval error:', JSON.stringify(data));
-      return res.status(502).json({ error: 'Error al crear suscripción en MercadoPago' });
+      return res.status(502).json({ error: `MP ${response.status}: ${data.message || data.error || JSON.stringify(data)}` });
     }
 
     return res.json({ init_point: data.init_point });

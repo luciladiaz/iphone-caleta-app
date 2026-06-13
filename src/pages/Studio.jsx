@@ -603,6 +603,100 @@ function AdIMEI({ headline, detalle, badge, cta, url, pill1, pill2 }) {
   );
 }
 
+function AdHook({ headline, callout, trial, cta, tagline, url }) {
+  return (
+    <div style={{ width: 405, height: 720, background: 'linear-gradient(175deg, #040d20 0%, #0a1f50 45%, #060e22 100%)', display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
+      {/* Glow central */}
+      <div style={{ position: 'absolute', top: '42%', left: '50%', transform: 'translate(-50%,-50%)', width: 480, height: 480, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.28) 0%, transparent 65%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: -60, left: '50%', transform: 'translateX(-50%)', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.12) 0%, transparent 65%)', pointerEvents: 'none' }} />
+
+      {/* Logo */}
+      <div style={{ padding: '20px 28px 0', display: 'flex', justifyContent: 'center', zIndex: 2 }}>
+        <LogoMark iconSize={24} />
+      </div>
+
+      {/* Headline */}
+      <div style={{ padding: '14px 26px 0', textAlign: 'center', zIndex: 2 }}>
+        <div style={{ fontSize: 26, fontWeight: 900, color: '#fff', lineHeight: 1.1, letterSpacing: '-1.5px', whiteSpace: 'pre-line', textTransform: 'uppercase' }}>{headline}</div>
+      </div>
+
+      {/* Phone mockup */}
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '14px 28px', zIndex: 2 }}>
+        <div style={{ width: 190, background: '#071230', border: '2px solid rgba(37,99,235,0.5)', borderRadius: 18, overflow: 'hidden', boxShadow: '0 0 50px rgba(37,99,235,0.35), 0 20px 40px rgba(0,0,0,0.5)' }}>
+          {/* App bar */}
+          <div style={{ background: 'linear-gradient(90deg, #1a3a8f, #2563EB)', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 8, color: '#fff', fontWeight: 800, letterSpacing: '0.5px' }}>ReventApp</span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {[1,2,3].map(i => <div key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(255,255,255,0.5)' }} />)}
+            </div>
+          </div>
+          <div style={{ padding: '10px 10px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {/* KPI row */}
+            <div style={{ display: 'flex', gap: 5 }}>
+              <div style={{ flex: 1, background: 'rgba(37,99,235,0.18)', border: '1px solid rgba(37,99,235,0.3)', borderRadius: 6, padding: '5px 7px' }}>
+                <div style={{ fontSize: 6, color: '#7dd3fc', marginBottom: 2, fontWeight: 700 }}>STOCK</div>
+                <div style={{ fontSize: 12, fontWeight: 900, color: '#fff' }}>24</div>
+              </div>
+              <div style={{ flex: 1, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 6, padding: '5px 7px' }}>
+                <div style={{ fontSize: 6, color: '#34d399', marginBottom: 2, fontWeight: 700 }}>VENTAS</div>
+                <div style={{ fontSize: 12, fontWeight: 900, color: '#fff' }}>$318k</div>
+              </div>
+              <div style={{ flex: 1, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 6, padding: '5px 7px' }}>
+                <div style={{ fontSize: 6, color: '#fbbf24', marginBottom: 2, fontWeight: 700 }}>COBROS</div>
+                <div style={{ fontSize: 12, fontWeight: 900, color: '#fff' }}>$47k</div>
+              </div>
+            </div>
+            {/* IMEI row */}
+            <div style={{ background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)', borderRadius: 6, padding: '6px 8px' }}>
+              <div style={{ fontSize: 6, color: '#7dd3fc', fontWeight: 700, marginBottom: 3 }}>IMEI · iPhone 15 Pro 256GB</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 8, color: '#fff', fontFamily: 'monospace', fontWeight: 700 }}>35 4041 ••••••</span>
+                <span style={{ fontSize: 7, color: '#34d399', fontWeight: 700 }}>🔋 89%</span>
+              </div>
+            </div>
+            {/* Chart */}
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 36 }}>
+              {[45,65,50,80,60,90,100].map((h, i) => (
+                <div key={i} style={{ flex: 1, height: `${h}%`, background: i === 6 ? '#2563EB' : `rgba(37,99,235,${0.2 + i * 0.04})`, borderRadius: '2px 2px 0 0', transition: 'height 0.3s' }} />
+              ))}
+            </div>
+            {/* Bottom row */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 7, color: '#475569' }}>USD 1.430</span>
+              <div style={{ background: '#2563EB', borderRadius: 4, padding: '3px 8px' }}>
+                <span style={{ fontSize: 7, color: '#fff', fontWeight: 700 }}>Ver todo →</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Callout */}
+      <div style={{ padding: '0 28px 8px', textAlign: 'center', zIndex: 2 }}>
+        <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.55 }}>{callout}</div>
+      </div>
+
+      {/* Trial */}
+      <div style={{ padding: '0 28px 10px', textAlign: 'center', zIndex: 2 }}>
+        <span style={{ fontSize: 11, color: B.sky, fontWeight: 700 }}>{trial}</span>
+      </div>
+
+      {/* CTA button */}
+      <div style={{ padding: '0 28px 10px', zIndex: 2 }}>
+        <div style={{ background: 'linear-gradient(90deg, #1a3a8f 0%, #2563EB 100%)', borderRadius: 10, padding: '13px', textAlign: 'center', boxShadow: '0 0 28px rgba(37,99,235,0.55)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <span style={{ fontSize: 15, fontWeight: 900, color: '#fff', letterSpacing: '-0.3px' }}>{cta} &gt;</span>
+        </div>
+      </div>
+
+      {/* Tagline + URL */}
+      <div style={{ padding: '0 28px 18px', textAlign: 'center', zIndex: 2 }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: '#e2e8f0', marginBottom: 2, letterSpacing: '0.3px' }}>{tagline}</div>
+        <div style={{ fontSize: 10, color: '#334155' }}>{url}</div>
+      </div>
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // CAPTIONS — texto + hashtags para Instagram, uno por template
 // ═══════════════════════════════════════════════════════════════════════════
@@ -821,6 +915,14 @@ Hay una mejor forma. Y es más fácil de lo que pensás. 💡
 🎯 Probalo gratis 7 días → reventapp.com.ar
 
 #reventapp #revendedoriphone #iphoneargentina #stockiphone #controlimei #reventacelulares #celularesargentina #negociodecelulares`,
+
+  'ad-hook': `🎯 ¿Todavía usás Excel o libreta para tu stock de iPhones?
+
+ReventApp rastrea cada equipo por IMEI. Control total desde el celular.
+
+✅ Probalo gratis 7 días → reventapp.com.ar
+
+#reventapp #revendedoriphone #stockiphone #iphoneargentina #controlimei #negociodecelulares`,
 
   'ad-imei': `¿Sabés exactamente qué iPhones tenés en stock ahora mismo?
 
@@ -1152,6 +1254,26 @@ const TEMPLATES = {
         { key: 'pill1', label: 'Chip 1' },
         { key: 'pill2', label: 'Chip 2' },
         { key: 'cta', label: 'Texto botón' },
+        { key: 'url', label: 'URL' },
+      ],
+    },
+    {
+      id: 'ad-hook', nombre: '🎯 Hook + Mockup', desc: 'Estilo CocoCRM: headline bold + app en pantalla + CTA.',
+      component: AdHook, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        headline: 'CONTROL TOTAL\nDE TU STOCK\nDE iPhones.',
+        callout: 'ReventApp rastrea cada iPhone por IMEI.\nStock, ventas y cobros en un solo lugar.',
+        trial: 'Probá gratis 7 días en reventapp.com.ar',
+        cta: 'PROBÁ GRATIS 7 DÍAS',
+        tagline: 'EL SISTEMA PARA REVENDEDORES DE iPHONE.',
+        url: 'reventapp.com.ar',
+      },
+      campos: [
+        { key: 'headline', label: 'Headline (\\n para salto · TODO CAPS)', multiline: true, rows: 4 },
+        { key: 'callout', label: 'Callout bajo el mockup (\\n para salto)', multiline: true, rows: 2 },
+        { key: 'trial', label: 'Texto trial' },
+        { key: 'cta', label: 'Texto botón CTA' },
+        { key: 'tagline', label: 'Tagline final' },
         { key: 'url', label: 'URL' },
       ],
     },

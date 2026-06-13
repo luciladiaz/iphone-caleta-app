@@ -1,5 +1,6 @@
 ﻿import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { sendEmailVerification } from 'firebase/auth';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
@@ -7,7 +8,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -15,10 +16,23 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
+      const cred = await login(email, password);
+      if (!cred.user.emailVerified) {
+        // Reenviar el link y cerrar sesión — no pueden entrar sin verificar
+        await sendEmailVerification(cred.user);
+        await logout();
+        setError('Necesitás verificar tu email antes de entrar. Te reenviamos el link a tu casilla. Revisá también el spam.');
+        return;
+      }
       navigate('/');
-    } catch {
-      setError('Email o contraseña incorrectos');
+    } catch (err) {
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+        setError('Email o contraseña incorrectos');
+      } else if (err.code !== 'auth/too-many-requests') {
+        setError('Email o contraseña incorrectos');
+      } else {
+        setError('Demasiados intentos fallidos. Esperá unos minutos e intentá de nuevo.');
+      }
     } finally {
       setLoading(false);
     }

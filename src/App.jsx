@@ -22,9 +22,13 @@ import TestPagos from './pages/TestPagos';
 import Studio from './pages/Studio';
 
 function PrivateRoute({ children, modulo }) {
-  const { user, puedeVer, planActivo, motivoBloqueo } = useAuth();
+  const { user, perfil, negocioId, puedeVer, planActivo, motivoBloqueo } = useAuth();
 
   if (!user) return <Navigate to="/landing" />;
+
+  // Solo exigir verificación a admins auto-registrados (negocioId === su propio uid)
+  // Los sub-usuarios creados por un admin quedan exentos
+  if (!user.emailVerified && negocioId === user.uid) return <Navigate to="/login" />;
 
   if (!planActivo) return <Navigate to={`/planes?motivo=${motivoBloqueo || 'vencido'}`} />;
 
@@ -49,8 +53,8 @@ function AppRoutes() {
 
       {/* Rutas públicas */}
       <Route path="/landing" element={<Landing />} />
-      <Route path="/registro" element={user ? <Navigate to="/" /> : <Registro />} />
-      <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
+      <Route path="/registro" element={user && user.emailVerified ? <Navigate to="/" /> : <Registro />} />
+      <Route path="/login" element={user && user.emailVerified ? <Navigate to="/" /> : <Login />} />
       <Route path="/catalogo/:negocioId" element={<CatalogoPublico />} />
 
       {/* /planes no usa PrivateRoute con planActivo para evitar loop cuando vence */}

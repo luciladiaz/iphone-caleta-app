@@ -1,6 +1,6 @@
 ﻿import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 
@@ -9,6 +9,7 @@ export default function Registro() {
   const [form, setForm] = useState({ negocio: '', nombre: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [verificando, setVerificando] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -56,8 +57,9 @@ export default function Registro() {
         modelos: ['iPhone 12','iPhone 12 Pro','iPhone 12 Pro Max','iPhone 13','iPhone 13 Pro','iPhone 13 Pro Max','iPhone 14','iPhone 14 Pro','iPhone 14 Pro Max','iPhone 15','iPhone 15 Pro','iPhone 15 Pro Max','iPhone 16','iPhone 16 Plus','iPhone 16 Pro','iPhone 16 Pro Max','iPhone 17','iPhone 17 Air','iPhone 17 Pro','iPhone 17 Pro Max'],
       });
 
+      await sendEmailVerification(cred.user);
       if (typeof fbq !== 'undefined') fbq('track', 'Lead');
-      navigate('/');
+      setVerificando(true);
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') setError('Ese email ya tiene una cuenta.');
       else if (err.code === 'auth/invalid-email') setError('Email inválido.');
@@ -65,6 +67,31 @@ export default function Registro() {
       console.error(err);
     } finally { setLoading(false); }
   };
+
+  if (verificando) return (
+    <div style={{ minHeight: '100vh', background: '#0d0d0d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Inter', sans-serif", padding: 16 }}>
+      <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 16, padding: 40, width: '100%', maxWidth: 420, textAlign: 'center' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>📧</div>
+        <h2 style={{ color: '#fff', fontSize: 22, fontWeight: 800, margin: '0 0 12px' }}>Verificá tu email</h2>
+        <p style={{ color: '#86868b', fontSize: 15, lineHeight: 1.6, marginBottom: 8 }}>
+          Te enviamos un link de confirmación a:
+        </p>
+        <p style={{ color: '#2563EB', fontWeight: 700, fontSize: 15, marginBottom: 24 }}>{form.email}</p>
+        <p style={{ color: '#86868b', fontSize: 14, lineHeight: 1.6, marginBottom: 32 }}>
+          Hacé click en el link del email para activar tu cuenta. Después podés iniciar sesión y empezar tu prueba gratis.
+        </p>
+        <button
+          onClick={() => navigate('/login')}
+          style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, padding: '13px 28px', fontSize: 15, fontWeight: 700, cursor: 'pointer', width: '100%' }}
+        >
+          Ir al inicio de sesión →
+        </button>
+        <p style={{ color: '#86868b', fontSize: 13, marginTop: 16 }}>
+          ¿No te llegó? Revisá la carpeta de spam.
+        </p>
+      </div>
+    </div>
+  );
 
   return (
     <div style={{ minHeight: '100vh', background: '#0d0d0d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Inter', sans-serif", padding: 16 }}>

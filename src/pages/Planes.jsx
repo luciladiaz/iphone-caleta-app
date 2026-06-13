@@ -87,6 +87,10 @@ export default function Planes() {
   }, [pago, planActivo, plan, navigate]);
 
   const handleContratar = async (planId) => {
+    if (user && !user.emailVerified) {
+      alert('Necesitás verificar tu email antes de contratar. Revisá tu casilla de correo y hacé click en el link que te enviamos al registrarte.');
+      return;
+    }
     if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO_PLAN[planId] ?? 0, currency: 'ARS' });
     try {
       const res = await fetch('/api/crear-suscripcion', {
@@ -96,7 +100,7 @@ export default function Planes() {
       });
       const data = await res.json();
       if (data.init_point) window.location.href = data.init_point;
-      else alert(`Error al crear el pago: ${data.error || JSON.stringify(data)}`);
+      else alert('No pudimos procesar el pago. Verificá que tu cuenta esté registrada con un email real y válido, o contactanos por WhatsApp.');
     } catch {
       alert('Error al conectar con MercadoPago. Contactanos por WhatsApp.');
     }

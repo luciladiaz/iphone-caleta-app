@@ -488,6 +488,92 @@ function AdPricing({ headline, feature1, feature2, feature3, precio, cta }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// META ADS EXTRA — AdVertical (4:5) + AdIMEI
+// ═══════════════════════════════════════════════════════════════════════════
+
+function AdVertical({ headline, subheadline, feature1, feature2, feature3, cta, url }) {
+  return (
+    <div style={{ width: 540, height: 675, background: `linear-gradient(160deg, ${B.navy} 0%, #0a1f50 55%, ${B.navy} 100%)`, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: '35%', left: '50%', transform: 'translate(-50%, -50%)', width: 520, height: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.22) 0%, transparent 65%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: -80, right: -80, width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.1) 0%, transparent 65%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: `linear-gradient(180deg, ${B.blue}, transparent 60%)` }} />
+
+      {/* Logo */}
+      <div style={{ padding: '26px 36px 0', display: 'flex', justifyContent: 'center', position: 'relative', zIndex: 2 }}>
+        <LogoMark iconSize={28} />
+      </div>
+
+      {/* Headline */}
+      <div style={{ flex: 1, padding: '20px 36px', display: 'flex', flexDirection: 'column', justifyContent: 'center', zIndex: 2 }}>
+        <div style={{ fontSize: 36, fontWeight: 900, color: B.white, lineHeight: 1.08, letterSpacing: '-2px', marginBottom: 10, whiteSpace: 'pre-line', textAlign: 'center' }}>{headline}</div>
+        <div style={{ fontSize: 14, color: B.sky, textAlign: 'center', marginBottom: 24, lineHeight: 1.6, fontWeight: 600 }}>{subheadline}</div>
+
+        {/* Feature pills */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+          {[feature1, feature2, feature3].filter(Boolean).map((f, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.25)', borderRadius: 10, padding: '10px 16px' }}>
+              <div style={{ width: 20, height: 20, borderRadius: '50%', background: B.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ color: '#fff', fontSize: 11, fontWeight: 900 }}>✓</span>
+              </div>
+              <span style={{ fontSize: 13, color: B.white, fontWeight: 600, lineHeight: 1.4 }}>{f}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* CTA block */}
+      <div style={{ padding: '0 36px 28px', display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'stretch', zIndex: 2 }}>
+        <div style={{ background: 'linear-gradient(135deg, #1a3a8f 0%, #2563EB 100%)', borderRadius: 12, padding: '14px', textAlign: 'center', boxShadow: '0 0 28px rgba(37,99,235,0.45)' }}>
+          <span style={{ fontSize: 16, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>{cta} →</span>
+        </div>
+        <div style={{ textAlign: 'center', fontSize: 12, color: B.gray, fontWeight: 600 }}>{url}</div>
+      </div>
+    </div>
+  );
+}
+
+function AdIMEI({ headline, detalle, badge, cta, url, pill1, pill2 }) {
+  return (
+    <div style={{ width: 600, height: 314, background: B.navy, display: 'flex', fontFamily: 'Inter, sans-serif', overflow: 'hidden', position: 'relative' }}>
+      {/* Glow */}
+      <div style={{ position: 'absolute', top: '50%', left: '35%', transform: 'translate(-50%, -50%)', width: 380, height: 380, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.14) 0%, transparent 65%)', pointerEvents: 'none' }} />
+
+      {/* Left — content */}
+      <div style={{ flex: 1, padding: '28px 30px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', zIndex: 1 }}>
+        <div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(37,99,235,0.18)', border: '1px solid rgba(37,99,235,0.35)', borderRadius: 99, padding: '4px 12px', marginBottom: 14 }}>
+            <span style={{ fontSize: 9, fontWeight: 800, color: B.sky, letterSpacing: '2.5px', textTransform: 'uppercase' }}>{badge}</span>
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: B.white, lineHeight: 1.15, letterSpacing: '-1px', marginBottom: 10, whiteSpace: 'pre-line' }}>{headline}</div>
+          <div style={{ fontSize: 12, color: B.gray, lineHeight: 1.6 }}>{detalle}</div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {[pill1, pill2].filter(Boolean).map((p, i) => (
+            <div key={i} style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.25)', borderRadius: 99, padding: '5px 12px' }}>
+              <span style={{ fontSize: 11, color: B.sky, fontWeight: 700 }}>{p}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Right — CTA panel */}
+      <div style={{ width: 180, background: 'linear-gradient(160deg, rgba(37,99,235,0.15) 0%, rgba(37,99,235,0.05) 100%)', borderLeft: '1px solid rgba(37,99,235,0.2)', padding: '24px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+        {/* IMEI visual */}
+        <div style={{ background: 'rgba(37,99,235,0.15)', border: '1px solid rgba(37,99,235,0.3)', borderRadius: 10, padding: '12px 16px', width: '100%', textAlign: 'center' }}>
+          <div style={{ fontSize: 9, color: B.sky, fontWeight: 700, letterSpacing: '1.5px', marginBottom: 4 }}>IMEI</div>
+          <div style={{ fontSize: 11, color: B.white, fontWeight: 700, letterSpacing: '1px', fontFamily: 'monospace' }}>35 4041 29 ••••••</div>
+        </div>
+        <div style={{ background: 'linear-gradient(135deg, #1a3a8f, #2563EB)', borderRadius: 9, padding: '11px 16px', width: '100%', textAlign: 'center', boxShadow: '0 0 16px rgba(37,99,235,0.35)' }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{cta} →</span>
+        </div>
+        <span style={{ fontSize: 11, color: B.gray, fontWeight: 600 }}>{url}</span>
+        <LogoMark iconSize={20} />
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // CAPTIONS — texto + hashtags para Instagram, uno por template
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -695,6 +781,24 @@ Hay una mejor forma. Y es más fácil de lo que pensás. 💡
 🚀 Desde $7.900/mes → reventapp.com.ar
 
 #reventapp #revendedoriphone #iphoneargentina #reventacelulares #stockiphone #negociodecelulares`,
+
+  'ad-vertical': `📦 Control total de tu stock de iPhones.
+
+✅ Registrá cada equipo con IMEI, modelo, batería y precio
+✅ Vendé en pesos y dólares con el tipo de cambio del día
+✅ Cobrá en cuotas y nunca pierdas un pago
+
+🎯 Probalo gratis 7 días → reventapp.com.ar
+
+#reventapp #revendedoriphone #iphoneargentina #stockiphone #controlimei #reventacelulares #celularesargentina #negociodecelulares`,
+
+  'ad-imei': `¿Sabés exactamente qué iPhones tenés en stock ahora mismo?
+
+Con ReventApp registrás cada equipo por IMEI y en segundos sabés modelo, batería, precio y a quién lo vendiste.
+
+🎯 Probalo 7 días gratis → reventapp.com.ar
+
+#reventapp #imei #stockiphone #revendedoriphone #controlstock #iphoneargentina #reventacelulares`,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -975,6 +1079,50 @@ const TEMPLATES = {
         { key: 'feature3', label: 'Beneficio 3' },
         { key: 'precio', label: 'Precio' },
         { key: 'cta', label: 'Texto botón' },
+      ],
+    },
+    {
+      id: 'ad-vertical', nombre: 'Vertical 4:5 ★', desc: 'Formato portrait como el ad de CocoCRM. Máximo alcance en feed mobile.',
+      component: AdVertical, exportW: 1080, exportH: 1350, previewW: 540, previewH: 675,
+      defaults: {
+        headline: 'CONTROL TOTAL\nDE TU STOCK\nDE iPhones.',
+        subheadline: 'ReventApp rastrea cada equipo por IMEI. Control total.',
+        feature1: 'Modelo, GB, color, batería e IMEI en segundos',
+        feature2: 'Ventas en ARS y USD con tipo de cambio del día',
+        feature3: 'Cobros en cuotas con semáforo de urgencia',
+        cta: 'PROBÁ GRATIS 7 DÍAS',
+        url: 'reventapp.com.ar',
+      },
+      campos: [
+        { key: 'headline', label: 'Headline grande (\\n para salto)', multiline: true, rows: 4 },
+        { key: 'subheadline', label: 'Subheadline' },
+        { key: 'feature1', label: 'Beneficio 1' },
+        { key: 'feature2', label: 'Beneficio 2' },
+        { key: 'feature3', label: 'Beneficio 3' },
+        { key: 'cta', label: 'Texto botón CTA' },
+        { key: 'url', label: 'URL' },
+      ],
+    },
+    {
+      id: 'ad-imei', nombre: 'IMEI Control', desc: 'Diferenciador clave vs. Excel y la competencia.',
+      component: AdIMEI, exportW: 1200, exportH: 628, previewW: 600, previewH: 314,
+      defaults: {
+        badge: 'CONTROL DE STOCK',
+        headline: 'Registrá cada iPhone\npor IMEI.\nControl total.',
+        detalle: 'Nunca más pierdas un equipo. Cada iPhone trazado desde que entra hasta que sale.',
+        pill1: 'Multi-moneda ARS/USD',
+        pill2: '7 días gratis',
+        cta: 'Empezar gratis',
+        url: 'reventapp.com.ar',
+      },
+      campos: [
+        { key: 'badge', label: 'Etiqueta pill' },
+        { key: 'headline', label: 'Headline (\\n para salto)', multiline: true, rows: 3 },
+        { key: 'detalle', label: 'Detalle', multiline: true, rows: 2 },
+        { key: 'pill1', label: 'Chip 1' },
+        { key: 'pill2', label: 'Chip 2' },
+        { key: 'cta', label: 'Texto botón' },
+        { key: 'url', label: 'URL' },
       ],
     },
   ],

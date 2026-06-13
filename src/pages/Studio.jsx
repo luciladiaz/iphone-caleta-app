@@ -634,7 +634,7 @@ function AdHook({ headline, callout, trial, cta, tagline, url }) {
           <img
             src="/app-mockup.png"
             alt="ReventApp screenshot"
-            style={{ width: '100%', display: 'block', objectFit: 'cover', objectPosition: 'top' }}
+            style={{ width: '100%', height: 260, display: 'block', objectFit: 'cover', objectPosition: 'top center' }}
             crossOrigin="anonymous"
           />
         </div>

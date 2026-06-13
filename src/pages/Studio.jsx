@@ -620,54 +620,23 @@ function AdHook({ headline, callout, trial, cta, tagline, url }) {
         <div style={{ fontSize: 26, fontWeight: 900, color: '#fff', lineHeight: 1.1, letterSpacing: '-1.5px', whiteSpace: 'pre-line', textTransform: 'uppercase' }}>{headline}</div>
       </div>
 
-      {/* Phone mockup */}
+      {/* Phone mockup con imagen real */}
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '14px 28px', zIndex: 2 }}>
-        <div style={{ width: 190, background: '#071230', border: '2px solid rgba(37,99,235,0.5)', borderRadius: 18, overflow: 'hidden', boxShadow: '0 0 50px rgba(37,99,235,0.35), 0 20px 40px rgba(0,0,0,0.5)' }}>
+        <div style={{ width: 200, background: '#071230', border: '2px solid rgba(37,99,235,0.5)', borderRadius: 18, overflow: 'hidden', boxShadow: '0 0 50px rgba(37,99,235,0.35), 0 20px 40px rgba(0,0,0,0.5)' }}>
           {/* App bar */}
-          <div style={{ background: 'linear-gradient(90deg, #1a3a8f, #2563EB)', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ background: 'linear-gradient(90deg, #1a3a8f, #2563EB)', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
             <span style={{ fontSize: 8, color: '#fff', fontWeight: 800, letterSpacing: '0.5px' }}>ReventApp</span>
             <div style={{ display: 'flex', gap: 4 }}>
               {[1,2,3].map(i => <div key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(255,255,255,0.5)' }} />)}
             </div>
           </div>
-          <div style={{ padding: '10px 10px', display: 'flex', flexDirection: 'column', gap: 7 }}>
-            {/* KPI row */}
-            <div style={{ display: 'flex', gap: 5 }}>
-              <div style={{ flex: 1, background: 'rgba(37,99,235,0.18)', border: '1px solid rgba(37,99,235,0.3)', borderRadius: 6, padding: '5px 7px' }}>
-                <div style={{ fontSize: 6, color: '#7dd3fc', marginBottom: 2, fontWeight: 700 }}>STOCK</div>
-                <div style={{ fontSize: 12, fontWeight: 900, color: '#fff' }}>24</div>
-              </div>
-              <div style={{ flex: 1, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 6, padding: '5px 7px' }}>
-                <div style={{ fontSize: 6, color: '#34d399', marginBottom: 2, fontWeight: 700 }}>VENTAS</div>
-                <div style={{ fontSize: 12, fontWeight: 900, color: '#fff' }}>$318k</div>
-              </div>
-              <div style={{ flex: 1, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 6, padding: '5px 7px' }}>
-                <div style={{ fontSize: 6, color: '#fbbf24', marginBottom: 2, fontWeight: 700 }}>COBROS</div>
-                <div style={{ fontSize: 12, fontWeight: 900, color: '#fff' }}>$47k</div>
-              </div>
-            </div>
-            {/* IMEI row */}
-            <div style={{ background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)', borderRadius: 6, padding: '6px 8px' }}>
-              <div style={{ fontSize: 6, color: '#7dd3fc', fontWeight: 700, marginBottom: 3 }}>IMEI · iPhone 15 Pro 256GB</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 8, color: '#fff', fontFamily: 'monospace', fontWeight: 700 }}>35 4041 ••••••</span>
-                <span style={{ fontSize: 7, color: '#34d399', fontWeight: 700 }}>🔋 89%</span>
-              </div>
-            </div>
-            {/* Chart */}
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 36 }}>
-              {[45,65,50,80,60,90,100].map((h, i) => (
-                <div key={i} style={{ flex: 1, height: `${h}%`, background: i === 6 ? '#2563EB' : `rgba(37,99,235,${0.2 + i * 0.04})`, borderRadius: '2px 2px 0 0', transition: 'height 0.3s' }} />
-              ))}
-            </div>
-            {/* Bottom row */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 7, color: '#475569' }}>USD 1.430</span>
-              <div style={{ background: '#2563EB', borderRadius: 4, padding: '3px 8px' }}>
-                <span style={{ fontSize: 7, color: '#fff', fontWeight: 700 }}>Ver todo →</span>
-              </div>
-            </div>
-          </div>
+          {/* Screenshot real */}
+          <img
+            src="/app-mockup.png"
+            alt="ReventApp screenshot"
+            style={{ width: '100%', display: 'block', objectFit: 'cover', objectPosition: 'top' }}
+            crossOrigin="anonymous"
+          />
         </div>
       </div>
 

@@ -517,25 +517,20 @@ function AdPricing({ headline, feature1, feature2, feature3, precio, cta }) {
 
 function AdVertical({ headline, subheadline, feature1, feature2, feature3, cta, url }) {
   return (
-    <div style={{ width: 540, height: 675, background: `linear-gradient(160deg, ${B.navy} 0%, #0a1f50 55%, ${B.navy} 100%)`, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: '35%', left: '50%', transform: 'translate(-50%, -50%)', width: 520, height: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.22) 0%, transparent 65%)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: -80, right: -80, width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.1) 0%, transparent 65%)', pointerEvents: 'none' }} />
+    <div style={{ width: 405, height: 720, background: `linear-gradient(160deg, ${B.navy} 0%, #0a1f50 55%, ${B.navy} 100%)`, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%, -50%)', width: 440, height: 440, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.22) 0%, transparent 65%)', pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: `linear-gradient(180deg, ${B.blue}, transparent 60%)` }} />
 
-      {/* Logo */}
-      <div style={{ padding: '26px 36px 0', display: 'flex', justifyContent: 'center', position: 'relative', zIndex: 2 }}>
+      <div style={{ padding: '26px 32px 0', display: 'flex', justifyContent: 'center', position: 'relative', zIndex: 2 }}>
         <LogoMark iconSize={28} />
       </div>
 
-      {/* Headline */}
-      <div style={{ flex: 1, padding: '20px 36px', display: 'flex', flexDirection: 'column', justifyContent: 'center', zIndex: 2 }}>
-        <div style={{ fontSize: 36, fontWeight: 900, color: B.white, lineHeight: 1.08, letterSpacing: '-2px', marginBottom: 10, whiteSpace: 'pre-line', textAlign: 'center' }}>{headline}</div>
-        <div style={{ fontSize: 14, color: B.sky, textAlign: 'center', marginBottom: 24, lineHeight: 1.6, fontWeight: 600 }}>{subheadline}</div>
-
-        {/* Feature pills */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+      <div style={{ flex: 1, padding: '20px 32px', display: 'flex', flexDirection: 'column', justifyContent: 'center', zIndex: 2 }}>
+        <div style={{ fontSize: 34, fontWeight: 900, color: B.white, lineHeight: 1.08, letterSpacing: '-2px', marginBottom: 10, whiteSpace: 'pre-line', textAlign: 'center' }}>{headline}</div>
+        <div style={{ fontSize: 13, color: B.sky, textAlign: 'center', marginBottom: 22, lineHeight: 1.6, fontWeight: 600 }}>{subheadline}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[feature1, feature2, feature3].filter(Boolean).map((f, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.25)', borderRadius: 10, padding: '10px 16px' }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.25)', borderRadius: 10, padding: '10px 14px' }}>
               <div style={{ width: 20, height: 20, borderRadius: '50%', background: B.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <span style={{ color: '#fff', fontSize: 11, fontWeight: 900 }}>✓</span>
               </div>
@@ -545,8 +540,7 @@ function AdVertical({ headline, subheadline, feature1, feature2, feature3, cta, 
         </div>
       </div>
 
-      {/* CTA block */}
-      <div style={{ padding: '0 36px 28px', display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'stretch', zIndex: 2 }}>
+      <div style={{ padding: '0 32px 28px', display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'stretch', zIndex: 2 }}>
         <div style={{ background: 'linear-gradient(135deg, #1a3a8f 0%, #2563EB 100%)', borderRadius: 12, padding: '14px', textAlign: 'center', boxShadow: '0 0 28px rgba(37,99,235,0.45)' }}>
           <span style={{ fontSize: 16, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>{cta} →</span>
         </div>
@@ -558,40 +552,52 @@ function AdVertical({ headline, subheadline, feature1, feature2, feature3, cta, 
 
 function AdIMEI({ headline, detalle, badge, cta, url, pill1, pill2 }) {
   return (
-    <div style={{ width: 600, height: 314, background: B.navy, display: 'flex', fontFamily: 'Inter, sans-serif', overflow: 'hidden', position: 'relative' }}>
-      {/* Glow */}
-      <div style={{ position: 'absolute', top: '50%', left: '35%', transform: 'translate(-50%, -50%)', width: 380, height: 380, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.14) 0%, transparent 65%)', pointerEvents: 'none' }} />
+    <div style={{ width: 405, height: 720, background: B.navy, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', overflow: 'hidden', position: 'relative' }}>
+      <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', width: 420, height: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 65%)', pointerEvents: 'none' }} />
 
-      {/* Left — content */}
-      <div style={{ flex: 1, padding: '28px 30px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', zIndex: 1 }}>
-        <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(37,99,235,0.18)', border: '1px solid rgba(37,99,235,0.35)', borderRadius: 99, padding: '4px 12px', marginBottom: 14 }}>
-            <span style={{ fontSize: 9, fontWeight: 800, color: B.sky, letterSpacing: '2.5px', textTransform: 'uppercase' }}>{badge}</span>
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 900, color: B.white, lineHeight: 1.15, letterSpacing: '-1px', marginBottom: 10, whiteSpace: 'pre-line' }}>{headline}</div>
-          <div style={{ fontSize: 12, color: B.gray, lineHeight: 1.6 }}>{detalle}</div>
+      {/* Logo */}
+      <div style={{ padding: '28px 32px 0', display: 'flex', justifyContent: 'center', zIndex: 2 }}>
+        <LogoMark iconSize={28} />
+      </div>
+
+      {/* Badge */}
+      <div style={{ padding: '20px 32px 0', display: 'flex', justifyContent: 'center', zIndex: 2 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(37,99,235,0.18)', border: '1px solid rgba(37,99,235,0.35)', borderRadius: 99, padding: '5px 16px' }}>
+          <span style={{ fontSize: 9, fontWeight: 800, color: B.sky, letterSpacing: '2.5px', textTransform: 'uppercase' }}>{badge}</span>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+      </div>
+
+      {/* Headline */}
+      <div style={{ flex: 1, padding: '18px 32px', display: 'flex', flexDirection: 'column', justifyContent: 'center', zIndex: 2 }}>
+        <div style={{ fontSize: 30, fontWeight: 900, color: B.white, lineHeight: 1.1, letterSpacing: '-1.5px', marginBottom: 14, whiteSpace: 'pre-line', textAlign: 'center' }}>{headline}</div>
+
+        {/* IMEI visual */}
+        <div style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.3)', borderRadius: 14, padding: '16px 20px', marginBottom: 16, textAlign: 'center' }}>
+          <div style={{ fontSize: 10, color: B.sky, fontWeight: 700, letterSpacing: '2px', marginBottom: 8 }}>IMEI REGISTRADO</div>
+          <div style={{ fontSize: 15, color: B.white, fontWeight: 700, letterSpacing: '2px', fontFamily: 'monospace', marginBottom: 6 }}>35 4041 29 ••••••</div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, fontSize: 11, color: B.gray }}>
+            <span>iPhone 15 Pro · 256GB</span>
+            <span>🔋 89%</span>
+          </div>
+        </div>
+
+        <div style={{ fontSize: 13, color: B.gray, lineHeight: 1.65, textAlign: 'center', marginBottom: 18 }}>{detalle}</div>
+
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
           {[pill1, pill2].filter(Boolean).map((p, i) => (
-            <div key={i} style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.25)', borderRadius: 99, padding: '5px 12px' }}>
+            <div key={i} style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.25)', borderRadius: 99, padding: '6px 14px' }}>
               <span style={{ fontSize: 11, color: B.sky, fontWeight: 700 }}>{p}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Right — CTA panel */}
-      <div style={{ width: 180, background: 'linear-gradient(160deg, rgba(37,99,235,0.15) 0%, rgba(37,99,235,0.05) 100%)', borderLeft: '1px solid rgba(37,99,235,0.2)', padding: '24px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 14, flexShrink: 0 }}>
-        {/* IMEI visual */}
-        <div style={{ background: 'rgba(37,99,235,0.15)', border: '1px solid rgba(37,99,235,0.3)', borderRadius: 10, padding: '12px 16px', width: '100%', textAlign: 'center' }}>
-          <div style={{ fontSize: 9, color: B.sky, fontWeight: 700, letterSpacing: '1.5px', marginBottom: 4 }}>IMEI</div>
-          <div style={{ fontSize: 11, color: B.white, fontWeight: 700, letterSpacing: '1px', fontFamily: 'monospace' }}>35 4041 29 ••••••</div>
+      {/* CTA */}
+      <div style={{ padding: '0 32px 28px', display: 'flex', flexDirection: 'column', gap: 10, zIndex: 2 }}>
+        <div style={{ background: 'linear-gradient(135deg, #1a3a8f, #2563EB)', borderRadius: 12, padding: '14px', textAlign: 'center', boxShadow: '0 0 24px rgba(37,99,235,0.4)' }}>
+          <span style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>{cta} →</span>
         </div>
-        <div style={{ background: 'linear-gradient(135deg, #1a3a8f, #2563EB)', borderRadius: 9, padding: '11px 16px', width: '100%', textAlign: 'center', boxShadow: '0 0 16px rgba(37,99,235,0.35)' }}>
-          <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{cta} →</span>
-        </div>
-        <span style={{ fontSize: 11, color: B.gray, fontWeight: 600 }}>{url}</span>
-        <LogoMark iconSize={20} />
+        <div style={{ textAlign: 'center', fontSize: 12, color: B.gray, fontWeight: 600 }}>{url}</div>
       </div>
     </div>
   );
@@ -1070,8 +1076,8 @@ const TEMPLATES = {
   ],
   ad: [
     {
-      id: 'ad-split', nombre: 'Problema → Solución', desc: 'Layout dividido. Alta conversión.',
-      component: AdSplit, exportW: 1200, exportH: 628, previewW: 600, previewH: 314,
+      id: 'ad-split', nombre: 'Problema → Solución', desc: 'Top: problema. Bottom: solución. 9:16.',
+      component: AdSplit, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: {
         problema: 'Llevás el stock en una libreta y nunca sabés exactamente qué tenés.',
         solucion: 'ReventApp: stock, ventas y cobros en tiempo real desde el celular.',
@@ -1086,8 +1092,8 @@ const TEMPLATES = {
       ],
     },
     {
-      id: 'ad-pricing', nombre: 'Pricing / CTA', desc: 'Propuesta de valor + precio + acción.',
-      component: AdPricing, exportW: 1200, exportH: 628, previewW: 600, previewH: 314,
+      id: 'ad-pricing', nombre: 'Pricing / CTA', desc: 'Propuesta de valor + precio + acción. 9:16.',
+      component: AdPricing, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: {
         headline: 'Probá ReventApp 7 días gratis.',
         feature1: '✓  Stock de iPhones en tiempo real',
@@ -1106,8 +1112,8 @@ const TEMPLATES = {
       ],
     },
     {
-      id: 'ad-vertical', nombre: 'Vertical 4:5 ★', desc: 'Formato portrait como el ad de CocoCRM. Máximo alcance en feed mobile.',
-      component: AdVertical, exportW: 1080, exportH: 1350, previewW: 540, previewH: 675,
+      id: 'ad-vertical', nombre: 'Headline + Features ★', desc: 'Headline grande + bullets + CTA. Formato 9:16.',
+      component: AdVertical, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: {
         headline: 'CONTROL TOTAL\nDE TU STOCK\nDE iPhones.',
         subheadline: 'ReventApp rastrea cada equipo por IMEI. Control total.',
@@ -1128,8 +1134,8 @@ const TEMPLATES = {
       ],
     },
     {
-      id: 'ad-imei', nombre: 'IMEI Control', desc: 'Diferenciador clave vs. Excel y la competencia.',
-      component: AdIMEI, exportW: 1200, exportH: 628, previewW: 600, previewH: 314,
+      id: 'ad-imei', nombre: 'IMEI Control', desc: 'Diferenciador clave vs. Excel y la competencia. 9:16.',
+      component: AdIMEI, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: {
         badge: 'CONTROL DE STOCK',
         headline: 'Registrá cada iPhone\npor IMEI.\nControl total.',

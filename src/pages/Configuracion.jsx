@@ -1,6 +1,7 @@
-﻿import { useEffect, useState } from 'react';
-import { collection, getDocs, addDoc, deleteDoc, doc, setDoc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
+﻿import { useEffect, useState, useRef } from 'react';
+import { collection, getDocs, addDoc, deleteDoc, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
@@ -30,7 +31,7 @@ function SeccionLista({ titulo, icono, items, onAgregar, onEliminar, campo, plac
 }
 
 export default function Configuracion() {
-  const { negocioId } = useAuth();
+  const { negocioId, negocio } = useAuth();
   const base = ['negocios', negocioId];
 
   const [puntosVenta, setPuntosVenta] = useState([]);
@@ -40,6 +41,19 @@ export default function Configuracion() {
   const [modelos, setModelos] = useState([]);
   const [tipoCambio, setTipoCambio] = useState('');
   const [savingTC, setSavingTC] = useState(false);
+
+  const [nombreNegocio, setNombreNegocio] = useState('');
+  const [savingNegocio, setSavingNegocio] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (negocio) {
+      setNombreNegocio(negocio.nombre || '');
+      setLogoPreview(negocio.logoUrl || null);
+    }
+  }, [negocio]);
 
   const cargar = async () => {
     if (!negocioId) return;
@@ -71,6 +85,31 @@ export default function Configuracion() {
     cargar();
   };
 
+  const guardarNegocio = async () => {
+    if (!nombreNegocio.trim()) return;
+    setSavingNegocio(true);
+    await updateDoc(doc(db, 'negocios', negocioId), { nombre: nombreNegocio.trim() });
+    setSavingNegocio(false);
+  };
+
+  const handleLogoChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const storageRef = ref(storage, `logos/${negocioId}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      await updateDoc(doc(db, 'negocios', negocioId), { logoUrl: url });
+      setLogoPreview(url);
+    } catch (err) {
+      alert('Error al subir el logo. Verificá que Firebase Storage esté activado.');
+      console.error(err);
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   const guardarTC = async () => {
     setSavingTC(true);
     await setDoc(doc(db, ...base, 'config', 'general'), { tipoCambio: Number(tipoCambio) }, { merge: true });
@@ -93,6 +132,64 @@ export default function Configuracion() {
   return (
     <div>
       <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 24 }}>⚙️ Configuración</h1>
+
+      {/* Sección Mi Negocio */}
+      <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 24, marginBottom: 16 }}>
+        <h3 style={{ margin: '0 0 20px', fontSize: 15, fontWeight: 700 }}>🏪 Mi Negocio</h3>
+        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+
+          {/* Logo */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                width: 96, height: 96, borderRadius: 16,
+                background: '#2c2c2e', border: '2px dashed #3a3a3c',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', overflow: 'hidden', position: 'relative',
+              }}
+            >
+              {logoPreview
+                ? <img src={logoPreview} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <span style={{ fontSize: 32 }}>🏪</span>
+              }
+              {uploadingLogo && (
+                <div style={{
+                  position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#fff'
+                }}>Subiendo...</div>
+              )}
+            </div>
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoChange} style={{ display: 'none' }} />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingLogo}
+              style={{ background: 'none', border: '1px solid #3a3a3c', borderRadius: 8, padding: '6px 14px', color: '#86868b', fontSize: 12, cursor: 'pointer' }}
+            >
+              {uploadingLogo ? 'Subiendo...' : 'Cambiar logo'}
+            </button>
+            <span style={{ color: '#86868b', fontSize: 11 }}>PNG, JPG · máx 2MB</span>
+          </div>
+
+          {/* Nombre */}
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <label style={labelStyle}>NOMBRE DEL NEGOCIO</label>
+            <input
+              value={nombreNegocio}
+              onChange={e => setNombreNegocio(e.target.value)}
+              placeholder="Ej: iPhone Caleta"
+              style={{ ...inputStyle, marginBottom: 12 }}
+            />
+            <button
+              onClick={guardarNegocio}
+              disabled={savingNegocio || !nombreNegocio.trim()}
+              style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', opacity: savingNegocio ? 0.7 : 1 }}
+            >
+              {savingNegocio ? 'Guardando...' : 'Guardar nombre'}
+            </button>
+          </div>
+        </div>
+      </div>
 
       <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 24, marginBottom: 16 }}>
         <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700 }}>💵 Tipo de cambio (ARS por USD)</h3>

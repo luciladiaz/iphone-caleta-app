@@ -16,8 +16,10 @@ export function AuthProvider({ children }) {
   const [diasRestantesTrial, setDiasRestantesTrial] = useState(null);
   const [limitesPlan, setLimitesPlan] = useState(PLANES.trial);
   const [loading, setLoading] = useState(true);
+  const [negocio, setNegocio] = useState(null);
 
   function procesarNegocio(negocio) {
+    setNegocio(negocio);
     const hoy = new Date();
     const rawPlan = negocio.plan || 'trial';
     const planKey = rawPlan === 'agencia' ? 'promax' : rawPlan;
@@ -67,7 +69,7 @@ export function AuthProvider({ children }) {
       if (!u) {
         setUser(null); setPerfil(null); setNegocioId(null);
         setPlan(null); setPlanActivo(false); setMotivoBloqueo(null);
-        setDiasRestantesTrial(null); setLimitesPlan(null);
+        setDiasRestantesTrial(null); setLimitesPlan(null); setNegocio(null);
         setLoading(false);
         return;
       }
@@ -155,7 +157,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      user, perfil, negocioId,
+      user, perfil, negocioId, negocio,
       plan, planActivo, motivoBloqueo, diasRestantesTrial, limitesPlan,
       loading, login, logout, puedeVer, tieneFeature,
     }}>

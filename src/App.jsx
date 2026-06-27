@@ -20,6 +20,7 @@ import DevSeed from './pages/DevSeed';
 import AppTest from './pages/AppTest';
 import TestPagos from './pages/TestPagos';
 import Studio from './pages/Studio';
+import Accesorios from './pages/Accesorios';
 
 function PrivateRoute({ children, modulo }) {
   const { user, perfil, negocioId, puedeVer, planActivo, motivoBloqueo } = useAuth();
@@ -66,6 +67,7 @@ function AppRoutes() {
       {/* Rutas privadas */}
       <Route path="/" element={<PrivateRoute modulo="dashboard"><Layout><Dashboard /></Layout></PrivateRoute>} />
       <Route path="/stock" element={<PrivateRoute modulo="stock"><Layout><Stock /></Layout></PrivateRoute>} />
+      <Route path="/accesorios" element={<PrivateRoute modulo="accesorios"><Layout><Accesorios /></Layout></PrivateRoute>} />
       <Route path="/ventas" element={<PrivateRoute modulo="ventas"><Layout><Ventas /></Layout></PrivateRoute>} />
       <Route path="/cobros" element={<PrivateRoute modulo="cobros"><Layout><Cobros /></Layout></PrivateRoute>} />
       <Route path="/proveedores" element={<PrivateRoute modulo="proveedores"><Layout><Proveedores /></Layout></PrivateRoute>} />

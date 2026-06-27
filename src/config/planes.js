@@ -19,6 +19,7 @@
       dashboardGerencial: true,
       multiplesPointsVenta: true,
       historialEquipo: true,
+      accesorios: true,
     },
   },
   basico: {

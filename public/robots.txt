@@ -1,5 +1,24 @@
 User-agent: *
 Allow: /
+Allow: /landing
 Disallow: /api/
+Disallow: /login
+Disallow: /registro
+Disallow: /dashboard
+Disallow: /stock
+Disallow: /ventas
+Disallow: /cobros
+Disallow: /proveedores
+Disallow: /pagos
+Disallow: /config
+Disallow: /usuarios
+Disallow: /gerencial
+Disallow: /vendedores
+Disallow: /planes
+Disallow: /accesorios
+Disallow: /studio
+Disallow: /dev/
+Disallow: /test
+Disallow: /test-pagos
 
 Sitemap: https://reventapp.com.ar/sitemap.xml

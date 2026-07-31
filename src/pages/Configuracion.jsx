@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState, useRef } from 'react';
-import { collection, getDocs, addDoc, deleteDoc, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, deleteDoc, doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
@@ -79,6 +79,18 @@ export default function Configuracion() {
   };
 
   useEffect(() => { cargar(); }, [negocioId]);
+
+  // Listener en tiempo real para el tipo de cambio y última actualización
+  useEffect(() => {
+    if (!negocioId) return;
+    const unsub = onSnapshot(doc(db, ...base, 'config', 'general'), (snap) => {
+      const cfg = snap.data() || {};
+      if (cfg.tipoCambio !== undefined) setTipoCambio(String(cfg.tipoCambio));
+      if (cfg.tipoDolar) setTipoDolar(cfg.tipoDolar);
+      if (cfg.ultimaActualizacionTC) setUltimaActualizacion(cfg.ultimaActualizacionTC);
+    });
+    return () => unsub();
+  }, [negocioId]);
 
   const agregar = (coleccion) => async (nombre) => {
     await addDoc(collection(db, ...base, coleccion), { nombre });

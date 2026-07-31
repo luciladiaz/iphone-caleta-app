@@ -17,9 +17,13 @@ async function fetchCotizacion(tipo) {
 }
 
 export default async function handler(req, res) {
-  // Vercel envía este header para verificar que la llamada viene del cron
+  // Acepta el secreto por header (Vercel cron) o por query param (cron-job.org u otros servicios externos)
   const authHeader = req.headers['authorization'];
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const querySecret = req.query?.secret;
+  const secretValido = !process.env.CRON_SECRET ||
+    authHeader === `Bearer ${process.env.CRON_SECRET}` ||
+    querySecret === process.env.CRON_SECRET;
+  if (!secretValido) {
     return res.status(401).json({ error: 'No autorizado' });
   }
 

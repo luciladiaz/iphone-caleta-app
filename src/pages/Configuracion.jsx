@@ -128,7 +128,7 @@ export default function Configuracion() {
     if (tipo === 'manual') return;
     setFetchingDolar(true);
     try {
-      const res = await fetch(`https://dolarapi.com/v1/dolares/${tipo}`);
+      const res = await fetch(`/api/cotizacion-dolar?tipo=${tipo}`);
       const data = await res.json();
       const venta = data.venta;
       const ahora = new Date().toISOString();

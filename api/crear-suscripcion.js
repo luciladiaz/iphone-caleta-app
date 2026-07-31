@@ -1,5 +1,10 @@
-﻿const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
-const APP_URL = process.env.APP_URL || 'https://iphone-caleta-app.vercel.app';
+import { adminDb } from './_firebase.js';
+import { FieldValue } from 'firebase-admin/firestore';
+
+const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+
+// URL base siempre apunta al dominio real de producción
+const APP_URL = 'https://reventapp.com.ar';
 
 const PLANES_MP = {
   basico:  { nombre: 'Plan Básico',   monto: 7900  },
@@ -27,7 +32,7 @@ export default async function handler(req, res) {
 
   const planInfo = PLANES_MP[plan];
   if (!planInfo)
-    return res.status(400).json({ error: `Plan inválido: ${plan}. Valores permitidos: basico, pro, promax` });
+    return res.status(400).json({ error: `Plan inválido: ${plan}` });
 
   try {
     const mpBody = {
@@ -62,10 +67,20 @@ export default async function handler(req, res) {
       return res.status(502).json({ error: `MP ${response.status}: ${data.message || data.error || JSON.stringify(data)}` });
     }
 
+    // Guardar el preapprovalId en Firestore para poder verificar el pago después
+    try {
+      await adminDb.doc(`negocios/${negocioId}`).update({
+        preapprovalId: data.id,
+        planSolicitado: plan,
+        ultimoCheckout: FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      console.warn('No se pudo guardar preapprovalId:', e.message);
+    }
+
     return res.json({ init_point: data.init_point });
   } catch (err) {
     console.error('crear-suscripcion error:', err);
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 }
-

@@ -61,7 +61,9 @@ export default function Planes() {
   const upgrade = searchParams.get('upgrade');
   const pago   = searchParams.get('pago');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [verificando, setVerificando] = useState(false);
   const proRef = useRef(null);
+  const verificacionRef = useRef(null);
 
   useEffect(() => {
     const h = () => setIsMobile(window.innerWidth < 768);
@@ -77,14 +79,60 @@ export default function Planes() {
 
   const PRECIO_PLAN = { basico: 7900, pro: 14900, promax: 29900 };
 
-  // Cuando el webhook activa el plan, redirigir al panel automáticamente
+  // Redirigir al panel cuando el plan ya está activo
   useEffect(() => {
     if (pago === 'exitoso' && planActivo && plan && plan !== 'trial') {
       if (typeof fbq !== 'undefined') fbq('track', 'Purchase', { value: PRECIO_PLAN[plan] ?? 0, currency: 'ARS' });
+      clearInterval(verificacionRef.current);
       const t = setTimeout(() => navigate('/'), 2500);
       return () => clearTimeout(t);
     }
   }, [pago, planActivo, plan, navigate]);
+
+  // Verificación activa: consulta el estado de la suscripción directamente con MP
+  // como respaldo si el webhook de MercadoPago no llega a tiempo
+  useEffect(() => {
+    if (pago !== 'exitoso' || !negocioId || planActivo) return;
+
+    let intentos = 0;
+    const MAX_INTENTOS = 10;
+
+    const verificar = async () => {
+      if (planActivo) {
+        clearInterval(verificacionRef.current);
+        return;
+      }
+      intentos++;
+      try {
+        setVerificando(true);
+        const res = await fetch('/api/verificar-suscripcion', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ negocioId }),
+        });
+        const data = await res.json();
+        if (data.activado) {
+          // Firestore onSnapshot en AuthContext detectará el cambio y actualizará planActivo
+          clearInterval(verificacionRef.current);
+        }
+      } catch {
+        // ignorar errores silenciosamente, el siguiente intento reintentará
+      } finally {
+        if (intentos >= MAX_INTENTOS) {
+          clearInterval(verificacionRef.current);
+          setVerificando(false);
+        }
+      }
+    };
+
+    verificar(); // primer intento inmediato
+    verificacionRef.current = setInterval(verificar, 4000);
+
+    return () => {
+      clearInterval(verificacionRef.current);
+      setVerificando(false);
+    };
+  }, [pago, negocioId]);
 
   const handleContratar = async (planId) => {
 if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO_PLAN[planId] ?? 0, currency: 'ARS' });
@@ -109,14 +157,16 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
       {/* ── Banner: pago exitoso (redirect en curso) ───────────────────────── */}
       {pago === 'exitoso' && (
         <div style={{ background: 'rgba(48,209,88,0.1)', border: '1px solid rgba(48,209,88,0.4)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
-          <div style={{ fontSize: 20, marginBottom: 6 }}>✅</div>
+          <div style={{ fontSize: 20, marginBottom: 6 }}>{planActivo && plan !== 'trial' ? '✅' : '⏳'}</div>
           <div style={{ fontWeight: 700, fontSize: 16, color: '#30d158', marginBottom: 6 }}>
             {planActivo && plan !== 'trial' ? 'Plan activado. Llevándote al panel...' : 'Pago recibido. Activando tu plan...'}
           </div>
           <div style={{ color: '#86868b', fontSize: 14 }}>
             {planActivo && plan !== 'trial'
               ? 'Tu suscripción está activa. Serás redirigido automáticamente.'
-              : 'El webhook de MercadoPago está procesando el pago. Puede tardar unos segundos.'}
+              : verificando
+                ? 'Verificando el estado del pago con MercadoPago...'
+                : 'Esperando confirmación de MercadoPago. Puede tardar unos segundos.'}
           </div>
         </div>
       )}

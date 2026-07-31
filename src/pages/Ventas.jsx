@@ -309,51 +309,109 @@ export default function Ventas() {
                   <label style={{ ...labelStyle, margin: 0 }}>Formas de pago</label>
                   <button type="button" onClick={agregarCobro} style={{ background: 'none', border: '1px solid #c9a96e', color: '#2563EB', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>+ Agregar</button>
                 </div>
-                {form.cobros.map((cobro, i) => (
-                  <div key={i} style={{ background: '#2c2c2e', borderRadius: 10, padding: 14, marginBottom: 10 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                      <div style={{ gridColumn: '1/-1' }}>
-                        <label style={labelStyle}>Tipo</label>
-                        <select value={cobro.tipo} onChange={e => updateCobro(i, 'tipo', e.target.value)} style={inputStyle}>
-                          {FORMAS_PAGO.map(f => <option key={f}>{f}</option>)}
-                        </select>
-                      </div>
-                      {cobro.tipo !== 'iPhone como parte de pago' && (
-                        <>
-                          <div>
-                            <label style={labelStyle}>Monto</label>
-                            <input type="number" value={cobro.monto} onChange={e => updateCobro(i, 'monto', e.target.value)} placeholder="0" style={inputStyle} />
+                {(() => {
+                  const tc = Number(form.tipoCambio || tipoCambioGlobal) || 0;
+                  const pvUsd = Number(equipoSeleccionado?.pvUsd) || 0;
+
+                  const cobradoUsd = form.cobros.reduce((sum, c) => {
+                    if (c.tipo === 'iPhone como parte de pago') return sum;
+                    const monto = c.tipo === 'Cuotas personales'
+                      ? (Number(c.cuotas) || 0) * (Number(c.montoCuota) || 0)
+                      : Number(c.monto) || 0;
+                    return sum + (c.moneda === 'USD' ? monto : tc > 0 ? monto / tc : 0);
+                  }, 0);
+                  const partesUsd = form.partesDePago.reduce((s, p) => s + (Number(p.costoUsd) || 0), 0);
+                  const totalPagadoUsd = cobradoUsd + partesUsd;
+                  const saldoUsd = pvUsd - totalPagadoUsd;
+                  const saldoArs = tc > 0 ? saldoUsd * tc : 0;
+
+                  return (
+                    <>
+                      {form.cobros.map((cobro, i) => (
+                        <div key={i} style={{ background: '#2c2c2e', borderRadius: 10, padding: 14, marginBottom: 10 }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                            <div style={{ gridColumn: '1/-1' }}>
+                              <label style={labelStyle}>Tipo</label>
+                              <select value={cobro.tipo} onChange={e => updateCobro(i, 'tipo', e.target.value)} style={inputStyle}>
+                                {FORMAS_PAGO.map(f => <option key={f}>{f}</option>)}
+                              </select>
+                            </div>
+                            {cobro.tipo !== 'iPhone como parte de pago' && (
+                              <>
+                                <div>
+                                  <label style={labelStyle}>Monto</label>
+                                  <input type="number" value={cobro.monto} onChange={e => updateCobro(i, 'monto', e.target.value)} placeholder="0" style={inputStyle} />
+                                  {tc > 0 && cobro.monto > 0 && (
+                                    <div style={{ fontSize: 11, color: '#7DD3FC', marginTop: 4 }}>
+                                      {cobro.moneda === 'ARS'
+                                        ? `≈ USD ${(Number(cobro.monto) / tc).toFixed(0)}`
+                                        : `≈ ARS $${(Number(cobro.monto) * tc).toLocaleString('es-AR')}`}
+                                    </div>
+                                  )}
+                                </div>
+                                <div>
+                                  <label style={labelStyle}>Moneda</label>
+                                  <select value={cobro.moneda} onChange={e => updateCobro(i, 'moneda', e.target.value)} style={inputStyle}>
+                                    <option>ARS</option><option>USD</option>
+                                  </select>
+                                </div>
+                              </>
+                            )}
+                            {cobro.tipo === 'Cuotas personales' && (
+                              <>
+                                <div>
+                                  <label style={labelStyle}>Cant. cuotas</label>
+                                  <input type="number" value={cobro.cuotas} onChange={e => updateCobro(i, 'cuotas', e.target.value)} placeholder="12" style={inputStyle} />
+                                </div>
+                                <div>
+                                  <label style={labelStyle}>Monto por cuota</label>
+                                  <input type="number" value={cobro.montoCuota} onChange={e => updateCobro(i, 'montoCuota', e.target.value)} placeholder="0" style={inputStyle} />
+                                  {tc > 0 && cobro.montoCuota > 0 && cobro.cuotas > 0 && (
+                                    <div style={{ fontSize: 11, color: '#7DD3FC', marginTop: 4 }}>
+                                      Total {cobro.cuotas} cuotas: {cobro.moneda === 'ARS'
+                                        ? `$${(Number(cobro.cuotas) * Number(cobro.montoCuota)).toLocaleString('es-AR')} ≈ USD ${((Number(cobro.cuotas) * Number(cobro.montoCuota)) / tc).toFixed(0)}`
+                                        : `USD ${Number(cobro.cuotas) * Number(cobro.montoCuota)}`}
+                                    </div>
+                                  )}
+                                </div>
+                                <div style={{ gridColumn: '1/-1' }}>
+                                  <label style={labelStyle}>Fecha primera cuota</label>
+                                  <input type="date" value={cobro.fechaInicio} onChange={e => updateCobro(i, 'fechaInicio', e.target.value)} style={inputStyle} />
+                                </div>
+                              </>
+                            )}
                           </div>
-                          <div>
-                            <label style={labelStyle}>Moneda</label>
-                            <select value={cobro.moneda} onChange={e => updateCobro(i, 'moneda', e.target.value)} style={inputStyle}>
-                              <option>ARS</option><option>USD</option>
-                            </select>
+                          {form.cobros.length > 1 && (
+                            <button type="button" onClick={() => quitarCobro(i)} style={{ marginTop: 8, background: 'none', border: 'none', color: '#ff3b30', fontSize: 12, cursor: 'pointer' }}>Quitar</button>
+                          )}
+                        </div>
+                      ))}
+
+                      {/* Resumen de pago */}
+                      {pvUsd > 0 && tc > 0 && (
+                        <div style={{ borderRadius: 10, border: '1px solid rgba(37,99,235,0.3)', background: 'rgba(37,99,235,0.06)', padding: 14, marginTop: 4 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#86868b', marginBottom: 10, textTransform: 'uppercase' }}>Resumen de pago</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                              <span style={{ color: '#86868b' }}>Precio de venta</span>
+                              <span style={{ fontWeight: 700 }}>USD {pvUsd} <span style={{ color: '#86868b', fontWeight: 400 }}>· ${(pvUsd * tc).toLocaleString('es-AR')} ARS</span></span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                              <span style={{ color: '#86868b' }}>Cobrado</span>
+                              <span style={{ fontWeight: 700, color: '#30d158' }}>USD {totalPagadoUsd.toFixed(0)} <span style={{ color: '#86868b', fontWeight: 400 }}>· ${(totalPagadoUsd * tc).toLocaleString('es-AR')} ARS</span></span>
+                            </div>
+                            <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                              <span style={{ fontWeight: 700 }}>Saldo restante</span>
+                              <span style={{ fontWeight: 800, color: saldoUsd <= 0 ? '#30d158' : '#ff9f0a' }}>
+                                {saldoUsd <= 0 ? '✅ Saldado' : `USD ${saldoUsd.toFixed(0)} · $${saldoArs.toLocaleString('es-AR')} ARS`}
+                              </span>
+                            </div>
                           </div>
-                        </>
+                        </div>
                       )}
-                      {cobro.tipo === 'Cuotas personales' && (
-                        <>
-                          <div>
-                            <label style={labelStyle}>Cant. cuotas</label>
-                            <input type="number" value={cobro.cuotas} onChange={e => updateCobro(i, 'cuotas', e.target.value)} placeholder="12" style={inputStyle} />
-                          </div>
-                          <div>
-                            <label style={labelStyle}>Monto por cuota</label>
-                            <input type="number" value={cobro.montoCuota} onChange={e => updateCobro(i, 'montoCuota', e.target.value)} placeholder="0" style={inputStyle} />
-                          </div>
-                          <div style={{ gridColumn: '1/-1' }}>
-                            <label style={labelStyle}>Fecha primera cuota</label>
-                            <input type="date" value={cobro.fechaInicio} onChange={e => updateCobro(i, 'fechaInicio', e.target.value)} style={inputStyle} />
-                          </div>
-                        </>
-                      )}
-                    </div>
-                    {form.cobros.length > 1 && (
-                      <button type="button" onClick={() => quitarCobro(i)} style={{ marginTop: 8, background: 'none', border: 'none', color: '#ff3b30', fontSize: 12, cursor: 'pointer' }}>Quitar</button>
-                    )}
-                  </div>
-                ))}
+                    </>
+                  );
+                })()}
               </div>
 
               {/* Partes de pago iPhone */}

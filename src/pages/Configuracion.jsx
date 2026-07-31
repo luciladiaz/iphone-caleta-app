@@ -127,7 +127,11 @@ export default function Configuracion() {
     setFetchingDolar(true);
     try {
       const res = await fetch(`/api/cotizacion-dolar?tipo=${tipo}`);
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { throw new Error(`Respuesta inválida: ${text.substring(0, 80)}`); }
+      if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+      if (!data.venta) throw new Error('La API no devolvió cotización');
       const venta = data.venta;
       const ahora = new Date().toISOString();
       setTipoCambio(String(venta));
@@ -137,8 +141,8 @@ export default function Configuracion() {
         tipoDolar: tipo,
         ultimaActualizacionTC: ahora,
       }, { merge: true });
-    } catch {
-      alert('No se pudo obtener la cotización. Revisá tu conexión.');
+    } catch (err) {
+      alert(`No se pudo obtener la cotización: ${err.message}`);
     } finally {
       setFetchingDolar(false);
     }

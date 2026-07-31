@@ -119,8 +119,6 @@ export default function Configuracion() {
     { value: 'blue',    label: 'Dólar Blue' },
     { value: 'oficial', label: 'Dólar Oficial' },
     { value: 'mep',     label: 'Dólar MEP' },
-    { value: 'ccl',     label: 'Dólar CCL' },
-    { value: 'cripto',  label: 'Dólar Cripto' },
     { value: 'manual',  label: 'Manual' },
   ];
 

@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  const TIPOS_VALIDOS = ['blue', 'oficial', 'mep', 'ccl', 'cripto', 'tarjeta'];
+  const TIPOS_VALIDOS = ['blue', 'oficial', 'mep'];
   const tipo = req.query.tipo;
 
   if (!tipo || !TIPOS_VALIDOS.includes(tipo)) {

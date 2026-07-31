@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
-import { collection, getDocs, query, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import FeatureBloqueada from '../components/FeatureBloqueada';
@@ -27,11 +27,10 @@ const colorSem = { rojo: '#ff3b30', amarillo: '#ff9f0a', verde: '#30d158' };
 const bgSem = { rojo: 'rgba(255,59,48,0.10)', amarillo: 'rgba(255,159,10,0.10)', verde: 'rgba(48,209,88,0.10)' };
 const etiquetaSem = { rojo: 'URGENTE', amarillo: 'ATENCIÓN', verde: 'AL DÍA' };
 
-const generarMensajeWA = (cliente, telefono, modelo, gb, numeroCuota, totalCuotas, monto) => {
-  const msg = `Hola ${cliente}! Te recuerdo que vence la cuota ${numeroCuota} de ${totalCuotas} de tu ${modelo} ${gb}GB. El monto es $${Number(monto).toLocaleString('es-AR')} ARS. Cualquier consulta avisame. Gracias!`;
+const abrirWA = (telefono, mensaje) => {
   const tel = telefono?.replace(/\D/g, '');
   const telAR = tel?.startsWith('54') ? tel : `54${tel}`;
-  window.open(`https://wa.me/${telAR}?text=${encodeURIComponent(msg)}`, '_blank');
+  window.open(`https://wa.me/${telAR}?text=${encodeURIComponent(mensaje)}`, '_blank');
 };
 
 const FILTROS = [
@@ -47,13 +46,20 @@ export default function Cobros() {
   const [ventas, setVentas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('todas');
+  const [tipoCambio, setTipoCambio] = useState(null);
+  const [modalWA, setModalWA] = useState(null); // deudor seleccionado para enviar WA
 
   useEffect(() => {
     if (!negocioId) return;
     const base = ['negocios', negocioId];
     const cargar = async () => {
-      const snap = await getDocs(query(collection(db, ...base, 'ventas'), orderBy('fecha', 'desc')));
-      setVentas(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const [ventasSnap, cfgSnap] = await Promise.all([
+        getDocs(query(collection(db, ...base, 'ventas'), orderBy('fecha', 'desc'))),
+        getDoc(doc(db, ...base, 'config', 'general')),
+      ]);
+      setVentas(ventasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const tc = cfgSnap.data()?.tipoCambio;
+      if (tc) setTipoCambio(Number(tc));
       setLoading(false);
     };
     cargar();
@@ -134,8 +140,75 @@ export default function Cobros() {
 
   const ventasConCobros = ventas.filter(v => v.cobros && v.cobros.length > 0);
 
+  // Modal: elegir moneda del mensaje de WhatsApp
+  const ModalWhatsApp = () => {
+    if (!modalWA) return null;
+    const d = modalWA;
+    const esUSD = d.moneda === 'USD';
+    const montoUSD = d.montoVencido;
+    const montoARS = tipoCambio ? montoUSD * tipoCambio : null;
+
+    const enviar = (enARS) => {
+      let montoTexto;
+      if (esUSD && !enARS) {
+        montoTexto = `USD ${montoUSD.toLocaleString('es-AR')}`;
+      } else if (esUSD && enARS && montoARS) {
+        montoTexto = `$${Math.round(montoARS).toLocaleString('es-AR')} ARS`;
+      } else {
+        montoTexto = `$${montoUSD.toLocaleString('es-AR')} ARS`;
+      }
+      const msg = `Hola ${d.cliente}! Te recuerdo que tenés ${d.cuotasVencidas} cuota${d.cuotasVencidas > 1 ? 's' : ''} vencida${d.cuotasVencidas > 1 ? 's' : ''} de tu ${d.modelo}. El monto pendiente es ${montoTexto}. Cualquier consulta avisame. Gracias!`;
+      abrirWA(d.telefono, msg);
+      setModalWA(null);
+    };
+
+    return (
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+        <div style={{ background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: 18, padding: 28, maxWidth: 380, width: '100%' }}>
+          <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>📲 Enviar recordatorio por WhatsApp</div>
+          <div style={{ color: '#86868b', fontSize: 13, marginBottom: 20 }}>
+            {d.cliente} · {d.cuotasVencidas} cuota{d.cuotasVencidas > 1 ? 's' : ''} vencida{d.cuotasVencidas > 1 ? 's' : ''}
+          </div>
+
+          <div style={{ color: '#86868b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
+            ¿Cómo querés mostrar la deuda?
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+            {esUSD && (
+              <button onClick={() => enviar(false)} style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.4)', borderRadius: 12, padding: '14px 18px', cursor: 'pointer', textAlign: 'left' }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: '#60a5fa' }}>USD {montoUSD.toLocaleString('es-AR')}</div>
+                <div style={{ color: '#86868b', fontSize: 12, marginTop: 3 }}>Enviar en dólares (monto acordado)</div>
+              </button>
+            )}
+            {esUSD && montoARS ? (
+              <button onClick={() => enviar(true)} style={{ background: 'rgba(48,209,88,0.08)', border: '1px solid rgba(48,209,88,0.3)', borderRadius: 12, padding: '14px 18px', cursor: 'pointer', textAlign: 'left' }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: '#30d158' }}>${Math.round(montoARS).toLocaleString('es-AR')} ARS</div>
+                <div style={{ color: '#86868b', fontSize: 12, marginTop: 3 }}>Equivalente al TC del día · 1 USD = ${tipoCambio?.toLocaleString('es-AR')}</div>
+              </button>
+            ) : esUSD && !montoARS ? (
+              <div style={{ background: '#2c2c2e', borderRadius: 12, padding: '14px 18px' }}>
+                <div style={{ color: '#86868b', fontSize: 13 }}>⚠️ No hay tipo de cambio cargado. Actualizalo en Configuración.</div>
+              </div>
+            ) : (
+              <button onClick={() => enviar(false)} style={{ background: 'rgba(48,209,88,0.08)', border: '1px solid rgba(48,209,88,0.3)', borderRadius: 12, padding: '14px 18px', cursor: 'pointer', textAlign: 'left' }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: '#30d158' }}>${montoUSD.toLocaleString('es-AR')} ARS</div>
+                <div style={{ color: '#86868b', fontSize: 12, marginTop: 3 }}>Monto en pesos argentinos</div>
+              </button>
+            )}
+          </div>
+
+          <button onClick={() => setModalWA(null)} style={{ width: '100%', background: '#2c2c2e', border: 'none', borderRadius: 10, padding: '11px', color: '#86868b', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div>
+      <ModalWhatsApp />
       <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 24 }}>💳 Cobros</h1>
 
       {/* Panel deudores */}
@@ -187,7 +260,7 @@ export default function Cobros() {
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {tieneFeature('botonWhatsappDeudores') ? (
                       <button
-                        onClick={() => d.telefono ? generarMensajeWA(d.cliente, d.telefono, d.modelo, '', d.cuotasVencidas, d.totalCuotas, d.montoVencido) : null}
+                        onClick={() => d.telefono ? setModalWA(d) : null}
                         title={!d.telefono ? 'Agregá el teléfono del cliente en la venta' : ''}
                         style={{ background: '#25D366', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: d.telefono ? 'pointer' : 'not-allowed', opacity: d.telefono ? 1 : 0.4 }}>
                         📲 WhatsApp

@@ -40,7 +40,10 @@ export default function Configuracion() {
   const [origenes, setOrigenes] = useState([]);
   const [modelos, setModelos] = useState([]);
   const [tipoCambio, setTipoCambio] = useState('');
+  const [tipoDolar, setTipoDolar] = useState('blue');
   const [savingTC, setSavingTC] = useState(false);
+  const [fetchingDolar, setFetchingDolar] = useState(false);
+  const [ultimaActualizacion, setUltimaActualizacion] = useState(null);
 
   const [nombreNegocio, setNombreNegocio] = useState('');
   const [savingNegocio, setSavingNegocio] = useState(false);
@@ -68,6 +71,8 @@ export default function Configuracion() {
     setProveedores(pSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const cfg = cfgSnap.data() || {};
     setTipoCambio(cfg.tipoCambio || '');
+    setTipoDolar(cfg.tipoDolar || 'blue');
+    setUltimaActualizacion(cfg.ultimaActualizacionTC || null);
     setOrigenes((cfg.origenes || []).map((o, i) => ({ id: i, nombre: o })));
     const modelosDefault = ['iPhone 12','iPhone 12 Pro','iPhone 12 Pro Max','iPhone 13','iPhone 13 Pro','iPhone 13 Pro Max','iPhone 14','iPhone 14 Pro','iPhone 14 Pro Max','iPhone 15','iPhone 15 Pro','iPhone 15 Pro Max','iPhone 16','iPhone 16 Plus','iPhone 16 Pro','iPhone 16 Pro Max','iPhone 17','iPhone 17 Air','iPhone 17 Pro','iPhone 17 Pro Max'];
     setModelos((cfg.modelos || modelosDefault).map((m, i) => ({ id: i, nombre: m })));
@@ -110,9 +115,44 @@ export default function Configuracion() {
     }
   };
 
+  const TIPOS_DOLAR = [
+    { value: 'blue',    label: 'Dólar Blue' },
+    { value: 'oficial', label: 'Dólar Oficial' },
+    { value: 'mep',     label: 'Dólar MEP' },
+    { value: 'ccl',     label: 'Dólar CCL' },
+    { value: 'cripto',  label: 'Dólar Cripto' },
+    { value: 'manual',  label: 'Manual' },
+  ];
+
+  const fetchDolar = async (tipo) => {
+    if (tipo === 'manual') return;
+    setFetchingDolar(true);
+    try {
+      const res = await fetch(`https://dolarapi.com/v1/dolares/${tipo}`);
+      const data = await res.json();
+      const venta = data.venta;
+      const ahora = new Date().toISOString();
+      setTipoCambio(String(venta));
+      setUltimaActualizacion(ahora);
+      await setDoc(doc(db, ...base, 'config', 'general'), {
+        tipoCambio: venta,
+        tipoDolar: tipo,
+        ultimaActualizacionTC: ahora,
+      }, { merge: true });
+    } catch {
+      alert('No se pudo obtener la cotización. Revisá tu conexión.');
+    } finally {
+      setFetchingDolar(false);
+    }
+  };
+
   const guardarTC = async () => {
     setSavingTC(true);
-    await setDoc(doc(db, ...base, 'config', 'general'), { tipoCambio: Number(tipoCambio) }, { merge: true });
+    await setDoc(doc(db, ...base, 'config', 'general'), {
+      tipoCambio: Number(tipoCambio),
+      tipoDolar,
+      ultimaActualizacionTC: new Date().toISOString(),
+    }, { merge: true });
     setSavingTC(false);
   };
 
@@ -192,13 +232,60 @@ export default function Configuracion() {
       </div>
 
       <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 24, marginBottom: 16 }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700 }}>💵 Tipo de cambio (ARS por USD)</h3>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', maxWidth: 300 }}>
-          <input type="number" value={tipoCambio} onChange={e => setTipoCambio(e.target.value)} placeholder="1430" style={inputStyle} />
-          <button onClick={guardarTC} disabled={savingTC} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-            {savingTC ? 'Guardando...' : 'Guardar'}
-          </button>
+        <h3 style={{ margin: '0 0 18px', fontSize: 15, fontWeight: 700 }}>💵 Tipo de cambio (ARS por USD)</h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end' }}>
+
+          {/* Selector de tipo de dólar */}
+          <div style={{ minWidth: 180 }}>
+            <label style={labelStyle}>TIPO DE DÓLAR</label>
+            <select
+              value={tipoDolar}
+              onChange={e => { setTipoDolar(e.target.value); if (e.target.value !== 'manual') fetchDolar(e.target.value); }}
+              style={inputStyle}
+            >
+              {TIPOS_DOLAR.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </div>
+
+          {/* Valor actual */}
+          <div style={{ minWidth: 140 }}>
+            <label style={labelStyle}>COTIZACIÓN ACTUAL</label>
+            <input
+              type="number"
+              value={tipoCambio}
+              onChange={e => setTipoCambio(e.target.value)}
+              placeholder="1430"
+              readOnly={tipoDolar !== 'manual'}
+              style={{ ...inputStyle, color: tipoDolar !== 'manual' ? '#7DD3FC' : '#fff', cursor: tipoDolar !== 'manual' ? 'default' : 'text' }}
+            />
+          </div>
+
+          {/* Botones */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {tipoDolar !== 'manual' && (
+              <button
+                onClick={() => fetchDolar(tipoDolar)}
+                disabled={fetchingDolar}
+                style={{ background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 16px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', opacity: fetchingDolar ? 0.7 : 1 }}
+              >
+                {fetchingDolar ? 'Actualizando...' : '🔄 Actualizar'}
+              </button>
+            )}
+            {tipoDolar === 'manual' && (
+              <button onClick={guardarTC} disabled={savingTC} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 16px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                {savingTC ? 'Guardando...' : 'Guardar'}
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Última actualización */}
+        {ultimaActualizacion && tipoDolar !== 'manual' && (
+          <p style={{ color: '#86868b', fontSize: 12, marginTop: 10, marginBottom: 0 }}>
+            Última actualización: {new Date(ultimaActualizacion).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
+            {tipoCambio && <span style={{ color: '#7DD3FC', fontWeight: 700, marginLeft: 8 }}>${Number(tipoCambio).toLocaleString('es-AR')}</span>}
+          </p>
+        )}
       </div>
 
       <SeccionLista titulo="Puntos de venta" icono="📍" items={puntosVenta} onAgregar={agregar('puntosVenta')} onEliminar={eliminar('puntosVenta')} campo="nombre" placeholder="Ej: Local Caleta, Instagram..." />

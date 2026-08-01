@@ -2,7 +2,27 @@
   "permissions": {
     "allow": [
       "Bash(git status *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "PowerShell(Invoke-RestMethod -Uri \"http://localhost:3000/api/cotizacion-dolar?tipo=blue\" -Method GET -ErrorAction SilentlyContinue)",
+      "Bash(curl -s \"http://localhost:3333/api/cotizacion-dolar?tipo=blue\")",
+      "Bash(node --check api/verificar-suscripcion.js)",
+      "Bash(node --check api/crear-suscripcion.js)",
+      "Bash(node --check api/cotizacion-dolar.js)",
+      "Bash(node --check api/webhook-mp.js)",
+      "Bash(curl -s \"https://reventapp.com.ar/api/cotizacion-dolar?tipo=blue\")",
+      "Bash(curl -s \"https://reventapp.com.ar/api/cotizacion-dolar?tipo=oficial\")",
+      "Bash(curl -s \"https://reventapp.com.ar/api/cotizacion-dolar?tipo=mep\")",
+      "Bash(curl -s -X POST https://reventapp.com.ar/api/verificar-suscripcion -H 'Content-Type: application/json' -d '{\"negocioId\":\"ID_INVALIDO_PRUEBA\"}')",
+      "Bash(curl -s -X POST https://reventapp.com.ar/api/verificar-suscripcion -H 'Content-Type: application/json' -d '{}')",
+      "Bash(curl -s -o /dev/null -w \"cotizacion-dolar blue: %{http_code}\\\\n\" \"https://reventapp.com.ar/api/cotizacion-dolar?tipo=blue\")",
+      "Bash(curl -s -o /dev/null -w \"cotizacion-dolar oficial: %{http_code}\\\\n\" \"https://reventapp.com.ar/api/cotizacion-dolar?tipo=oficial\")",
+      "Bash(curl -s -o /dev/null -w \"cotizacion-dolar mep: %{http_code}\\\\n\" \"https://reventapp.com.ar/api/cotizacion-dolar?tipo=mep\")",
+      "Bash(curl -s -o /dev/null -w \"cotizacion-dolar tipo-invalido: %{http_code}\\\\n\" \"https://reventapp.com.ar/api/cotizacion-dolar?tipo=cripto\")",
+      "Bash(curl -s -o /dev/null -w \"verificar-suscripcion POST: %{http_code}\\\\n\" -X POST \"https://reventapp.com.ar/api/verificar-suscripcion\" -H \"Content-Type: application/json\" -d '{}')",
+      "Bash(node --check api/cron-actualizar-dolar.js)",
+      "Bash(node -e \"console.log\\(require\\('crypto'\\).randomBytes\\(24\\).toString\\('hex'\\)\\)\")",
+      "Bash(git commit *)",
+      "Bash(curl -s \"https://reventapp.com.ar/api/cron-actualizar-dolar?secret=5207423a99f7b0497ce08f9761048e513dc1a1dadc5661e8\")"
     ]
   }
 }

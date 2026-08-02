@@ -18,7 +18,7 @@ export default function CatalogoPublico() {
       try {
         const base = ['negocios', negocioId];
         const [negSnap, stockSnap, cfgSnap] = await Promise.all([
-          getDoc(doc(db, 'negocios', negocioId)),
+          getDoc(doc(db, 'negocios', negocioId, 'publico', 'info')),
           getDocs(collection(db, ...base, 'stock')),
           getDoc(doc(db, ...base, 'config', 'general')),
         ]);

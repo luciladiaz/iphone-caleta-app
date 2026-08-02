@@ -30,6 +30,9 @@ async function activarPlan(negocioId, plan, mpId) {
     ultimoPago: FieldValue.serverTimestamp(),
   });
 
+  // Mirror del plan al doc público (el catálogo compartible lee de acá, nunca del doc completo)
+  await adminDb.doc(`negocios/${negocioId}/publico/info`).set({ plan }, { merge: true });
+
   await adminDb.collection(`negocios/${negocioId}/pagos`).add({
     tipo: 'plan_renovado',
     plan,

@@ -101,6 +101,8 @@ export default function Configuracion() {
     if (!nombreNegocio.trim()) return;
     setSavingNegocio(true);
     await updateDoc(doc(db, 'negocios', negocioId), { nombre: nombreNegocio.trim() });
+    // Mirror al doc público que lee el catálogo compartible (sin teléfono/plan/datos de pago)
+    await setDoc(doc(db, 'negocios', negocioId, 'publico', 'info'), { nombre: nombreNegocio.trim() }, { merge: true });
     setSavingNegocio(false);
   };
 

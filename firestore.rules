@@ -19,8 +19,11 @@ service cloud.firestore {
       allow read: if true;
     }
 
-    // Info pública del negocio (nombre para el catálogo)
-    match /negocios/{negocioId} {
+    // Info pública del negocio: SOLO nombre y plan, en un doc aparte del principal.
+    // El doc negocios/{negocioId} en sí (teléfono, datos de MercadoPago, fechas de
+    // vencimiento) NUNCA debe ser público — Firestore no permite exponer "algunos
+    // campos sí, otros no" de un mismo documento.
+    match /negocios/{negocioId}/publico/info {
       allow read: if true;
     }
 

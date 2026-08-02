@@ -51,6 +51,13 @@ export default function Registro() {
         telefono: form.telefono,
       });
 
+      // Doc público separado: el catálogo compartible lee de acá (nunca del doc de arriba,
+      // que tiene teléfono/plan/datos de pago — no debe ser legible sin sesión).
+      await setDoc(doc(db, 'negocios', uid, 'publico', 'info'), {
+        nombre: form.negocio,
+        plan: 'trial',
+      });
+
       // Config inicial del negocio
       await setDoc(doc(db, 'negocios', uid, 'config', 'general'), {
         tipoCambio: 1430,

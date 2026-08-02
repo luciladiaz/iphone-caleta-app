@@ -3,6 +3,12 @@ import { adminDb } from './_firebase.js';
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const EMAIL_DIGEST_DESTINO = process.env.EMAIL_DIGEST_DESTINO || 'luucila20@gmail.com';
 const APP_URL = 'https://reventapp.com.ar';
+const WHATSAPP_SOPORTE = '5493364400111';
+
+function botonWhatsapp(mensaje) {
+  const url = `https://wa.me/${WHATSAPP_SOPORTE}?text=${encodeURIComponent(mensaje)}`;
+  return `<p><a href="${url}" style="display:inline-block;background:#25D366;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">💬 Escribinos por WhatsApp</a></p>`;
+}
 
 const MENSAJES_WHATSAPP = {
   1: (nombre) => `Hola ${nombre}! 👋 Vi que te registraste en ReventApp. Cualquier duda para cargar tu primer stock, quedo a un mensaje de distancia. Un tip: en 10 minutos podés tener todo cargado y tu primera venta registrada 🚀`,
@@ -19,7 +25,8 @@ const EMAILS_FALLBACK = {
       <p><strong>Cargá tu primer equipo</strong> — modelo, GB, color, batería e IMEI. Con eso ya tenés tu stock ordenado y buscable en segundos.</p>
       <p><em>"En 10 minutos tenía todo el stock cargado y mi primera venta registrada."</em></p>
       <p><a href="${APP_URL}/login">Entrar a ReventApp →</a></p>
-      <p>Cualquier duda, respondé este mail o escribinos por WhatsApp — estamos para ayudarte a que no se te pase ni un peso.</p>`,
+      <p>Cualquier duda, respondé este mail o escribinos directo:</p>
+      ${botonWhatsapp(`Hola! Empecé mi prueba en ReventApp (${nombre}) y tengo una duda`)}`,
   }),
   4: (nombre, negocioId) => ({
     subject: '¿Ya probaste esto en ReventApp?',
@@ -37,7 +44,8 @@ const EMAILS_FALLBACK = {
       <p>Mañana se vence tu período de prueba de 7 días. Tus datos quedan guardados, pero para seguir usando ReventApp sin cortes, elegí tu plan ahora:</p>
       <p><strong>Plan Básico — $7.900/mes.</strong> Cancelás cuando quieras, sin letra chica.</p>
       <p><a href="${APP_URL}/planes">Elegir mi plan →</a></p>
-      <p>Si tuviste algún problema con el pago o simplemente tenés dudas de qué plan te conviene, escribinos por WhatsApp — te ayudamos a resolverlo al toque.</p>`,
+      <p>Si tuviste algún problema con el pago o simplemente tenés dudas de qué plan te conviene, escribinos directo y te ayudamos a resolverlo al toque:</p>
+      ${botonWhatsapp(`Hola! Se me vence la prueba en ReventApp (${nombre}) y tengo una duda sobre los planes/pago`)}`,
   }),
 };
 

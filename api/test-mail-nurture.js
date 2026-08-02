@@ -16,9 +16,8 @@ const EMAILS = [
       <p>Hola Lucila 👋</p>
       <p>Arrancó tu prueba gratis de ReventApp. Antes de que se te llene la semana de otras cosas, te dejo lo más rápido para que le saques provecho hoy mismo:</p>
       <p><strong>Cargá tu primer equipo</strong> — modelo, GB, color, batería e IMEI. Con eso ya tenés tu stock ordenado y buscable en segundos.</p>
-      <p><em>"En 10 minutos tenía todo el stock cargado y mi primera venta registrada."</em></p>
       <p><a href="${APP_URL}/login">Entrar a ReventApp →</a></p>
-      <p>Cualquier duda, respondé este mail o escribinos directo:</p>
+      <p>Cualquier duda, escribinos directo:</p>
       ${botonWhatsapp('Hola! Empecé mi prueba en ReventApp y tengo una duda')}`,
   },
   {
@@ -28,7 +27,8 @@ const EMAILS = [
       <p>Van 4 días de tu prueba. Si todavía no cargaste tus primeras ventas, este es el momento — te quedan 3 días para probar todo antes de decidir.</p>
       <p>Un feature que casi nadie descubre solo al principio: podés compartir tu <strong>catálogo actualizado por WhatsApp</strong> con un solo link.</p>
       <p><a href="${APP_URL}/catalogo/${NEGOCIO_ID_PRUEBA}">Ver mi catálogo →</a></p>
-      <p>Si te trabaste en algo o tenés una duda puntual, respondé este mail — leemos todos.</p>`,
+      <p>Si te trabaste en algo o tenés una duda puntual, escribinos directo:</p>
+      ${botonWhatsapp('Hola! Estoy en mi prueba de ReventApp y tengo una duda')}`,
   },
   {
     subject: '[PRUEBA] Día 6 — Tu prueba gratis termina mañana',

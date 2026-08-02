@@ -18,6 +18,7 @@ export default async function handler(req, res) {
       batch.set(adminDb.doc(`negocios/${doc.id}/publico/info`), {
         nombre: n.nombre || '',
         plan: n.plan || 'trial',
+        telefono: n.telefono || '',
       }, { merge: true });
       migrados++;
     }

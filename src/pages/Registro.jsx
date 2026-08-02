@@ -56,6 +56,7 @@ export default function Registro() {
       await setDoc(doc(db, 'negocios', uid, 'publico', 'info'), {
         nombre: form.negocio,
         plan: 'trial',
+        telefono: form.telefono,
       });
 
       // Config inicial del negocio

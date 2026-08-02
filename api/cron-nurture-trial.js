@@ -18,7 +18,7 @@ const EMAILS_FALLBACK = {
       <p>Arrancó tu prueba gratis de ReventApp. Antes de que se te llene la semana de otras cosas, te dejo lo más rápido para que le saques provecho hoy mismo:</p>
       <p><strong>Cargá tu primer equipo</strong> — modelo, GB, color, batería e IMEI. Con eso ya tenés tu stock ordenado y buscable en segundos.</p>
       <p><em>"En 10 minutos tenía todo el stock cargado y mi primera venta registrada."</em></p>
-      <p><a href="${APP_URL}">Entrar a ReventApp →</a></p>
+      <p><a href="${APP_URL}/login">Entrar a ReventApp →</a></p>
       <p>Cualquier duda, respondé este mail o escribinos por WhatsApp — estamos para ayudarte a que no se te pase ni un peso.</p>`,
   }),
   4: (nombre, negocioId) => ({

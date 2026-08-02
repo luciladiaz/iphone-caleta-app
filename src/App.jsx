@@ -1,4 +1,4 @@
-﻿import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+﻿import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -45,6 +45,9 @@ function PrivateRoute({ children, modulo }) {
 
 function AppRoutes() {
   const { user } = useAuth();
+  const location = useLocation();
+  const redirectTo = new URLSearchParams(location.search).get('redirect') || '/';
+
   return (
     <Routes>
       {/* Rutas de desarrollo */}
@@ -55,11 +58,13 @@ function AppRoutes() {
       {/* Rutas públicas */}
       <Route path="/landing" element={<Landing />} />
       <Route path="/registro" element={user && user.emailVerified ? <Navigate to="/" /> : <Registro />} />
-      <Route path="/login" element={user && user.emailVerified ? <Navigate to="/" /> : <Login />} />
+      <Route path="/login" element={user && user.emailVerified ? <Navigate to={redirectTo} /> : <Login />} />
       <Route path="/catalogo/:negocioId" element={<CatalogoPublico />} />
 
-      {/* /planes no usa PrivateRoute con planActivo para evitar loop cuando vence */}
-      <Route path="/planes" element={user ? <Layout><Planes /></Layout> : <Navigate to="/landing" />} />
+      {/* /planes no usa PrivateRoute con planActivo para evitar loop cuando vence.
+          Si no hay sesión (ej: click desde un mail en otro dispositivo), manda a
+          /login con un redirect de vuelta a /planes en vez de perderse en /landing. */}
+      <Route path="/planes" element={user ? <Layout><Planes /></Layout> : <Navigate to="/login?redirect=/planes" />} />
 
       {/* /studio — privado, acceso solo al owner. El componente hace la verificación de email. */}
       <Route path="/studio" element={<Studio />} />

@@ -221,6 +221,14 @@ export default function Cobros() {
           />
         </div>
       )}
+      {tieneFeature('panelDeudores') && deudores.length === 0 && (
+        <div style={{ marginBottom: 32, background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: '28px 20px', textAlign: 'center' }}>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>Deudores con cuotas pendientes</div>
+          <div style={{ color: '#86868b', fontSize: 13, maxWidth: 420, margin: '0 auto' }}>
+            Todavía no tenés ventas en cuotas. Cuando registres una venta en <strong>Ventas</strong> con tipo de cobro <strong>"Cuotas personales"</strong>, vas a poder verla acá con semáforo de atraso y mandar recordatorios por WhatsApp.
+          </div>
+        </div>
+      )}
       {tieneFeature('panelDeudores') && deudores.length > 0 && (
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>

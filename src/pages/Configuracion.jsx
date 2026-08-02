@@ -45,11 +45,13 @@ export default function Configuracion() {
   const [ultimaActualizacion, setUltimaActualizacion] = useState(null);
 
   const [nombreNegocio, setNombreNegocio] = useState('');
+  const [telefonoNegocio, setTelefonoNegocio] = useState('');
   const [savingNegocio, setSavingNegocio] = useState(false);
 
   useEffect(() => {
     if (negocio) {
       setNombreNegocio(negocio.nombre || '');
+      setTelefonoNegocio(negocio.telefono || '');
     }
   }, [negocio]);
 
@@ -100,9 +102,12 @@ export default function Configuracion() {
   const guardarNegocio = async () => {
     if (!nombreNegocio.trim()) return;
     setSavingNegocio(true);
-    await updateDoc(doc(db, 'negocios', negocioId), { nombre: nombreNegocio.trim() });
-    // Mirror al doc público que lee el catálogo compartible (sin teléfono/plan/datos de pago)
-    await setDoc(doc(db, 'negocios', negocioId, 'publico', 'info'), { nombre: nombreNegocio.trim() }, { merge: true });
+    await updateDoc(doc(db, 'negocios', negocioId), { nombre: nombreNegocio.trim(), telefono: telefonoNegocio.trim() });
+    // Mirror al doc público que lee el catálogo compartible (nombre + teléfono, nunca plan/pagos internos)
+    await setDoc(doc(db, 'negocios', negocioId, 'publico', 'info'), {
+      nombre: nombreNegocio.trim(),
+      telefono: telefonoNegocio.trim(),
+    }, { merge: true });
     setSavingNegocio(false);
   };
 
@@ -171,7 +176,7 @@ export default function Configuracion() {
         <h3 style={{ margin: '0 0 20px', fontSize: 15, fontWeight: 700 }}>🏪 Mi Negocio</h3>
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
 
-          {/* Nombre */}
+          {/* Nombre y WhatsApp */}
           <div style={{ flex: 1, minWidth: 200 }}>
             <label style={labelStyle}>NOMBRE DEL NEGOCIO</label>
             <input
@@ -180,12 +185,20 @@ export default function Configuracion() {
               placeholder="Ej: iPhone Caleta"
               style={{ ...inputStyle, marginBottom: 12 }}
             />
+            <label style={labelStyle}>WHATSAPP DE CONTACTO (para el catálogo público)</label>
+            <input
+              type="tel"
+              value={telefonoNegocio}
+              onChange={e => setTelefonoNegocio(e.target.value)}
+              placeholder="Ej: 11 2345-6789"
+              style={{ ...inputStyle, marginBottom: 12 }}
+            />
             <button
               onClick={guardarNegocio}
               disabled={savingNegocio || !nombreNegocio.trim()}
               style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', opacity: savingNegocio ? 0.7 : 1 }}
             >
-              {savingNegocio ? 'Guardando...' : 'Guardar nombre'}
+              {savingNegocio ? 'Guardando...' : 'Guardar cambios'}
             </button>
           </div>
         </div>

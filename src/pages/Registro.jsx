@@ -121,7 +121,7 @@ export default function Registro() {
           </div>
           <div>
             <label style={{ color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>WhatsApp</label>
-            <input type="tel" value={form.telefono} onChange={e => setForm({...form, telefono: e.target.value})} required placeholder="Ej: 3364400111"
+            <input type="tel" value={form.telefono} onChange={e => setForm({...form, telefono: e.target.value})} required placeholder="Ej: 11 2345-6789"
               style={{ width: '100%', padding: '12px 14px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 10, color: '#fff', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
           </div>
           <div>

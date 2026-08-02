@@ -2,7 +2,7 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const APP_URL = 'https://reventapp.com.ar';
 const WHATSAPP_SOPORTE = '5493364400111';
 const DESTINO_PRUEBA = 'luucila20@gmail.com';
-const NEGOCIO_ID_PRUEBA = 'tu-negocio-id-de-ejemplo'; // placeholder — no usar IDs de clientes reales en pruebas
+const NEGOCIO_ID_PRUEBA = 'demo-catalogo-reventapp'; // negocio demo con stock ficticio, ver api/setup-demo-catalogo.js
 
 function botonWhatsapp(mensaje) {
   const url = `https://wa.me/${WHATSAPP_SOPORTE}?text=${encodeURIComponent(mensaje)}`;

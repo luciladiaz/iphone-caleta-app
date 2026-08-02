@@ -3,6 +3,10 @@
     {
       "path": "/api/cron-actualizar-dolar",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron-nurture-trial",
+      "schedule": "0 12 * * *"
     }
   ],
   "redirects": [

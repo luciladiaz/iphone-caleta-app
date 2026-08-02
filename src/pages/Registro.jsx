@@ -6,7 +6,7 @@ import { auth, db } from '../firebase/config';
 
 export default function Registro() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ negocio: '', nombre: '', email: '', password: '' });
+  const [form, setForm] = useState({ negocio: '', nombre: '', email: '', telefono: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [verificando, setVerificando] = useState(false);
@@ -48,6 +48,7 @@ export default function Registro() {
         vencePlan: null,
         creadoEn: serverTimestamp(),
         negocioId: uid,
+        telefono: form.telefono,
       });
 
       // Config inicial del negocio
@@ -116,6 +117,11 @@ export default function Registro() {
           <div>
             <label style={{ color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>Email</label>
             <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} required placeholder="tu@email.com"
+              style={{ width: '100%', padding: '12px 14px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 10, color: '#fff', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+          </div>
+          <div>
+            <label style={{ color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>WhatsApp</label>
+            <input type="tel" value={form.telefono} onChange={e => setForm({...form, telefono: e.target.value})} required placeholder="Ej: 3364400111"
               style={{ width: '100%', padding: '12px 14px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 10, color: '#fff', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
           </div>
           <div>

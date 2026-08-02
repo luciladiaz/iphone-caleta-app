@@ -27,6 +27,11 @@ const colorSem = { rojo: '#ff3b30', amarillo: '#ff9f0a', verde: '#30d158' };
 const bgSem = { rojo: 'rgba(255,59,48,0.10)', amarillo: 'rgba(255,159,10,0.10)', verde: 'rgba(48,209,88,0.10)' };
 const etiquetaSem = { rojo: 'URGENTE', amarillo: 'ATENCIÓN', verde: 'AL DÍA' };
 
+function textoDeuda(d) {
+  if (d.tipoDeuda === 'saldo') return 'saldo pendiente';
+  return `${d.cuotasVencidas} cuota${d.cuotasVencidas > 1 ? 's' : ''} vencida${d.cuotasVencidas > 1 ? 's' : ''}`;
+}
+
 const abrirWA = (telefono, mensaje) => {
   const tel = telefono?.replace(/\D/g, '');
   const telAR = tel?.startsWith('54') ? tel : `54${tel}`;
@@ -115,6 +120,7 @@ export default function Cobros() {
       const pendientesFuturo = proximasNoVencidas.length;
 
       deudores.push({
+        tipoDeuda: 'cuotas',
         ventaId: venta.id, cobroIdx: ci,
         cliente: venta.cliente || 'Sin nombre',
         telefono: venta.telefono || '',
@@ -125,6 +131,40 @@ export default function Cobros() {
         venta,
       });
     }
+  }
+
+  // Saldo pendiente: ventas pagadas parcialmente con cualquier forma de pago
+  // (no solo "Cuotas personales") — ej. pagó una seña y falta el resto.
+  // Si la venta ya tiene cuotas personales, ese saldo se sigue por cuota más arriba.
+  for (const venta of ventas) {
+    const tieneCuotasPersonales = (venta.cobros || []).some(c => c.tipo === 'Cuotas personales');
+    if (tieneCuotasPersonales || !venta.fecha) continue;
+
+    const tc = tipoCambio || 0;
+    const cobradoUsd = (venta.cobros || []).reduce((sum, c) => {
+      if (c.tipo === 'iPhone como parte de pago') return sum;
+      const monto = Number(c.monto) || 0;
+      return sum + (c.moneda === 'USD' ? monto : tc > 0 ? monto / tc : 0);
+    }, 0);
+    const partesUsd = (venta.partesDePago || []).reduce((s, p) => s + (Number(p.costoUsd) || 0), 0);
+    const saldoUsd = (Number(venta.pvUsd) || 0) - (cobradoUsd + partesUsd);
+    if (saldoUsd <= 0.01) continue;
+
+    const fechaVenta = venta.fecha.toDate ? venta.fecha.toDate() : new Date(venta.fecha);
+    const diasDesdeVenta = diasDesde(fechaVenta);
+    const sem = calcSemaforo(diasDesdeVenta);
+
+    deudores.push({
+      tipoDeuda: 'saldo',
+      ventaId: venta.id, cobroIdx: null,
+      cliente: venta.cliente || 'Sin nombre',
+      telefono: venta.telefono || '',
+      modelo: `${venta.modelo || ''} ${venta.gb || ''}GB`.trim(),
+      cuotasVencidas: 1, montoVencido: saldoUsd,
+      moneda: 'USD', maxDias: diasDesdeVenta, sem, pendientesFuturo: 0,
+      totalCuotas: 1, cobro: null,
+      venta,
+    });
   }
 
   deudores.sort((a, b) => ({ rojo: 0, amarillo: 1, verde: 2 }[a.sem] - { rojo: 0, amarillo: 1, verde: 2 }[b.sem] || b.maxDias - a.maxDias));
@@ -157,7 +197,7 @@ export default function Cobros() {
       } else {
         montoTexto = `$${montoUSD.toLocaleString('es-AR')} ARS`;
       }
-      const msg = `Hola ${d.cliente}! Te recuerdo que tenés ${d.cuotasVencidas} cuota${d.cuotasVencidas > 1 ? 's' : ''} vencida${d.cuotasVencidas > 1 ? 's' : ''} de tu ${d.modelo}. El monto pendiente es ${montoTexto}. Cualquier consulta avisame. Gracias!`;
+      const msg = `Hola ${d.cliente}! Te recuerdo que tenés ${textoDeuda(d)} de tu ${d.modelo}. El monto pendiente es ${montoTexto}. Cualquier consulta avisame. Gracias!`;
       abrirWA(d.telefono, msg);
       setModalWA(null);
     };
@@ -167,7 +207,7 @@ export default function Cobros() {
         <div style={{ background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: 18, padding: 28, maxWidth: 380, width: '100%' }}>
           <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>📲 Enviar recordatorio por WhatsApp</div>
           <div style={{ color: '#86868b', fontSize: 13, marginBottom: 20 }}>
-            {d.cliente} · {d.cuotasVencidas} cuota{d.cuotasVencidas > 1 ? 's' : ''} vencida{d.cuotasVencidas > 1 ? 's' : ''}
+            {d.cliente} · {textoDeuda(d)}
           </div>
 
           <div style={{ color: '#86868b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
@@ -225,7 +265,7 @@ export default function Cobros() {
         <div style={{ marginBottom: 32, background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: '28px 20px', textAlign: 'center' }}>
           <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>Deudores con cuotas pendientes</div>
           <div style={{ color: '#86868b', fontSize: 13, maxWidth: 420, margin: '0 auto' }}>
-            Todavía no tenés ventas en cuotas. Cuando registres una venta en <strong>Ventas</strong> con tipo de cobro <strong>"Cuotas personales"</strong>, vas a poder verla acá con semáforo de atraso y mandar recordatorios por WhatsApp.
+            Por ahora no tenés ventas con saldo pendiente. En cuanto registres una venta en <strong>Ventas</strong> que quede en cuotas o pagada solo en parte (cualquier forma de pago), vas a poder verla acá con semáforo de atraso y mandar recordatorios por WhatsApp.
           </div>
         </div>
       )}
@@ -258,7 +298,7 @@ export default function Cobros() {
                     <div style={{ fontSize: 12, color: '#86868b' }}>
                       {d.cuotasVencidas > 0 && (
                         <span style={{ color: colorSem[d.sem], fontWeight: 600 }}>
-                          {d.cuotasVencidas} cuota{d.cuotasVencidas > 1 ? 's' : ''} vencida{d.cuotasVencidas > 1 ? 's' : ''} · Hace {d.maxDias} días
+                          {textoDeuda(d)} · Hace {d.maxDias} días
                         </span>
                       )}
                       {d.cuotasVencidas > 0 && d.montoVencido > 0 && <span style={{ color: '#fff', fontWeight: 600, marginLeft: 8 }}>· Debe {d.moneda} {d.montoVencido.toLocaleString('es-AR')}</span>}

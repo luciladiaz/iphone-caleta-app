@@ -24,6 +24,11 @@ service cloud.firestore {
       allow read: if true;
     }
 
+    // Config pública del negocio (tipo de cambio, para mostrar precio en ARS en el catálogo)
+    match /negocios/{negocioId}/config/general {
+      allow read: if true;
+    }
+
     // Suscripciones: solo el admin puede leer, solo servidor puede escribir
     match /suscripciones/{negocioId} {
       allow read: if request.auth != null

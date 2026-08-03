@@ -92,6 +92,37 @@ function FeedFeature({ tag, titulo, subtitulo, feature1, feature2, feature3 }) {
   );
 }
 
+function FeedNuevaFuncion({ titulo, subtitulo, beneficio1, beneficio2, beneficio3 }) {
+  return (
+    <div style={{ width: 540, height: 540, background: `linear-gradient(148deg, ${B.navy} 0%, ${B.deep} 100%)`, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: -100, right: -100, width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(16,185,129,0.16) 0%, transparent 65%)', pointerEvents: 'none' }} />
+
+      <div style={{ flex: 1, padding: '44px 48px 20px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(16,185,129,0.16)', border: `1px solid rgba(16,185,129,0.4)`, borderRadius: 99, padding: '5px 14px', marginBottom: 24, width: 'fit-content' }}>
+          <span style={{ fontSize: 11, fontWeight: 800, color: B.green, letterSpacing: '2.5px', textTransform: 'uppercase' }}>🆕 Nuevo en ReventApp</span>
+        </div>
+        <div style={{ fontSize: 44, fontWeight: 900, color: B.white, lineHeight: 1.08, letterSpacing: '-2px', marginBottom: 14, whiteSpace: 'pre-line' }}>{titulo}</div>
+        <div style={{ fontSize: 15, color: B.gray, lineHeight: 1.65, marginBottom: 28 }}>{subtitulo}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {[beneficio1, beneficio2, beneficio3].filter(Boolean).map((f, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 20, height: 20, borderRadius: '50%', background: B.green, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ color: '#fff', fontSize: 11, fontWeight: 800 }}>✓</span>
+              </div>
+              <span style={{ fontSize: 14, color: B.white, fontWeight: 500, lineHeight: 1.4 }}>{f}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ padding: '13px 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(16,185,129,0.2)' }}>
+        <LogoMark iconSize={26} />
+        <span style={{ fontSize: 12, fontWeight: 700, color: B.green }}>✓ Ya disponible</span>
+      </div>
+    </div>
+  );
+}
+
 function FeedTip({ numero, titulo, tip1, tip2, tip3 }) {
   return (
     <div style={{ width: 540, height: 540, background: B.slate, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden', borderLeft: `6px solid ${B.blue}` }}>
@@ -777,6 +808,21 @@ Si la respuesta es "más o menos" o "creo que bien"... hay un problema. 🚨
 .
 #stockiphone #gestiondestock #revendedoriphone #iphoneargentina #reventacelulares #celularesargentina #negociodecelulares #reventapp #emprendedorargentino #pymes #iphone15 #iphone14 #inventariocelulares #sistemaventas #controldestock`,
 
+  'feed-nueva-funcion': `🆕 Nueva función en ReventApp: cotización del dólar automática 💵
+
+✅ Elegís Blue, Oficial o MEP
+✅ Se actualiza solo todos los días, no lo tenés que buscar vos
+✅ Tus ventas se convierten a ARS en tiempo real con el tipo de cambio del día
+
+Seguimos sumando funciones para que gestiones tu negocio de iPhones sin perder tiempo. Esta ya está disponible para todos los usuarios. 🚀
+
+📲 Probá ReventApp 7 días gratis → reventapp.com.ar
+
+.
+.
+.
+#revendedoriphone #iphoneargentina #reventacelulares #dolarblue #dolarhoy #stockiphone #negociodecelulares #celularesargentina #emprendedorargentino #reventapp #gestiondestock #pymes #iphone #argentina #vendedordecelulares`,
+
   'feed-tip': `3 errores que le hacen perder plata a todo revendedor de iPhone 👇
 
 ❌ No llevar los costos en USD → el tipo de cambio te come la ganancia
@@ -1018,6 +1064,24 @@ const TEMPLATES = {
         { key: 'feature1', label: 'Punto 1' },
         { key: 'feature2', label: 'Punto 2' },
         { key: 'feature3', label: 'Punto 3' },
+      ],
+    },
+    {
+      id: 'feed-nueva-funcion', nombre: 'Nueva Función', desc: 'Anunciá cada función nueva que sumás a ReventApp.',
+      component: FeedNuevaFuncion, exportW: 1080, exportH: 1080, previewW: 540, previewH: 540,
+      defaults: {
+        titulo: 'Cotización del\ndólar automática.',
+        subtitulo: 'Blue, Oficial o MEP: elegís uno y se actualiza solo todos los días.',
+        beneficio1: 'Tus ventas se convierten a ARS en tiempo real',
+        beneficio2: 'No más buscar la cotización a mano cada mañana',
+        beneficio3: 'Elegís vos qué tipo de dólar usar',
+      },
+      campos: [
+        { key: 'titulo', label: 'Título (\\n para salto)', multiline: true, rows: 2 },
+        { key: 'subtitulo', label: 'Bajada' },
+        { key: 'beneficio1', label: 'Beneficio 1' },
+        { key: 'beneficio2', label: 'Beneficio 2' },
+        { key: 'beneficio3', label: 'Beneficio 3' },
       ],
     },
     {

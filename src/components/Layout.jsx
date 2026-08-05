@@ -72,13 +72,10 @@ const NAV = [
 function PlanBadge({ plan, diasRestantesTrial }) {
   if (!plan) return null;
   const configs = {
-    trial:   { label: `Trial · ${diasRestantesTrial ?? '?'} días`, color: '#2563EB', stars: '🧪' },
-    basico:  { label: 'Plan Básico',  color: '#86868b', stars: '⭐' },
-    pro:     { label: 'Plan Pro',     color: '#2563EB', stars: '⭐⭐' },
-    promax:  { label: 'Pro Max',      color: '#ffd700', stars: '⭐⭐⭐' },
-    agencia: { label: 'Pro Max',      color: '#ffd700', stars: '⭐⭐⭐' },
+    trial:  { label: `Trial · ${diasRestantesTrial ?? '?'} días`, color: '#2563EB', stars: '🧪' },
+    promax: { label: 'Plan Completo', color: '#ffd700', stars: '⭐' },
   };
-  const cfg = configs[plan] || configs.basico;
+  const cfg = configs[plan] || configs.promax;
   return (
     <NavLink to="/planes" style={{ textDecoration: 'none', display: 'block', margin: '8px 12px 0' }}>
       <div style={{

@@ -6,10 +6,9 @@ const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
 // URL base siempre apunta al dominio real de producción
 const APP_URL = 'https://reventapp.com.ar';
 
+// ReventApp pasó a un solo plan pago (antes básico/pro/pro max).
 const PLANES_MP = {
-  basico:  { nombre: 'Plan Básico',   monto: 7900  },
-  pro:     { nombre: 'Plan Pro',      monto: 14900 },
-  promax:  { nombre: 'Plan Pro Max',  monto: 29900 },
+  promax: { nombre: 'Plan Completo', monto: 29900 },
 };
 
 export default async function handler(req, res) {

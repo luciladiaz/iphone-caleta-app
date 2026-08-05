@@ -2,7 +2,7 @@
 import { FieldValue } from 'firebase-admin/firestore';
 
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
-const PLANES_VALIDOS = new Set(['basico', 'pro', 'promax']);
+const PLANES_VALIDOS = new Set(['promax']); // ReventApp: un solo plan pago
 
 async function fetchMP(path) {
   const r = await fetch(`https://api.mercadopago.com${path}`, {

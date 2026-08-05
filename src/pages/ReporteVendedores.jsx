@@ -2,18 +2,17 @@
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
-import FeatureBloqueada from '../components/FeatureBloqueada';
 
 const fmt = (n) => new Intl.NumberFormat('es-AR').format(Math.round(n));
 
 export default function ReporteVendedores() {
-  const { tieneFeature, negocioId } = useAuth();
+  const { negocioId } = useAuth();
   const [ranking, setRanking] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mesLabel, setMesLabel] = useState('');
 
   useEffect(() => {
-    if (!negocioId || !tieneFeature('reportesPorVendedor')) { setLoading(false); return; }
+    if (!negocioId) { setLoading(false); return; }
     cargar();
   }, [negocioId]);
 
@@ -49,19 +48,6 @@ export default function ReporteVendedores() {
     setRanking(lista);
     setLoading(false);
   };
-
-  if (!tieneFeature('reportesPorVendedor')) {
-    return (
-      <div>
-        <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 24 }}>🏅 Rendimiento por Vendedor</h1>
-        <FeatureBloqueada
-          feature="Reportes por Vendedor"
-          planRequerido="promax"
-          descripcion="Conocé el rendimiento de cada vendedor. Quién vendió más, quién tiene más cobros pendientes, y el ranking del mes."
-        />
-      </div>
-    );
-  }
 
   const medallas = ['🥇', '🥈', '🥉'];
 

@@ -42,22 +42,24 @@ function simularNegocio(negocio) {
 
 const SUITES = [
   {
-    categoria: '📋 Configuración de PLANES',
+    categoria: '📋 Configuración de PLANES (ReventApp: un solo plan pago)',
     tests: [
       {
-        nombre: 'Existen los 4 planes requeridos (trial, basico, pro, promax)',
+        nombre: 'Existen los 2 planes (trial, promax = Plan Completo)',
         fn: () => {
-          const req = ['trial', 'basico', 'pro', 'promax'];
+          const req = ['trial', 'promax'];
           const miss = req.filter(k => !PLANES[k]);
           if (miss.length) throw new Error(`Faltan: ${miss.join(', ')}`);
-          return 'trial · basico · pro · promax ✓';
+          return 'trial · promax ✓';
         },
       },
       {
-        nombre: 'PLANES.agencia es alias de promax (backward-compat)',
+        nombre: 'PLANES.agencia/pro/basico son alias de promax (backward-compat)',
         fn: () => {
-          if (PLANES.agencia !== PLANES.promax) throw new Error('No es el mismo objeto');
-          return 'alias correcto ✓';
+          if (PLANES.agencia !== PLANES.promax) throw new Error('agencia no es el mismo objeto');
+          if (PLANES.pro !== PLANES.promax) throw new Error('pro no es el mismo objeto');
+          if (PLANES.basico !== PLANES.promax) throw new Error('basico no es el mismo objeto');
+          return 'alias correctos ✓';
         },
       },
       {
@@ -71,27 +73,7 @@ const SUITES = [
         },
       },
       {
-        nombre: 'Básico: maxStock=20  maxVentasMes=10  maxUsuarios=1',
-        fn: () => {
-          const p = PLANES.basico;
-          if (p.maxStock !== 20) throw new Error(`maxStock=${p.maxStock}`);
-          if (p.maxVentasMes !== 10) throw new Error(`maxVentasMes=${p.maxVentasMes}`);
-          if (p.maxUsuarios !== 1) throw new Error(`maxUsuarios=${p.maxUsuarios}`);
-          return '20 / 10 / 1 ✓';
-        },
-      },
-      {
-        nombre: 'Pro: maxStock=60  maxVentasMes=30  maxUsuarios=3',
-        fn: () => {
-          const p = PLANES.pro;
-          if (p.maxStock !== 60) throw new Error(`maxStock=${p.maxStock}`);
-          if (p.maxVentasMes !== 30) throw new Error(`maxVentasMes=${p.maxVentasMes}`);
-          if (p.maxUsuarios !== 3) throw new Error(`maxUsuarios=${p.maxUsuarios}`);
-          return '60 / 30 / 3 ✓';
-        },
-      },
-      {
-        nombre: 'Pro Max: maxStock=∞  maxVentasMes=∞  maxUsuarios=∞',
+        nombre: 'Plan Completo: maxStock=∞  maxVentasMes=∞  maxUsuarios=∞',
         fn: () => {
           const p = PLANES.promax;
           if (p.maxStock !== Infinity) throw new Error(`maxStock=${p.maxStock}`);
@@ -101,12 +83,10 @@ const SUITES = [
         },
       },
       {
-        nombre: 'Precios correctos: $7.900 / $14.900 / $29.900',
+        nombre: 'Precio del plan pago: $29.900',
         fn: () => {
-          if (PLANES.basico.precio !== 7900) throw new Error(`basico.precio=${PLANES.basico.precio}`);
-          if (PLANES.pro.precio !== 14900) throw new Error(`pro.precio=${PLANES.pro.precio}`);
           if (PLANES.promax.precio !== 29900) throw new Error(`promax.precio=${PLANES.promax.precio}`);
-          return '$7.900 / $14.900 / $29.900 ✓';
+          return '$29.900 ✓';
         },
       },
       {
@@ -122,7 +102,7 @@ const SUITES = [
     categoria: '🔒 Features por Plan',
     tests: [
       {
-        nombre: 'Trial: las 12 features están habilitadas',
+        nombre: 'Trial: todas las features están habilitadas',
         fn: () => {
           const f = PLANES.trial.features;
           const bloq = Object.entries(f).filter(([, v]) => v !== true).map(([k]) => k);
@@ -131,66 +111,12 @@ const SUITES = [
         },
       },
       {
-        nombre: 'Básico: las 12 features están deshabilitadas',
-        fn: () => {
-          const f = PLANES.basico.features;
-          const hab = Object.entries(f).filter(([, v]) => v === true).map(([k]) => k);
-          if (hab.length) throw new Error(`Activas (no debería): ${hab.join(', ')}`);
-          return '0 features activas ✓';
-        },
-      },
-      {
-        nombre: 'Pro: 7 features activas, 5 bloqueadas (WA/vendedores/gerencial/multiPV/historial)',
-        fn: () => {
-          const f = PLANES.pro.features;
-          const debeHaber = ['catalogoPublico','reportesGanancia','valorStockTiempoReal','calculadoraPrecio','panelDeudores','resumenCobros','exportarExcel'];
-          const noDebHaber = ['botonWhatsappDeudores','reportesPorVendedor','dashboardGerencial','multiplesPointsVenta','historialEquipo'];
-          const errHay = debeHaber.filter(k => f[k] !== true);
-          const errNo  = noDebHaber.filter(k => f[k] !== false);
-          if (errHay.length) throw new Error(`Deberían estar activas: ${errHay.join(', ')}`);
-          if (errNo.length)  throw new Error(`Deberían estar bloqueadas: ${errNo.join(', ')}`);
-          return '7 activas · 5 bloqueadas ✓';
-        },
-      },
-      {
-        nombre: 'Pro Max: las 12 features están habilitadas',
+        nombre: 'Plan Completo: todas las features están habilitadas',
         fn: () => {
           const f = PLANES.promax.features;
           const bloq = Object.entries(f).filter(([, v]) => v !== true).map(([k]) => k);
           if (bloq.length) throw new Error(`Bloqueadas: ${bloq.join(', ')}`);
           return `${Object.keys(f).length} features activas ✓`;
-        },
-      },
-      {
-        nombre: 'tieneFeature("catalogoPublico"): trial=✓  basico=✗  pro=✓  promax=✓',
-        fn: () => {
-          const f = 'catalogoPublico';
-          const r = { trial: PLANES.trial.features[f], basico: PLANES.basico.features[f], pro: PLANES.pro.features[f], promax: PLANES.promax.features[f] };
-          if (!r.trial) throw new Error('trial debería tener catálogo');
-          if (r.basico) throw new Error('basico NO debería tener catálogo');
-          if (!r.pro) throw new Error('pro debería tener catálogo');
-          if (!r.promax) throw new Error('promax debería tener catálogo');
-          return '✓ / ✗ / ✓ / ✓ ✓';
-        },
-      },
-      {
-        nombre: 'tieneFeature("botonWhatsappDeudores"): trial=✓  pro=✗  promax=✓',
-        fn: () => {
-          const f = 'botonWhatsappDeudores';
-          if (!PLANES.trial.features[f]) throw new Error('trial debería tener WA');
-          if (PLANES.pro.features[f])   throw new Error('pro NO debería tener WA');
-          if (!PLANES.promax.features[f]) throw new Error('promax debería tener WA');
-          return 'WA: trial=✓ pro=✗ promax=✓ ✓';
-        },
-      },
-      {
-        nombre: 'tieneFeature("dashboardGerencial"): trial=✓  pro=✗  promax=✓',
-        fn: () => {
-          const f = 'dashboardGerencial';
-          if (!PLANES.trial.features[f]) throw new Error('trial debería tener gerencial');
-          if (PLANES.pro.features[f])   throw new Error('pro NO debería tener gerencial');
-          if (!PLANES.promax.features[f]) throw new Error('promax debería tener gerencial');
-          return 'gerencial: trial=✓ pro=✗ promax=✓ ✓';
         },
       },
     ],
@@ -242,17 +168,17 @@ const SUITES = [
         },
       },
       {
-        nombre: 'Plan basico sin vencePlan, estado="activo" → activo=true',
+        nombre: 'Plan Completo sin vencePlan, estado="activo" → activo=true',
         fn: () => {
-          const r = simularNegocio({ plan: 'basico', estado: 'activo', vencePlan: null });
+          const r = simularNegocio({ plan: 'promax', estado: 'activo', vencePlan: null });
           if (!r.activo) throw new Error('activo debería ser true');
           return 'activo=true ✓';
         },
       },
       {
-        nombre: 'Plan basico con vencePlan vencido → activo=false',
+        nombre: 'Plan Completo con vencePlan vencido → activo=false',
         fn: () => {
-          const r = simularNegocio({ plan: 'basico', estado: 'activo', vencePlan: new Date('2020-01-01') });
+          const r = simularNegocio({ plan: 'promax', estado: 'activo', vencePlan: new Date('2020-01-01') });
           if (r.activo) throw new Error('activo debería ser false');
           return 'activo=false ✓';
         },
@@ -260,7 +186,7 @@ const SUITES = [
       {
         nombre: 'Plan con estado="inactivo" sin vencePlan → activo=false',
         fn: () => {
-          const r = simularNegocio({ plan: 'pro', estado: 'inactivo', vencePlan: null });
+          const r = simularNegocio({ plan: 'promax', estado: 'inactivo', vencePlan: null });
           if (r.activo) throw new Error('activo debería ser false');
           return 'activo=false ✓';
         },
@@ -278,42 +204,10 @@ const SUITES = [
     ],
   },
   {
-    categoria: '📦 Límites y Bloqueos por Plan',
+    categoria: '📦 Límites (solo trial — el plan pago es todo ilimitado)',
     tests: [
       {
-        nombre: 'Básico: 19 equipos → puede agregar (< 20)',
-        fn: () => {
-          const max = PLANES.basico.maxStock;
-          if (19 >= max) throw new Error(`19 >= ${max}`);
-          return `19 < 20 → puede agregar ✓`;
-        },
-      },
-      {
-        nombre: 'Básico: 20 equipos → modal de límite (>= 20)',
-        fn: () => {
-          const max = PLANES.basico.maxStock;
-          if (!(20 >= max)) throw new Error('20 debería bloquear');
-          return `20 >= 20 → modal aparece ✓`;
-        },
-      },
-      {
-        nombre: 'Pro: 59 equipos → puede agregar (< 60)',
-        fn: () => {
-          const max = PLANES.pro.maxStock;
-          if (59 >= max) throw new Error(`59 >= ${max}`);
-          return `59 < 60 → puede agregar ✓`;
-        },
-      },
-      {
-        nombre: 'Pro: 60 equipos → modal de límite (>= 60)',
-        fn: () => {
-          const max = PLANES.pro.maxStock;
-          if (!(60 >= max)) throw new Error('60 debería bloquear');
-          return `60 >= 60 → modal aparece ✓`;
-        },
-      },
-      {
-        nombre: 'Pro Max: 10.000 equipos → NUNCA bloquea (Infinity)',
+        nombre: 'Plan Completo: 10.000 equipos → NUNCA bloquea (Infinity)',
         fn: () => {
           const max = PLANES.promax.maxStock;
           if (max !== Infinity) throw new Error(`maxStock=${max}`);
@@ -322,47 +216,15 @@ const SUITES = [
         },
       },
       {
-        nombre: 'Básico: 9 ventas → puede registrar (< 10)',
+        nombre: 'Plan Completo: ventas ilimitadas → nunca bloquea (Infinity)',
         fn: () => {
-          const max = PLANES.basico.maxVentasMes;
-          if (9 >= max) throw new Error(`9 >= ${max}`);
-          return `9 < 10 → puede registrar ✓`;
+          const max = PLANES.promax.maxVentasMes;
+          if (max !== Infinity) throw new Error(`maxVentasMes=${max}`);
+          return 'Infinity → nunca bloquea ✓';
         },
       },
       {
-        nombre: 'Básico: 10 ventas/mes → modal de límite (>= 10)',
-        fn: () => {
-          const max = PLANES.basico.maxVentasMes;
-          if (!(10 >= max)) throw new Error('10 debería bloquear');
-          return `10 >= 10 → modal aparece ✓`;
-        },
-      },
-      {
-        nombre: 'Pro: 30 ventas/mes → modal de límite (>= 30)',
-        fn: () => {
-          const max = PLANES.pro.maxVentasMes;
-          if (!(30 >= max)) throw new Error('30 debería bloquear');
-          return `30 >= 30 → modal aparece ✓`;
-        },
-      },
-      {
-        nombre: 'Básico: 1 usuario → modal si intenta agregar otro (>= 1)',
-        fn: () => {
-          const max = PLANES.basico.maxUsuarios;
-          if (!(1 >= max)) throw new Error('1 debería bloquear en básico');
-          return `1 >= 1 → modal aparece ✓`;
-        },
-      },
-      {
-        nombre: 'Pro: 3 usuarios → modal si intenta agregar otro (>= 3)',
-        fn: () => {
-          const max = PLANES.pro.maxUsuarios;
-          if (!(3 >= max)) throw new Error('3 debería bloquear en pro');
-          return `3 >= 3 → modal aparece ✓`;
-        },
-      },
-      {
-        nombre: 'Pro Max: usuarios ilimitados → nunca bloquea (Infinity)',
+        nombre: 'Plan Completo: usuarios ilimitados → nunca bloquea (Infinity)',
         fn: () => {
           const max = PLANES.promax.maxUsuarios;
           if (max !== Infinity) throw new Error(`maxUsuarios=${max}`);
@@ -394,31 +256,7 @@ const SUITES = [
         },
       },
       {
-        nombre: 'Plan básico: 0 features activas, stock bloqueado en 20',
-        fn: () => {
-          const r = simularNegocio({ plan: 'basico', estado: 'activo', vencePlan: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) });
-          if (!r.activo) throw new Error('activo=false');
-          if (r.tieneFeature('catalogoPublico')) throw new Error('básico NO debería tener catálogo');
-          if (r.tieneFeature('reportesGanancia')) throw new Error('básico NO debería tener reportes');
-          if (r.limitesPlan.maxStock !== 20) throw new Error(`maxStock=${r.limitesPlan.maxStock}`);
-          return 'activo=true, 0 features, maxStock=20 ✓';
-        },
-      },
-      {
-        nombre: 'Plan pro: tiene catálogo/reportes/cobros, NO tiene WA/gerencial',
-        fn: () => {
-          const r = simularNegocio({ plan: 'pro', estado: 'activo', vencePlan: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) });
-          if (!r.activo) throw new Error('activo=false');
-          if (!r.tieneFeature('catalogoPublico')) throw new Error('pro debería tener catálogo');
-          if (!r.tieneFeature('panelDeudores')) throw new Error('pro debería tener panel deudores');
-          if (r.tieneFeature('botonWhatsappDeudores')) throw new Error('pro NO debería tener WA');
-          if (r.tieneFeature('dashboardGerencial')) throw new Error('pro NO debería tener gerencial');
-          if (r.limitesPlan.maxStock !== 60) throw new Error(`maxStock=${r.limitesPlan.maxStock}`);
-          return 'activo=true, catálogo+cobros OK, WA/gerencial bloqueados ✓';
-        },
-      },
-      {
-        nombre: 'Plan promax: todas las features activas, límites infinitos',
+        nombre: 'Plan Completo: todas las features activas, límites infinitos',
         fn: () => {
           const r = simularNegocio({ plan: 'promax', estado: 'activo', vencePlan: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) });
           if (!r.activo) throw new Error('activo=false');
@@ -426,25 +264,15 @@ const SUITES = [
           const bloq = todas.filter(f => !r.tieneFeature(f));
           if (bloq.length) throw new Error(`Bloqueadas: ${bloq.join(', ')}`);
           if (r.limitesPlan.maxStock !== Infinity) throw new Error('maxStock no es ∞');
-          return `activo=true, 12 features ✓, límites ∞ ✓`;
+          return `activo=true, ${todas.length} features ✓, límites ∞ ✓`;
         },
       },
       {
-        nombre: 'CatalogoPublico: básico NO tiene catalogoPublico → muestra bloqueo',
+        nombre: 'CatalogoPublico: Plan Completo SÍ tiene catalogoPublico → muestra catálogo',
         fn: () => {
-          const planKey = 'basico';
-          const habilitado = PLANES[planKey]?.features?.catalogoPublico === true;
-          if (habilitado) throw new Error('básico no debería tener catálogo');
-          return 'básico → catálogo bloqueado ✓';
-        },
-      },
-      {
-        nombre: 'CatalogoPublico: pro SÍ tiene catalogoPublico → muestra catálogo',
-        fn: () => {
-          const planKey = 'pro';
-          const habilitado = PLANES[planKey]?.features?.catalogoPublico === true;
-          if (!habilitado) throw new Error('pro debería tener catálogo');
-          return 'pro → catálogo visible ✓';
+          const habilitado = PLANES.promax?.features?.catalogoPublico === true;
+          if (!habilitado) throw new Error('promax debería tener catálogo');
+          return 'plan pago → catálogo visible ✓';
         },
       },
     ],
@@ -487,44 +315,26 @@ const MANUAL = [
     ],
   },
   {
-    categoria: '⭐ Plan Básico (manual — basico@caleta.test)',
-    items: [
-      { label: 'Dashboard: ganancia bloqueada (🔒 card)' },
-      { label: 'Dashboard: valor del stock bloqueado (🔒 card)' },
-      { label: 'Stock: botón Calculadora con 🔒 (click va a /planes)' },
-      { label: 'Stock: botón Catálogo con 🔒 (click va a /planes)' },
-      { label: 'Cobros: panel deudores muestra FeatureBloqueada' },
-      { label: 'Sidebar: Gerencial y Rendimiento con 🔒 visible' },
-    ],
-  },
-  {
-    categoria: '⭐⭐ Plan Pro (manual — pro@caleta.test)',
+    categoria: '⭐ Plan Completo — único plan pago (manual — promax@caleta.test)',
     items: [
       { label: 'Dashboard: ganancia visible en USD y ARS' },
       { label: 'Dashboard: valor del stock visible' },
       { label: 'Stock: calculadora funciona' },
       { label: 'Cobros: panel deudores con semáforo visible' },
-      { label: 'Cobros: botón WhatsApp NO aparece (dice "Plan Pro Max")' },
-      { label: 'Gerencial: muestra FeatureBloqueada planRequerido=promax' },
-    ],
-  },
-  {
-    categoria: '⭐⭐⭐ Plan Pro Max (manual — promax@caleta.test)',
-    items: [
       { label: 'Cobros: botón WhatsApp aparece y funciona' },
-      { label: 'Gerencial (/gerencial): placeholder accesible (no bloqueado)' },
-      { label: 'Rendimiento (/vendedores): placeholder accesible' },
-      { label: 'Sidebar: PlanBadge muestra "Pro Max" en color dorado' },
+      { label: 'Gerencial (/gerencial): accesible (no bloqueado)' },
+      { label: 'Rendimiento (/vendedores): accesible' },
+      { label: 'Sidebar: PlanBadge muestra "Plan Completo"' },
     ],
   },
   {
     categoria: '🌐 Landing (manual)',
     items: [
       { label: 'Hero: título y botones "Empezar gratis" visibles', link: '/landing' },
-      { label: 'Precios: 3 cards (Básico $7.900 / Pro $14.900 / Pro Max $29.900)', link: '/landing' },
+      { label: 'Precios: 1 sola card ($29.900, todas las funciones)', link: '/landing' },
       { label: 'FAQ: accordion abre y cierra correctamente', link: '/landing' },
-      { label: 'Mobile 375px: cards apiladas, sin overflow horizontal', link: '/landing' },
-      { label: 'Ninguna mención de "Agencia" en toda la landing', link: '/landing' },
+      { label: 'Mobile 375px: card sin overflow horizontal', link: '/landing' },
+      { label: 'Ninguna mención de "Agencia", "Básico" o "Pro" (sin Max) en toda la landing', link: '/landing' },
     ],
   },
 ];

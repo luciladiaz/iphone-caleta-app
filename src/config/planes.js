@@ -1,4 +1,4 @@
-﻿export const PLANES = {
+export const PLANES = {
   trial: {
     nombre: 'Prueba gratuita',
     precio: 0,
@@ -22,52 +22,8 @@
       accesorios: true,
     },
   },
-  basico: {
-    nombre: 'Básico',
-    precio: 7900,
-    maxStock: 20,
-    maxVentasMes: 10,
-    maxUsuarios: 1,
-    features: {
-      catalogoPublico: false,
-      reportesGanancia: false,
-      valorStockTiempoReal: false,
-      calculadoraPrecio: false,
-      panelDeudores: false,
-      resumenCobros: false,
-      exportarExcel: false,
-      accesorios: true,
-      botonWhatsappDeudores: false,
-      reportesPorVendedor: false,
-      dashboardGerencial: false,
-      multiplesPointsVenta: false,
-      historialEquipo: false,
-    },
-  },
-  pro: {
-    nombre: 'Pro',
-    precio: 14900,
-    maxStock: 60,
-    maxVentasMes: 30,
-    maxUsuarios: 3,
-    features: {
-      catalogoPublico: true,
-      reportesGanancia: true,
-      valorStockTiempoReal: true,
-      calculadoraPrecio: true,
-      panelDeudores: true,
-      resumenCobros: true,
-      exportarExcel: true,
-      accesorios: true,
-      botonWhatsappDeudores: false,
-      reportesPorVendedor: false,
-      dashboardGerencial: false,
-      multiplesPointsVenta: false,
-      historialEquipo: false,
-    },
-  },
   promax: {
-    nombre: 'Pro Max',
+    nombre: 'Plan Completo',
     precio: 29900,
     maxStock: Infinity,
     maxVentasMes: Infinity,
@@ -90,6 +46,8 @@
   },
 };
 
-// Alias backward-compat: "agencia" → promax
+// Aliases backward-compat: ReventApp pasó a un solo plan pago.
+// Cualquier negocio con un plan viejo (agencia/pro/basico) cae en el plan completo actual.
 PLANES.agencia = PLANES.promax;
-
+PLANES.pro = PLANES.promax;
+PLANES.basico = PLANES.promax;

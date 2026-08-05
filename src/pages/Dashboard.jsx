@@ -1,6 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
 import { collection, getDocs, query, orderBy, limit, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { Link } from 'react-router-dom';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 
@@ -31,7 +30,7 @@ const generarMensajeWA = (cliente, telefono, modelo, gb, numeroCuota, totalCuota
 };
 
 export default function Dashboard() {
-  const { perfil, negocioId, tieneFeature } = useAuth();
+  const { perfil, negocioId } = useAuth();
   const [stats, setStats] = useState({ stockTotal: 0, stockDisponible: 0, ventasMes: 0, pendientesCobro: 0, gananciaUSD: 0, gananciaARS: 0, stockValorUSD: 0, stockValorARS: 0, deudoresUrgentes: 0 });
   const [ventasRecientes, setVentasRecientes] = useState([]);
   const [todasVentas, setTodasVentas] = useState([]);
@@ -153,40 +152,20 @@ export default function Dashboard() {
       <p style={{ color: '#86868b', fontSize: 14, marginBottom: 28 }}>Bienvenido, {perfil?.nombre || 'Admin'} 👋</p>
 
       {/* Ganancia del mes */}
-      {tieneFeature('reportesGanancia') ? (
-        <div style={{ background: 'rgba(48,209,88,0.06)', border: '1px solid rgba(48,209,88,0.2)', borderRadius: 14, padding: '20px 24px', marginBottom: 16 }}>
-          <div style={{ color: '#86868b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>💰 Ganancia este mes</div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: '#30d158', letterSpacing: '-1px' }}>USD {stats.gananciaUSD}</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#30d158', opacity: 0.7, marginTop: 2 }}>ARS {stats.gananciaARS}</div>
-          <div style={{ fontSize: 12, color: '#86868b', marginTop: 6 }}>en {stats.ventasMes} ventas entregadas</div>
-        </div>
-      ) : (
-        <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: '20px 24px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-          <div>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>🔒 Reportes de ganancia · Plan Pro</div>
-            <div style={{ color: '#86868b', fontSize: 13 }}>Sabé exactamente cuánto ganaste en USD y ARS cada mes</div>
-          </div>
-          <Link to="/planes" style={{ background: '#2563EB', color: '#fff', padding: '7px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>Actualizar →</Link>
-        </div>
-      )}
+      <div style={{ background: 'rgba(48,209,88,0.06)', border: '1px solid rgba(48,209,88,0.2)', borderRadius: 14, padding: '20px 24px', marginBottom: 16 }}>
+        <div style={{ color: '#86868b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>💰 Ganancia este mes</div>
+        <div style={{ fontSize: 32, fontWeight: 800, color: '#30d158', letterSpacing: '-1px' }}>USD {stats.gananciaUSD}</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#30d158', opacity: 0.7, marginTop: 2 }}>ARS {stats.gananciaARS}</div>
+        <div style={{ fontSize: 12, color: '#86868b', marginTop: 6 }}>en {stats.ventasMes} ventas entregadas</div>
+      </div>
 
       {/* Valor del stock */}
-      {tieneFeature('valorStockTiempoReal') ? (
-        <div style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 14, padding: '20px 24px', marginBottom: 24 }}>
-          <div style={{ color: '#86868b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>📦 Tu stock disponible vale</div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: '#2563EB', letterSpacing: '-1px' }}>USD {stats.stockValorUSD}</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#2563EB', opacity: 0.7, marginTop: 2 }}>ARS {stats.stockValorARS}</div>
-          <div style={{ fontSize: 12, color: '#86868b', marginTop: 6 }}>{stats.stockDisponible} equipos disponibles de {stats.stockTotal} totales</div>
-        </div>
-      ) : (
-        <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: '20px 24px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-          <div>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>🔒 Valor del stock en tiempo real · Plan Pro</div>
-            <div style={{ color: '#86868b', fontSize: 13 }}>Ves cuánto vale tu stock en USD y ARS al instante</div>
-          </div>
-          <Link to="/planes" style={{ background: '#2563EB', color: '#fff', padding: '7px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>Actualizar →</Link>
-        </div>
-      )}
+      <div style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 14, padding: '20px 24px', marginBottom: 24 }}>
+        <div style={{ color: '#86868b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>📦 Tu stock disponible vale</div>
+        <div style={{ fontSize: 32, fontWeight: 800, color: '#2563EB', letterSpacing: '-1px' }}>USD {stats.stockValorUSD}</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#2563EB', opacity: 0.7, marginTop: 2 }}>ARS {stats.stockValorARS}</div>
+        <div style={{ fontSize: 12, color: '#86868b', marginTop: 6 }}>{stats.stockDisponible} equipos disponibles de {stats.stockTotal} totales</div>
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14, marginBottom: 32 }}>
         <StatCard icon="⏳" label="Ventas pendientes" value={stats.pendientesCobro} color="#ff9f0a" />
@@ -197,15 +176,7 @@ export default function Dashboard() {
       <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 24, marginBottom: 28 }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>📲 Cobros del día</h2>
 
-        {!tieneFeature('resumenCobros') ? (
-          <div style={{ textAlign: 'center', padding: '24px 16px', background: '#2c2c2e', borderRadius: 10 }}>
-            <div style={{ fontSize: 24, marginBottom: 8 }}>🔒</div>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>Disponible en Plan Pro</div>
-            <div style={{ color: '#86868b', fontSize: 13, marginBottom: 16 }}>Mirá quién te debe hoy y enviá recordatorios por WhatsApp</div>
-            <Link to="/planes" style={{ background: '#2563EB', color: '#fff', padding: '8px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>Ver planes →</Link>
-          </div>
-        ) : (
-          <>
+        <>
             {/* Tabs */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
               {tabs.map(t => (
@@ -241,20 +212,16 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      {tieneFeature('botonWhatsappDeudores') ? (
-                        <button
-                          onClick={() => c.telefono ? generarMensajeWA(c.cliente, c.telefono, c.modelo, c.gb, c.cuotaNum, c.totalCuotas, c.monto) : null}
-                          title={!c.telefono ? 'Agregá el teléfono del cliente en la venta para usar esta función' : ''}
-                          style={{
-                            background: '#25D366', color: '#fff', border: 'none', borderRadius: 8,
-                            padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: c.telefono ? 'pointer' : 'not-allowed',
-                            opacity: c.telefono ? 1 : 0.4,
-                          }}>
-                          📲 Recordatorio
-                        </button>
-                      ) : (
-                        <span style={{ fontSize: 11, color: '#86868b', alignSelf: 'center' }}>📲 WhatsApp · Plan Pro Max</span>
-                      )}
+                      <button
+                        onClick={() => c.telefono ? generarMensajeWA(c.cliente, c.telefono, c.modelo, c.gb, c.cuotaNum, c.totalCuotas, c.monto) : null}
+                        title={!c.telefono ? 'Agregá el teléfono del cliente en la venta para usar esta función' : ''}
+                        style={{
+                          background: '#25D366', color: '#fff', border: 'none', borderRadius: 8,
+                          padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: c.telefono ? 'pointer' : 'not-allowed',
+                          opacity: c.telefono ? 1 : 0.4,
+                        }}>
+                        📲 Recordatorio
+                      </button>
                       <button onClick={() => marcarCuotaPagada(c)} style={{ background: 'rgba(48,209,88,0.15)', border: '1px solid rgba(48,209,88,0.3)', color: '#30d158', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                         ✓ Pagada
                       </button>
@@ -263,8 +230,7 @@ export default function Dashboard() {
                 ))}
               </div>
             )}
-          </>
-        )}
+        </>
       </div>
 
       {/* Últimas ventas */}

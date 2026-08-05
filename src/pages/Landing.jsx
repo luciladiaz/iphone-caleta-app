@@ -128,7 +128,7 @@ const FEATURES = [
 const FAQS = [
   { q: '¿Funciona para cualquier tipo de revendedor?', a: 'Sí. Funciona tanto si tenés un local físico como si vendés solo por Instagram o WhatsApp.' },
   { q: '¿Qué pasa con mis datos si cancelo?', a: 'Tus datos quedan guardados por 30 días después de cancelar. Podés exportarlos cuando quieras.' },
-  { q: '¿Puedo agregar a mis vendedores?', a: 'Sí. El plan Básico tiene 1 usuario. El plan Pro incluye hasta 3 usuarios con permisos configurables. El Pro Max tiene usuarios ilimitados.' },
+  { q: '¿Puedo agregar a mis vendedores?', a: 'Sí. El plan incluye usuarios ilimitados con permisos configurables por sección.' },
   { q: '¿Necesito saber de tecnología para usarlo?', a: 'No. Si podés usar WhatsApp, podés usar este sistema.' },
   { q: '¿Funciona en el celular?', a: 'Sí, 100%. Está diseñado mobile-first para que lo uses desde tu celular en cualquier momento.' },
 ];
@@ -311,67 +311,27 @@ export default function Landing() {
       {/* PRECIOS */}
       <section style={{ padding: '80px 24px', background: C.bgPrimary }}>
         <div style={{ maxWidth: 1060, margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 800, letterSpacing: '-1px', marginBottom: 12 }}>Planes simples, sin sorpresas</h2>
-          <p style={{ color: C.textSecondary, fontSize: 16, marginBottom: 56 }}>Empezá gratis 7 días, sin tarjeta</p>
+          <h2 style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 800, letterSpacing: '-1px', marginBottom: 12 }}>Un solo plan. Todo incluido.</h2>
+          <p style={{ color: C.textSecondary, fontSize: 16, marginBottom: 56 }}>Sin funciones bloqueadas por precio. Empezá gratis 7 días, sin tarjeta.</p>
 
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', marginBottom: 28 }}>
-
-            {/* Básico */}
-            <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, flex: '1 1 220px', maxWidth: 280, textAlign: 'left' }}>
-              <div style={{ fontSize: 11, color: C.textSecondary, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Plan Básico</div>
-              <div style={{ fontSize: 30, fontWeight: 800, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 4 }}>
-                <span style={{ color: C.accentLight }}>$</span>7.900<span style={{ fontSize: 13, fontWeight: 400, color: C.textSecondary }}>/mes</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 20, marginTop: 14 }}>
-                {['Stock hasta 20 equipos', 'Hasta 10 ventas/mes', 'Multi-moneda ARS/USD', '1 usuario', 'Cobros y cuotas'].map(f => (
-                  <div key={f} style={{ display: 'flex', gap: 8, fontSize: 12, color: '#ebebf5cc' }}>
-                    <span style={{ color: C.accentBlue, flexShrink: 0 }}>✓</span>{f}
-                  </div>
-                ))}
-              </div>
-              <Link to="/registro" style={{ display: 'block', background: C.bgCard, color: C.textPrimary, border: `1px solid ${C.accentBlue}`, borderRadius: 10, padding: '11px', fontSize: 13, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}>
-                Empezar gratis
-              </Link>
-            </div>
-
-            {/* Pro — destacado */}
-            <div className="precio-pro-scale" style={{ background: 'linear-gradient(135deg, #1e293b 0%, #1e3a5f 100%)', border: `2px solid ${C.accentBlue}`, borderRadius: 16, padding: 24, flex: '1 1 240px', maxWidth: 320, textAlign: 'left', position: 'relative', transform: 'scale(1.05)', boxShadow: '0 0 40px rgba(37, 99, 235, 0.3)' }}>
-              <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', background: C.gradientCTA, color: '#fff', fontSize: 10, fontWeight: 800, padding: '3px 14px', borderRadius: 99, whiteSpace: 'nowrap' }}>🔥 MÁS POPULAR</div>
-              <div style={{ fontSize: 11, color: C.accentLight, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Plan Pro</div>
-              <div style={{ fontSize: 34, fontWeight: 800, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 2 }}>
-                <span style={{ color: C.accentLight }}>$</span>14.900<span style={{ fontSize: 13, fontWeight: 400, color: C.textSecondary }}>/mes</span>
-              </div>
-              <div style={{ fontSize: 11, color: C.textSecondary, marginBottom: 14 }}>= $497 ARS por día. Menos que un café.</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 20 }}>
-                {['Stock hasta 60 equipos', 'Hasta 30 ventas/mes', 'Hasta 3 usuarios con permisos', 'Reportes USD y ARS', 'Cobros del día + semáforo', 'Calculadora de precio', 'Catálogo público compartible', 'Soporte WhatsApp 24hs'].map(f => (
-                  <div key={f} style={{ display: 'flex', gap: 8, fontSize: 12, color: '#ebebf5cc' }}>
-                    <span style={{ color: C.accentBlue, flexShrink: 0 }}>✓</span>{f}
-                  </div>
-                ))}
-              </div>
-              <Link to="/registro" style={{ display: 'block', background: C.gradientCTA, color: '#fff', border: 'none', borderRadius: 10, padding: '12px', fontSize: 14, fontWeight: 700, textDecoration: 'none', textAlign: 'center', boxShadow: '0 0 16px rgba(37,99,235,0.4)' }}>
-                Empezar gratis
-              </Link>
-            </div>
-
-            {/* Pro Max */}
-            <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, flex: '1 1 220px', maxWidth: 280, textAlign: 'left' }}>
-              <div style={{ fontSize: 11, color: C.textSecondary, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Plan Pro Max</div>
-              <div style={{ fontSize: 30, fontWeight: 800, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
+            <div className="precio-pro-scale" style={{ background: 'linear-gradient(135deg, #1e293b 0%, #1e3a5f 100%)', border: `2px solid ${C.accentBlue}`, borderRadius: 16, padding: 32, flex: '1 1 100%', maxWidth: 420, textAlign: 'left', position: 'relative', boxShadow: '0 0 40px rgba(37, 99, 235, 0.3)' }}>
+              <div style={{ fontSize: 11, color: C.accentLight, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Plan Completo</div>
+              <div style={{ fontSize: 40, fontWeight: 800, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 2 }}>
                 <span style={{ color: C.accentLight }}>$</span>29.900<span style={{ fontSize: 13, fontWeight: 400, color: C.textSecondary }}>/mes</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 20, marginTop: 14 }}>
-                {['Stock y ventas ilimitados', 'Todo lo del Plan Pro', 'Usuarios ilimitados', 'Múltiples puntos de venta', 'Reportes por vendedor', 'Dashboard gerencial', 'WhatsApp directo a deudores', 'Soporte prioritario 2hs'].map(f => (
-                  <div key={f} style={{ display: 'flex', gap: 8, fontSize: 12, color: '#ebebf5cc' }}>
+              <div style={{ fontSize: 11, color: C.textSecondary, marginBottom: 18 }}>= $997 ARS por día.</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 24 }}>
+                {['Stock y ventas ilimitadas', 'Multi-moneda ARS/USD en tiempo real', 'Usuarios ilimitados con permisos', 'Catálogo público compartible por WhatsApp', 'Reportes de ganancia USD y ARS', 'Cobros, cuotas y saldos pendientes', 'Panel de deudores con semáforo', 'Botón WhatsApp directo a deudores', 'Múltiples puntos de venta', 'Reportes por vendedor y dashboard gerencial', 'Soporte WhatsApp prioritario'].map(f => (
+                  <div key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: '#ebebf5cc' }}>
                     <span style={{ color: C.accentBlue, flexShrink: 0 }}>✓</span>{f}
                   </div>
                 ))}
               </div>
-              <Link to="/registro" style={{ display: 'block', background: C.accentBlue, color: '#fff', border: 'none', borderRadius: 10, padding: '11px', fontSize: 13, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}>
+              <Link to="/registro" style={{ display: 'block', background: C.gradientCTA, color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 15, fontWeight: 700, textDecoration: 'none', textAlign: 'center', boxShadow: '0 0 16px rgba(37,99,235,0.4)' }}>
                 Empezar gratis
               </Link>
             </div>
-
           </div>
           <div style={{ color: C.textSecondary, fontSize: 13, display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
             <span>💳 Pagá con tarjeta, débito o transferencia via MercadoPago</span>

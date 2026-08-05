@@ -1,6 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy, getDoc, doc } from 'firebase/firestore';
-import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import CalculadoraPrecio from '../components/CalculadoraPrecio';
@@ -17,8 +16,7 @@ const inputStyle = { width: '100%', padding: '10px 12px', background: '#2c2c2e',
 const labelStyle = { color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 
 export default function Stock() {
-  const { perfil, negocioId, plan, limitesPlan, tieneFeature } = useAuth();
-  const navigate = useNavigate();
+  const { perfil, negocioId, plan, limitesPlan } = useAuth();
   const esAdmin = perfil?.rol === 'admin';
   const base = ['negocios', negocioId];
 
@@ -139,21 +137,12 @@ export default function Stock() {
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Stock</h1>
           <p style={{ color: '#86868b', fontSize: 13, margin: '4px 0 0' }}>
             {stockDisponible.length} disponibles · {equipos.length} total
-            {esAdmin && tieneFeature('valorStockTiempoReal') && totalValorUSD > 0 && <span style={{ color: '#2563EB', marginLeft: 8 }}>· USD {totalValorUSD.toFixed(0)} en stock</span>}
-            {esAdmin && !tieneFeature('valorStockTiempoReal') && <span style={{ color: '#3a3a3c', marginLeft: 8, fontSize: 12 }}>· 🔒 Valor total · Plan Pro</span>}
+            {esAdmin && totalValorUSD > 0 && <span style={{ color: '#2563EB', marginLeft: 8 }}>· USD {totalValorUSD.toFixed(0)} en stock</span>}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {tieneFeature('calculadoraPrecio') ? (
-            <button onClick={() => setShowCalculadora(true)} style={{ background: '#2c2c2e', color: '#2563EB', border: '1px solid #3a3a3c', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🧮 Calculadora</button>
-          ) : (
-            <button onClick={() => navigate('/planes')} style={{ background: '#2c2c2e', color: '#3a3a3c', border: '1px solid #2c2c2e', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🔒 Calculadora</button>
-          )}
-          {tieneFeature('catalogoPublico') ? (
-            <button onClick={() => setModalCatalogo(true)} style={{ background: '#2c2c2e', color: '#fff', border: '1px solid #3a3a3c', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🔗 Catálogo</button>
-          ) : (
-            <button onClick={() => navigate('/planes')} style={{ background: '#2c2c2e', color: '#3a3a3c', border: '1px solid #2c2c2e', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🔒 Catálogo</button>
-          )}
+          <button onClick={() => setShowCalculadora(true)} style={{ background: '#2c2c2e', color: '#2563EB', border: '1px solid #3a3a3c', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🧮 Calculadora</button>
+          <button onClick={() => setModalCatalogo(true)} style={{ background: '#2c2c2e', color: '#fff', border: '1px solid #3a3a3c', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🔗 Catálogo</button>
           {esAdmin && <button onClick={handleAgregarEquipo} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>+ Agregar equipo</button>}
         </div>
       </div>

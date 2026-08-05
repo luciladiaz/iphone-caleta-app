@@ -2,17 +2,16 @@
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
-import FeatureBloqueada from '../components/FeatureBloqueada';
 
 const fmt = (n) => new Intl.NumberFormat('es-AR').format(Math.round(n));
 
 export default function DashboardGerencial() {
-  const { tieneFeature, negocioId } = useAuth();
+  const { negocioId } = useAuth();
   const [datos, setDatos] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!negocioId || !tieneFeature('dashboardGerencial')) { setLoading(false); return; }
+    if (!negocioId) { setLoading(false); return; }
     cargar();
   }, [negocioId]);
 
@@ -58,19 +57,6 @@ export default function DashboardGerencial() {
     });
     setLoading(false);
   };
-
-  if (!tieneFeature('dashboardGerencial')) {
-    return (
-      <div>
-        <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 24 }}>📈 Dashboard Gerencial</h1>
-        <FeatureBloqueada
-          feature="Dashboard Gerencial"
-          planRequerido="promax"
-          descripcion="Vista ejecutiva de tu negocio completo. Ventas totales, rendimiento por vendedor, punto de venta más rentable y más."
-        />
-      </div>
-    );
-  }
 
   const KPI = ({ label, valor, sub, color }) => (
     <div style={{ background: '#1e293b', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 14, padding: '20px 24px', flex: '1 1 160px' }}>

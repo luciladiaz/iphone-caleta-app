@@ -4,53 +4,24 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 
 const WHATSAPP_SOPORTE = '5493364400111';
 
-const BASICO_INCLUYE = [
-  'Stock hasta 20 equipos',
-  'Hasta 10 ventas por mes',
-  'Cobros y cuotas',
+const PLAN_INCLUYE = [
+  'Stock y ventas ilimitadas',
+  'Multi-moneda ARS/USD en tiempo real',
+  'Cobros, cuotas y saldos pendientes',
   'Proveedores y pagos',
-  '1 usuario',
-];
-const BASICO_NO_INCLUYE = [
-  'Catálogo público',
-  'Reportes de ganancia USD y ARS',
-  'Calculadora de precio',
-  'Panel de deudores con semáforo',
-  'Resumen de cobros del día',
-  'Exportar a Excel',
-];
-
-const PRO_INCLUYE = [
-  'Stock hasta 60 equipos',
-  'Hasta 30 ventas por mes',
-  'Todo lo del Básico',
-  'Hasta 3 usuarios con permisos',
-  'Catálogo público compartible',
-  'Reportes de ganancia USD y ARS',
+  'Usuarios ilimitados con permisos',
+  'Catálogo público compartible por WhatsApp',
+  'Reportes de ganancia en USD y ARS',
   'Calculadora de precio con rentabilidad',
-  'Panel de deudores con semáforo',
+  'Panel de deudores con semáforo de atraso',
+  'Botón WhatsApp directo a deudores',
   'Resumen de cobros del día',
   'Exportar ventas y stock a Excel',
-  'Soporte WhatsApp 24hs',
-];
-const PRO_NO_INCLUYE = [
-  'Botón WhatsApp directo a deudores',
-  'Reportes por vendedor',
-  'Dashboard gerencial',
-];
-
-const PROMAX_INCLUYE = [
-  'Stock ilimitado',
-  'Ventas ilimitadas',
-  'Todo lo del Pro',
-  'Usuarios ilimitados',
   'Múltiples puntos de venta',
-  'Botón WhatsApp directo a deudores',
   'Reportes por vendedor',
   'Dashboard gerencial',
   'Historial completo de cada equipo',
-  'Soporte WhatsApp prioritario 2hs',
-  'Onboarding personalizado',
+  'Soporte WhatsApp prioritario',
 ];
 
 export default function Planes() {
@@ -77,7 +48,7 @@ export default function Planes() {
     }
   }, [upgrade]);
 
-  const PRECIO_PLAN = { basico: 7900, pro: 14900, promax: 29900 };
+  const PRECIO_PLAN = { promax: 29900 };
 
   // Redirigir al panel cuando el plan ya está activo
   useEffect(() => {
@@ -231,116 +202,32 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
       )}
 
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
-        <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-1px', marginBottom: 8 }}>Planes simples, sin sorpresas</h1>
-        <p style={{ color: '#86868b', fontSize: 16 }}>Elegí el plan que mejor se adapta a tu negocio</p>
+        <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-1px', marginBottom: 8 }}>Un solo plan. Todo incluido.</h1>
+        <p style={{ color: '#86868b', fontSize: 16 }}>Sin letra chica, sin funciones bloqueadas por precio.</p>
       </div>
 
-      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'flex-start', maxWidth: 1060, margin: '0 auto 40px' }}>
-
-        {/* BÁSICO */}
-        <div style={{
-          order: isMobile ? 2 : 1,
-          background: '#1c1c1e', border: '2px solid #2c2c2e', borderRadius: 16,
-          padding: 28, display: 'flex', flexDirection: 'column', gap: 14,
-          flex: isMobile ? '1 1 100%' : '1 1 260px', maxWidth: isMobile ? '100%' : 300,
-        }}>
-          <div>
-            <div style={{ fontSize: 12, color: '#86868b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Plan Básico</div>
-            <div style={{ fontSize: 13, color: '#86868b', marginBottom: 10 }}>Para empezar</div>
-            <div style={{ fontSize: 36, fontWeight: 800, color: '#fff', letterSpacing: '-1px' }}>
-              $7.900<span style={{ fontSize: 14, fontWeight: 400, color: '#86868b' }}>/mes</span>
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
-            {BASICO_INCLUYE.map(f => (
-              <div key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: '#ebebf5cc', alignItems: 'flex-start' }}>
-                <span style={{ color: '#30d158', flexShrink: 0, marginTop: 1 }}>✓</span> {f}
-              </div>
-            ))}
-            <div style={{ borderTop: '1px solid #2c2c2e', marginTop: 10, paddingTop: 10 }}>
-              {BASICO_NO_INCLUYE.map(f => (
-                <div key={f} style={{ display: 'flex', gap: 8, fontSize: 12, color: '#86868b', alignItems: 'flex-start', marginBottom: 5 }}>
-                  <span style={{ flexShrink: 0, marginTop: 1 }}>🔒</span>
-                  <span style={{ textDecoration: 'line-through' }}>{f}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <button onClick={() => handleContratar('basico')}
-            style={{ background: '#2c2c2e', color: '#fff', border: '1px solid #3a3a3c', borderRadius: 10, padding: '13px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-            Contratar ahora
-          </button>
-        </div>
-
-        {/* PRO */}
+      <div style={{ display: 'flex', justifyContent: 'center', maxWidth: 1060, margin: '0 auto 40px' }}>
         <div ref={proRef} style={{
-          order: isMobile ? 1 : 2,
-          background: 'rgba(37,99,235,0.06)', border: `2px solid ${upgrade === 'pro' ? '#ff9f0a' : '#2563EB'}`, borderRadius: 16,
-          padding: isMobile ? 28 : 32, display: 'flex', flexDirection: 'column', gap: 14,
-          flex: isMobile ? '1 1 100%' : '1 1 300px', maxWidth: isMobile ? '100%' : 360,
-          position: 'relative',
-        }}>
-          <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: '#2563EB', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 18px', borderRadius: 99, letterSpacing: 1, whiteSpace: 'nowrap' }}>
-            🔥 MÁS POPULAR
-          </div>
-          <div>
-            <div style={{ fontSize: 12, color: '#2563EB', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Plan Pro</div>
-            <div style={{ fontSize: 13, color: '#86868b', marginBottom: 10 }}>Para crecer</div>
-            <div style={{ fontSize: 40, fontWeight: 800, color: '#2563EB', letterSpacing: '-1px' }}>
-              $14.900<span style={{ fontSize: 14, fontWeight: 400, color: '#86868b' }}>/mes</span>
-            </div>
-            <div style={{ fontSize: 12, color: '#86868b', marginTop: 4 }}>= $497 ARS por día. Menos que un café.</div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
-            {PRO_INCLUYE.map(f => (
-              <div key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: '#ebebf5cc', alignItems: 'flex-start' }}>
-                <span style={{ color: '#30d158', flexShrink: 0, marginTop: 1 }}>✓</span> {f}
-              </div>
-            ))}
-            <div style={{ borderTop: '1px solid rgba(37,99,235,0.2)', marginTop: 10, paddingTop: 10 }}>
-              {PRO_NO_INCLUYE.map(f => (
-                <div key={f} style={{ display: 'flex', gap: 8, fontSize: 12, color: '#86868b', alignItems: 'flex-start', marginBottom: 5 }}>
-                  <span style={{ flexShrink: 0, marginTop: 1 }}>🔒</span>
-                  <span style={{ textDecoration: 'line-through' }}>{f}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div style={{ background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.25)', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: '#2563EB', textAlign: 'center' }}>
-            🔥 El 80% de nuestros usuarios elige este plan
-          </div>
-          <button onClick={() => handleContratar('pro')}
-            style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
-            Contratar ahora
-          </button>
-        </div>
-
-        {/* PRO MAX */}
-        <div style={{
-          order: 3,
-          background: '#1c1c1e', border: `2px solid ${upgrade === 'promax' ? '#ff9f0a' : '#2c2c2e'}`, borderRadius: 16,
-          padding: 28, display: 'flex', flexDirection: 'column', gap: 14,
-          flex: isMobile ? '1 1 100%' : '1 1 260px', maxWidth: isMobile ? '100%' : 300,
+          background: 'rgba(37,99,235,0.06)', border: `2px solid ${upgrade ? '#ff9f0a' : '#2563EB'}`, borderRadius: 16,
+          padding: isMobile ? 28 : 36, display: 'flex', flexDirection: 'column', gap: 16,
+          flex: '1 1 100%', maxWidth: 420, position: 'relative',
         }}>
           <div>
-            <div style={{ fontSize: 12, color: '#86868b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Plan Pro Max</div>
-            <div style={{ fontSize: 13, color: '#86868b', marginBottom: 10 }}>Para equipos</div>
-            <div style={{ fontSize: 36, fontWeight: 800, color: '#fff', letterSpacing: '-1px' }}>
+            <div style={{ fontSize: 12, color: '#2563EB', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Plan Completo</div>
+            <div style={{ fontSize: 44, fontWeight: 800, color: '#2563EB', letterSpacing: '-1px' }}>
               $29.900<span style={{ fontSize: 14, fontWeight: 400, color: '#86868b' }}>/mes</span>
             </div>
+            <div style={{ fontSize: 12, color: '#86868b', marginTop: 4 }}>= $997 ARS por día.</div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
-            {PROMAX_INCLUYE.map(f => (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {PLAN_INCLUYE.map(f => (
               <div key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: '#ebebf5cc', alignItems: 'flex-start' }}>
                 <span style={{ color: '#30d158', flexShrink: 0, marginTop: 1 }}>✓</span> {f}
               </div>
             ))}
           </div>
-          <div style={{ background: '#2c2c2e', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#86868b', textAlign: 'center', lineHeight: 1.5 }}>
-            💬 ¿Manejás más de 100 equipos por mes? Este plan es para vos
-          </div>
           <button onClick={handleProMax}
-            style={{ background: '#2c2c2e', color: '#fff', border: '1px solid #3a3a3c', borderRadius: 10, padding: '13px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+            style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
             Contratar ahora
           </button>
         </div>

@@ -38,7 +38,7 @@ export default function CatalogoPublico() {
         ]);
         const negData = negSnap.data();
         setNegocio(negData);
-        const plan = negData?.plan === 'agencia' ? 'promax' : (negData?.plan || 'basico');
+        const plan = negData?.plan === 'agencia' ? 'promax' : (negData?.plan || 'trial');
         const planConfig = PLANES[plan];
         setCatalogoHabilitado(planConfig?.features?.catalogoPublico === true);
         setEquipos(stockSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(e => e.estado === 'disponible'));

@@ -42,7 +42,7 @@ const EMAILS_FALLBACK = {
     html: `
       <p>Hola ${nombre},</p>
       <p>Mañana se vence tu período de prueba de 7 días. Tus datos quedan guardados, pero para seguir usando ReventApp sin cortes, elegí tu plan ahora:</p>
-      <p><strong>Plan Básico — $7.900/mes.</strong> Cancelás cuando quieras, sin letra chica.</p>
+      <p><strong>Plan Completo — $29.900/mes, con todas las funciones incluidas.</strong> Cancelás cuando quieras, sin letra chica.</p>
       <p><a href="${APP_URL}/planes">Elegir mi plan →</a></p>
       <p>Si tuviste algún problema con el pago o simplemente tenés dudas de qué plan te conviene, escribinos directo y te ayudamos a resolverlo enseguida:</p>
       ${botonWhatsapp(`Hola! Se me vence la prueba en ReventApp (${nombre}) y tengo una duda sobre los planes/pago`)}`,

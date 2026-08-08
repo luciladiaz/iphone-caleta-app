@@ -38,6 +38,9 @@ export default function Configuracion() {
   const [proveedores, setProveedores] = useState([]);
   const [origenes, setOrigenes] = useState([]);
   const [modelos, setModelos] = useState([]);
+  const [listaCanje, setListaCanje] = useState([]);
+  const [nuevoCanje, setNuevoCanje] = useState({ modelo: '', gb: '', valorUsd: '' });
+  const [guardandoCanje, setGuardandoCanje] = useState(false);
   const [tipoCambio, setTipoCambio] = useState('');
   const [tipoDolar, setTipoDolar] = useState('blue');
   const [savingTC, setSavingTC] = useState(false);
@@ -73,6 +76,7 @@ export default function Configuracion() {
     setOrigenes((cfg.origenes || []).map((o, i) => ({ id: i, nombre: o })));
     const modelosDefault = ['iPhone 12','iPhone 12 Pro','iPhone 12 Pro Max','iPhone 13','iPhone 13 Pro','iPhone 13 Pro Max','iPhone 14','iPhone 14 Pro','iPhone 14 Pro Max','iPhone 15','iPhone 15 Pro','iPhone 15 Pro Max','iPhone 16','iPhone 16 Plus','iPhone 16 Pro','iPhone 16 Pro Max','iPhone 17','iPhone 17 Air','iPhone 17 Pro','iPhone 17 Pro Max'];
     setModelos((cfg.modelos || modelosDefault).map((m, i) => ({ id: i, nombre: m })));
+    setListaCanje((cfg.listaCanje || []).map((c, i) => ({ id: i, ...c })));
   };
 
   useEffect(() => { cargar(); }, [negocioId]);
@@ -164,6 +168,25 @@ export default function Configuracion() {
   const eliminarDeConfig = (campo, items, setItems) => async (id) => {
     const nuevos = items.filter(o => o.id !== id).map(o => o.nombre);
     await setDoc(doc(db, ...base, 'config', 'general'), { [campo]: nuevos }, { merge: true });
+    cargar();
+  };
+
+  const agregarCanje = async () => {
+    if (!nuevoCanje.modelo || !nuevoCanje.valorUsd) return;
+    setGuardandoCanje(true);
+    const snap = await getDoc(doc(db, ...base, 'config', 'general'));
+    const actuales = snap.data()?.listaCanje || [];
+    await setDoc(doc(db, ...base, 'config', 'general'), {
+      listaCanje: [...actuales, { modelo: nuevoCanje.modelo, gb: nuevoCanje.gb, valorUsd: Number(nuevoCanje.valorUsd) }],
+    }, { merge: true });
+    setNuevoCanje({ modelo: '', gb: '', valorUsd: '' });
+    setGuardandoCanje(false);
+    cargar();
+  };
+
+  const eliminarCanje = async (id) => {
+    const nuevos = listaCanje.filter(c => c.id !== id).map(({ modelo, gb, valorUsd }) => ({ modelo, gb, valorUsd }));
+    await setDoc(doc(db, ...base, 'config', 'general'), { listaCanje: nuevos }, { merge: true });
     cargar();
   };
 
@@ -266,6 +289,32 @@ export default function Configuracion() {
       <SeccionLista titulo="Proveedores" icono="🏭" items={proveedores} onAgregar={agregar('proveedores')} onEliminar={eliminar('proveedores')} campo="nombre" placeholder="Nombre del proveedor..." />
       <SeccionLista titulo="Orígenes de venta" icono="📣" items={origenes} onAgregar={agregarEnConfig('origenes')} onEliminar={eliminarDeConfig('origenes', origenes, setOrigenes)} campo="nombre" placeholder="Ej: Instagram, WhatsApp..." />
       <SeccionLista titulo="Modelos de iPhone" icono="📱" items={modelos} onAgregar={agregarEnConfig('modelos')} onEliminar={eliminarDeConfig('modelos', modelos, setModelos)} campo="nombre" placeholder="Ej: iPhone 18 Pro..." />
+
+      {/* Plan Canje */}
+      <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 24, marginBottom: 16 }}>
+        <h3 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700 }}>💱 Plan Canje</h3>
+        <p style={{ color: '#86868b', fontSize: 12, marginBottom: 16 }}>
+          Cuánto tomás cada modelo como parte de pago. Tus clientes lo van a ver en el catálogo público para calcular cuánto les falta pagar.
+        </p>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+          <select value={nuevoCanje.modelo} onChange={e => setNuevoCanje({ ...nuevoCanje, modelo: e.target.value })} style={{ ...inputStyle, flex: '2 1 160px' }}>
+            <option value="">Modelo...</option>
+            {modelos.map(m => <option key={m.id} value={m.nombre}>{m.nombre}</option>)}
+          </select>
+          <input value={nuevoCanje.gb} onChange={e => setNuevoCanje({ ...nuevoCanje, gb: e.target.value })} placeholder="GB" style={{ ...inputStyle, flex: '1 1 70px' }} />
+          <input type="number" value={nuevoCanje.valorUsd} onChange={e => setNuevoCanje({ ...nuevoCanje, valorUsd: e.target.value })} placeholder="Toma USD" style={{ ...inputStyle, flex: '1 1 100px' }} />
+          <button onClick={agregarCanje} disabled={guardandoCanje} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 700, cursor: 'pointer' }}>Agregar</button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {listaCanje.map(c => (
+            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#2c2c2e', borderRadius: 8, padding: '10px 14px' }}>
+              <span style={{ fontSize: 14 }}>{c.modelo} {c.gb ? `${c.gb}GB` : ''} — toma USD {c.valorUsd}</span>
+              <button onClick={() => eliminarCanje(c.id)} style={{ background: 'none', border: 'none', color: '#ff3b30', fontSize: 18, cursor: 'pointer' }}>✕</button>
+            </div>
+          ))}
+          {listaCanje.length === 0 && <p style={{ color: '#86868b', fontSize: 13 }}>Todavía no cargaste ningún valor de toma</p>}
+        </div>
+      </div>
     </div>
   );
 }

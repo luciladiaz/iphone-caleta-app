@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { PLANES } from '../config/planes';
+import PlanCanjeModal from '../components/PlanCanjeModal';
 
 // Normaliza un teléfono argentino cargado en cualquier formato común
 // (con 0 nacional, 15 de celular, con o sin código de país) al formato
@@ -26,6 +27,8 @@ export default function CatalogoPublico() {
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('');
   const [catalogoHabilitado, setCatalogoHabilitado] = useState(true);
+  const [listaCanje, setListaCanje] = useState([]);
+  const [equipoCanje, setEquipoCanje] = useState(null);
 
   useEffect(() => {
     const cargar = async () => {
@@ -43,6 +46,7 @@ export default function CatalogoPublico() {
         setCatalogoHabilitado(planConfig?.features?.catalogoPublico === true);
         setEquipos(stockSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(e => e.estado === 'disponible'));
         setTipoCambio(cfgSnap.data()?.tipoCambio || 0);
+        setListaCanje(cfgSnap.data()?.listaCanje || []);
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     };
@@ -131,6 +135,14 @@ export default function CatalogoPublico() {
                   Este negocio no cargó un WhatsApp de contacto
                 </div>
               )}
+              {listaCanje.length > 0 && (
+                <button
+                  onClick={() => setEquipoCanje(eq)}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'none', border: '1px solid #3a3a3c', color: '#ebebf5cc', borderRadius: 10, padding: '9px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  💱 Plan Canje
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -146,6 +158,17 @@ export default function CatalogoPublico() {
           Catálogo generado con <span style={{ color: '#2563EB' }}>ReventApp</span>
         </div>
       </div>
+
+      {equipoCanje && (
+        <PlanCanjeModal
+          equipo={equipoCanje}
+          listaCanje={listaCanje}
+          tipoCambio={tipoCambio}
+          numeroWhatsapp={numeroWhatsapp}
+          telefono={negocio?.telefono}
+          onClose={() => setEquipoCanje(null)}
+        />
+      )}
     </div>
   );
 }

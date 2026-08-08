@@ -3,6 +3,7 @@ import { collection, getDocs, getDoc, addDoc, serverTimestamp, query, orderBy, d
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
+import ComprobanteVenta from '../components/ComprobanteVenta';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -12,7 +13,8 @@ const ORIGENES = ['Instagram ReventApp', 'WhatsApp', 'Local físico', 'Referido'
 const FORMAS_PAGO = ['Efectivo ARS', 'Efectivo USD', 'Transferencia ARS', 'Transferencia USD', 'Cuotas personales', 'iPhone como parte de pago'];
 
 export default function Ventas() {
-  const { perfil, negocioId, plan, limitesPlan } = useAuth();
+  const { perfil, negocioId, negocio, plan, limitesPlan } = useAuth();
+  const [comprobanteDe, setComprobanteDe] = useState(null);
   const esAdmin = perfil?.rol === 'admin';
   const [ventas, setVentas] = useState([]);
   const [stock, setStock] = useState([]);
@@ -65,6 +67,21 @@ export default function Ventas() {
     if (!nuevaParte.modelo) return;
     setForm(f => ({ ...f, partesDePago: [...f.partesDePago, { ...nuevaParte }] }));
     setNuevaParte({ modelo: '', gb: '', color: '', bateria: '', imei: '', costoUsd: '', pvUsd: '' });
+  };
+
+  const abrirComprobante = async (v) => {
+    // Ventas registradas antes de sumar imei/bateria al guardado: buscamos el dato
+    // en el stock si el equipo todavía existe ahí, en vez de dejarlo en blanco.
+    if ((!v.imei || !v.bateria) && v.equipoId) {
+      try {
+        const eqSnap = await getDoc(doc(db, 'negocios', negocioId, 'stock', v.equipoId));
+        if (eqSnap.exists()) {
+          const eq = eqSnap.data();
+          v = { ...v, imei: v.imei || eq.imei || '', bateria: v.bateria || eq.bateria || '' };
+        }
+      } catch {}
+    }
+    setComprobanteDe(v);
   };
 
   const eliminarVenta = async (v) => {
@@ -128,6 +145,8 @@ export default function Ventas() {
           modelo: equipo?.modelo || '',
           gb: equipo?.gb || '',
           color: equipo?.color || '',
+          imei: equipo?.imei || '',
+          bateria: equipo?.bateria || '',
           proveedor: equipo?.proveedor || '',
           costoUsd: equipo?.costoUsd || '',
           pvUsd: equipo?.pvUsd || '',
@@ -204,6 +223,9 @@ export default function Ventas() {
               <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 99, background: `${estadoColor[v.estado]}22`, color: estadoColor[v.estado] }}>
                 {v.estado}
               </span>
+              <button onClick={() => abrirComprobante(v)} style={{ background: v.comprobante ? 'rgba(48,209,88,0.1)' : '#2c2c2e', border: `1px solid ${v.comprobante ? 'rgba(48,209,88,0.3)' : '#3a3a3c'}`, color: v.comprobante ? '#30d158' : '#ebebf5cc', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                📄 {v.comprobante ? 'Ver comprobante' : 'Comprobante'}
+              </button>
               <button onClick={() => abrirEditar(v)} style={{ background: '#2c2c2e', border: '1px solid #3a3a3c', color: '#2563EB', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                 ✏️ Editar
               </button>
@@ -482,6 +504,19 @@ export default function Ventas() {
           tipo="ventas" planActual={plan}
           cantidadActual={ventasMesCount}
           onCerrar={() => setModalLimite(false)}
+        />
+      )}
+      {comprobanteDe && (
+        <ComprobanteVenta
+          venta={comprobanteDe}
+          negocioId={negocioId}
+          negocioNombre={negocio?.nombre}
+          vendedorNombre={perfil?.nombre}
+          onClose={() => setComprobanteDe(null)}
+          onGuardado={(comprobante) => {
+            setVentas(vs => vs.map(v => v.id === comprobanteDe.id ? { ...v, comprobante } : v));
+            setComprobanteDe(null);
+          }}
         />
       )}
     </div>

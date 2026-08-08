@@ -858,7 +858,7 @@ La única excusa que te quedaba para no tener todo organizado era el precio.
 La sacamos. ✅
 
 🚀 Empezá hoy → reventapp.com.ar
-💰 Desde $7.900/mes después. Cancelás cuando quieras.
+💰 $29.900/mes después, con todo incluido. Cancelás cuando quieras.
 
 .
 .
@@ -995,7 +995,7 @@ Hay una mejor forma. Y es más fácil de lo que pensás. 💡
 
 📦 Stock · 💰 Ventas · 💳 Cobros · 📊 Ganancias
 
-🚀 Desde $7.900/mes → reventapp.com.ar
+🚀 $29.900/mes, todo incluido → reventapp.com.ar
 
 #reventapp #revendedoriphone #iphoneargentina #reventacelulares #stockiphone #negociodecelulares`,
 
@@ -1125,7 +1125,7 @@ const TEMPLATES = {
         tag: 'PROBALO GRATIS',
         titulo: '7 días',
         subtitulo: 'sin tarjeta de crédito',
-        precio: 'Después, desde $7.900/mes. Cancelá cuando quieras.',
+        precio: 'Después, $29.900/mes con todo incluido. Cancelá cuando quieras.',
         url: 'reventapp.com.ar',
       },
       campos: [
@@ -1273,7 +1273,7 @@ const TEMPLATES = {
         tag: 'EMPEZÁ HOY',
         titulo: '7 días\ngratis.',
         subtitulo: 'Sin tarjeta. Sin compromisos.\nCancelá cuando quieras.',
-        precio: 'Después desde $7.900/mes',
+        precio: 'Después, $29.900/mes con todo incluido',
         url: 'reventapp.com.ar',
         handle: '@reventapp.iphone',
       },
@@ -1295,7 +1295,7 @@ const TEMPLATES = {
         problema: 'Llevás el stock en una libreta y nunca sabés exactamente qué tenés.',
         solucion: 'ReventApp: stock, ventas y cobros en tiempo real desde el celular.',
         cta: '7 días gratis',
-        precio: 'Desde $7.900/mes · reventapp.com.ar',
+        precio: '$29.900/mes, todo incluido · reventapp.com.ar',
       },
       campos: [
         { key: 'problema', label: 'El problema', multiline: true, rows: 3 },
@@ -1312,7 +1312,7 @@ const TEMPLATES = {
         feature1: '✓  Stock de iPhones en tiempo real',
         feature2: '✓  Control de cobros y cuotas',
         feature3: '✓  Catálogo digital por WhatsApp',
-        precio: 'Desde $7.900/mes',
+        precio: '$29.900/mes, todo incluido',
         cta: 'Empezar gratis',
       },
       campos: [

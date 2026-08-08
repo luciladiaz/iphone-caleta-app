@@ -92,7 +92,7 @@ const FEATURES = [
   },
   {
     titulo: 'Cobros',
-    desc: 'Quién te debe, cuánto y hace cuántos días. Semáforo de urgencia.',
+    desc: 'Cuotas y saldos pendientes: quién te debe, cuánto y hace cuántos días.',
     gradient: 'linear-gradient(135deg, #d97706, #fbbf24)',
     shadow: 'rgba(217,119,6,0.45)',
     icon: (
@@ -120,6 +120,28 @@ const FEATURES = [
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
         <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+      </svg>
+    ),
+  },
+  {
+    titulo: 'Plan Canje',
+    desc: 'Cargá cuánto tomás cada modelo y tu cliente calcula solo la diferencia.',
+    gradient: 'linear-gradient(135deg, #9333ea, #c084fc)',
+    shadow: 'rgba(147,51,234,0.45)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+        <path d="M7 4v13m0 0l-3-3m3 3l3-3M17 20V7m0 0l3 3m-3-3l-3 3"/>
+      </svg>
+    ),
+  },
+  {
+    titulo: 'Comprobante de venta',
+    desc: 'Checklist de estado + firma del cliente al retirar. Tu respaldo ante reclamos.',
+    gradient: 'linear-gradient(135deg, #16a34a, #4ade80)',
+    shadow: 'rgba(22,163,74,0.45)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+        <rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12.5l2.5 2.5L16 9"/>
       </svg>
     ),
   },
@@ -322,7 +344,7 @@ export default function Landing() {
               </div>
               <div style={{ fontSize: 11, color: C.textSecondary, marginBottom: 18 }}>= $997 ARS por día.</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 24 }}>
-                {['Stock y ventas ilimitadas', 'Multi-moneda ARS/USD en tiempo real', 'Usuarios ilimitados con permisos', 'Catálogo público compartible por WhatsApp', 'Reportes de ganancia USD y ARS', 'Cobros, cuotas y saldos pendientes', 'Panel de deudores con semáforo', 'Botón WhatsApp directo a deudores', 'Múltiples puntos de venta', 'Reportes por vendedor y dashboard gerencial', 'Soporte WhatsApp prioritario'].map(f => (
+                {['Stock y ventas ilimitadas', 'Multi-moneda ARS/USD en tiempo real', 'Usuarios ilimitados con permisos', 'Catálogo público compartible por WhatsApp', 'Plan Canje: calculadora de diferencia para tu cliente', 'Comprobante de venta con checklist y firma digital', 'Reportes de ganancia USD y ARS', 'Cobros, cuotas y saldos pendientes', 'Panel de deudores con semáforo', 'Botón WhatsApp directo a deudores', 'Múltiples puntos de venta', 'Reportes por vendedor y dashboard gerencial', 'Soporte WhatsApp prioritario'].map(f => (
                   <div key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: '#ebebf5cc' }}>
                     <span style={{ color: C.accentBlue, flexShrink: 0 }}>✓</span>{f}
                   </div>
@@ -405,7 +427,7 @@ export default function Landing() {
             <strong style={{ color: '#fff' }}>ReventApp</strong> es un <strong style={{ color: '#fff' }}>software de gestión para revendedores de celulares y iPhones</strong> diseñado especialmente para el mercado argentino. Si revendés iPhones — ya sea desde un local, por Instagram o por WhatsApp — necesitás un sistema que entienda cómo funciona tu negocio: ventas en pesos y dólares, cobros en cuotas, parte de pago, y stock que cambia todos los días.
           </p>
           <p style={{ color: C.textSecondary, fontSize: 14, lineHeight: 1.9, marginBottom: 16 }}>
-            Con ReventApp podés <strong style={{ color: '#fff' }}>controlar el stock de iPhones</strong> con todos los detalles (modelo, GB, color, batería, IMEI), <strong style={{ color: '#fff' }}>registrar ventas en ARS y USD</strong> con el tipo de cambio del día, gestionar <strong style={{ color: '#fff' }}>cobros en cuotas y parte de pago</strong>, y compartir un <strong style={{ color: '#fff' }}>catálogo público por WhatsApp</strong> con tu stock disponible en tiempo real.
+            Con ReventApp podés <strong style={{ color: '#fff' }}>controlar el stock de iPhones</strong> con todos los detalles (modelo, GB, color, batería, IMEI), <strong style={{ color: '#fff' }}>registrar ventas en ARS y USD</strong> con el tipo de cambio del día, gestionar <strong style={{ color: '#fff' }}>cobros en cuotas y parte de pago</strong>, y compartir un <strong style={{ color: '#fff' }}>catálogo público por WhatsApp</strong> con tu stock disponible en tiempo real. Tu <strong style={{ color: '#fff' }}>catálogo incluye Plan Canje</strong>, para que tus clientes calculen solos cuánto les falta pagar si entregan su iPhone actual, y cada venta puede cerrarse con un <strong style={{ color: '#fff' }}>comprobante con checklist de estado y firma digital del cliente</strong>, tu respaldo ante cualquier reclamo de garantía.
           </p>
           <p style={{ color: C.textSecondary, fontSize: 14, lineHeight: 1.9 }}>
             Usada por <strong style={{ color: '#fff' }}>revendedores de iPhone en todo el país</strong> — CABA, Córdoba, Rosario, Mendoza, Tucumán, Santa Fe, Mar del Plata, Salta, Neuquén y más — ReventApp reemplaza las planillas de Excel y los cuadernos de anotaciones por un <strong style={{ color: '#fff' }}>sistema profesional de gestión de reventas</strong>, accesible desde cualquier celular, sin necesidad de instalar nada.

@@ -78,24 +78,24 @@ export default function Registro() {
   };
 
   if (verificando) return (
-    <div style={{ minHeight: '100vh', background: '#0d0d0d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Inter', sans-serif", padding: 16 }}>
-      <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 16, padding: 40, width: '100%', maxWidth: 420, textAlign: 'center' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--rv-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Manrope', sans-serif", padding: 16 }}>
+      <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 40, width: '100%', maxWidth: 420, textAlign: 'center' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>📧</div>
-        <h2 style={{ color: '#fff', fontSize: 22, fontWeight: 800, margin: '0 0 12px' }}>Verificá tu email</h2>
-        <p style={{ color: '#86868b', fontSize: 15, lineHeight: 1.6, marginBottom: 8 }}>
+        <h2 style={{ color: 'var(--rv-text)', fontSize: 22, fontWeight: 800, margin: '0 0 12px' }}>Verificá tu email</h2>
+        <p style={{ color: 'var(--rv-text-dim)', fontSize: 15, lineHeight: 1.6, marginBottom: 8 }}>
           Te enviamos un link de confirmación a:
         </p>
-        <p style={{ color: '#2563EB', fontWeight: 700, fontSize: 15, marginBottom: 24 }}>{form.email}</p>
-        <p style={{ color: '#86868b', fontSize: 14, lineHeight: 1.6, marginBottom: 32 }}>
+        <p style={{ color: 'var(--rv-accent)', fontWeight: 700, fontSize: 15, marginBottom: 24 }}>{form.email}</p>
+        <p style={{ color: 'var(--rv-text-dim)', fontSize: 14, lineHeight: 1.6, marginBottom: 32 }}>
           Hacé click en el link del email para activar tu cuenta. Después podés iniciar sesión y empezar tu prueba gratis.
         </p>
         <button
           onClick={() => navigate('/login')}
-          style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, padding: '13px 28px', fontSize: 15, fontWeight: 700, cursor: 'pointer', width: '100%' }}
+          style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '13px 28px', fontSize: 15, fontWeight: 700, cursor: 'pointer', width: '100%' }}
         >
           Ir al inicio de sesión →
         </button>
-        <p style={{ color: '#86868b', fontSize: 13, marginTop: 16 }}>
+        <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginTop: 16 }}>
           ¿No te llegó? Revisá la carpeta de spam.
         </p>
       </div>
@@ -103,51 +103,51 @@ export default function Registro() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0d0d0d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Inter', sans-serif", padding: 16 }}>
-      <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 16, padding: 40, width: '100%', maxWidth: 420 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--rv-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Manrope', sans-serif", padding: 16 }}>
+      <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 40, width: '100%', maxWidth: 420 }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <svg viewBox="0 0 24 24" style={{ width: 44, height: 44, fill: '#fff', margin: '0 auto 12px' }}><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-          <h1 style={{ color: '#fff', fontSize: 22, fontWeight: 800, margin: 0 }}>Crear cuenta</h1>
-          <p style={{ color: '#86868b', fontSize: 14, marginTop: 4 }}>7 días gratis, sin tarjeta de crédito</p>
+          <svg viewBox="0 0 24 24" style={{ width: 44, height: 44, fill: 'var(--rv-accent)', margin: '0 auto 12px' }}><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+          <h1 style={{ color: 'var(--rv-text)', fontSize: 22, fontWeight: 800, margin: 0 }}>Crear cuenta</h1>
+          <p style={{ color: 'var(--rv-text-dim)', fontSize: 14, marginTop: 4 }}>7 días gratis, sin tarjeta de crédito</p>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
-            <label style={{ color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>Nombre del negocio</label>
+            <label style={{ color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>Nombre del negocio</label>
             <input value={form.negocio} onChange={e => setForm({...form, negocio: e.target.value})} required placeholder="Ej: ReventApp Córdoba"
-              style={{ width: '100%', padding: '12px 14px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 10, color: '#fff', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '12px 14px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 10, color: 'var(--rv-text)', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
           </div>
           <div>
-            <label style={{ color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>Tu nombre</label>
+            <label style={{ color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>Tu nombre</label>
             <input value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} required placeholder="Tu nombre completo"
-              style={{ width: '100%', padding: '12px 14px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 10, color: '#fff', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '12px 14px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 10, color: 'var(--rv-text)', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
           </div>
           <div>
-            <label style={{ color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>Email</label>
+            <label style={{ color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>Email</label>
             <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} required placeholder="tu@email.com"
-              style={{ width: '100%', padding: '12px 14px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 10, color: '#fff', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '12px 14px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 10, color: 'var(--rv-text)', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
           </div>
           <div>
-            <label style={{ color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>WhatsApp</label>
+            <label style={{ color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>WhatsApp</label>
             <input type="tel" value={form.telefono} onChange={e => setForm({...form, telefono: e.target.value})} required placeholder="Ej: 11 2345-6789"
-              style={{ width: '100%', padding: '12px 14px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 10, color: '#fff', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '12px 14px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 10, color: 'var(--rv-text)', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
           </div>
           <div>
-            <label style={{ color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>Contraseña</label>
+            <label style={{ color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>Contraseña</label>
             <input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} required placeholder="Mínimo 6 caracteres"
-              style={{ width: '100%', padding: '12px 14px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 10, color: '#fff', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '12px 14px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 10, color: 'var(--rv-text)', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
           </div>
 
-          {error && <div style={{ background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', borderRadius: 8, padding: '10px 14px', color: '#ff3b30', fontSize: 13 }}>{error}</div>}
+          {error && <div style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, padding: '10px 14px', color: 'var(--rv-text)', fontSize: 13, fontWeight: 600 }}>{error}</div>}
 
-          <button type="submit" disabled={loading} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, padding: 14, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, marginTop: 8 }}>
+          <button type="submit" disabled={loading} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: 14, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, marginTop: 8 }}>
             {loading ? 'Creando cuenta...' : 'Empezar prueba gratis → 7 días sin tarjeta'}
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: '#86868b' }}>
+        <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: 'var(--rv-text-dim)' }}>
           ¿Ya tenés cuenta?{' '}
-          <Link to="/login" style={{ color: '#2563EB', fontWeight: 600 }}>Iniciar sesión →</Link>
+          <Link to="/login" style={{ color: 'var(--rv-accent)', fontWeight: 600 }}>Iniciar sesión →</Link>
         </p>
       </div>
     </div>

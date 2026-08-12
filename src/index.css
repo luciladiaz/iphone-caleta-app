@@ -1,10 +1,26 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* Tema claro de la app — azul solo para marca/navegación, rojo solo para deudores/atrasos */
+  --rv-bg: #f7f9fc;
+  --rv-surface: #ffffff;
+  --rv-surface-alt: #f3f5f8;
+  --rv-border: #e7ebf1;
+  --rv-border-soft: rgba(22, 32, 47, 0.08);
+  --rv-text: #16202f;
+  --rv-text-mid: #45505f;
+  --rv-text-dim: #6b7686;
+  --rv-accent: #2f6fed;
+  --rv-accent-soft: rgba(47, 111, 237, 0.08);
+  --rv-danger: #d43d3d;
+  --rv-danger-soft: rgba(212, 61, 61, 0.1);
+}
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 16px; }
-body { font-family: 'Inter', -apple-system, sans-serif; background: #0d0d0d; color: #fff; -webkit-font-smoothing: antialiased; min-width: 320px; }
+body { font-family: 'Manrope', -apple-system, sans-serif; background: var(--rv-bg); color: var(--rv-text); -webkit-font-smoothing: antialiased; min-width: 320px; }
 input, select, textarea, button { font-family: inherit; }
 a { text-decoration: none; color: inherit; }
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #1c1c1e; }
-::-webkit-scrollbar-thumb { background: #3a3a3c; border-radius: 3px; }
+::-webkit-scrollbar-track { background: var(--rv-surface-alt); }
+::-webkit-scrollbar-thumb { background: #c7cedb; border-radius: 3px; }

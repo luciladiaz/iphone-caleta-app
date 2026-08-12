@@ -9,15 +9,15 @@ export default function BannerTrial() {
   let bg, border, color, icono, texto;
 
   if (dias <= 1) {
-    bg = 'rgba(255,59,48,0.1)'; border = '#ff3b30'; color = '#ff3b30';
+    bg = 'var(--rv-danger-soft)'; border = 'var(--rv-danger)'; color = 'var(--rv-danger)';
     icono = '🚨';
     texto = `Tu prueba vence hoy — Elegí un plan para no perder tus datos`;
   } else if (dias <= 3) {
-    bg = 'rgba(255,159,10,0.1)'; border = '#ff9f0a'; color = '#ff9f0a';
-    icono = '⚠️';
+    bg = 'var(--rv-accent-soft)'; border = 'var(--rv-accent)'; color = 'var(--rv-accent)';
+    icono = '⏰';
     texto = `Tu prueba vence en ${dias} días — No pierdas el acceso`;
   } else {
-    bg = 'rgba(37,99,235,0.1)'; border = '#2563EB'; color = '#2563EB';
+    bg = 'var(--rv-accent-soft)'; border = 'var(--rv-accent)'; color = 'var(--rv-accent)';
     icono = '🧪';
     texto = `Estás en tu período de prueba — ${dias} días restantes`;
   }

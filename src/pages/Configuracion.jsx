@@ -3,27 +3,27 @@ import { collection, getDocs, addDoc, deleteDoc, doc, setDoc, getDoc, updateDoc,
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 
-const inputStyle = { width: '100%', padding: '10px 12px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
-const labelStyle = { color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
+const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
+const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 
 function SeccionLista({ titulo, icono, items, onAgregar, onEliminar, campo, placeholder }) {
   const [nuevo, setNuevo] = useState('');
   return (
-    <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 24, marginBottom: 16 }}>
+    <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 24, marginBottom: 16 }}>
       <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700 }}>{icono} {titulo}</h3>
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         <input value={nuevo} onChange={e => setNuevo(e.target.value)} placeholder={placeholder} style={{ ...inputStyle, flex: 1 }}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (nuevo.trim()) { onAgregar(nuevo.trim()); setNuevo(''); } } }} />
-        <button onClick={() => { if (nuevo.trim()) { onAgregar(nuevo.trim()); setNuevo(''); } }} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 700, cursor: 'pointer' }}>Agregar</button>
+        <button onClick={() => { if (nuevo.trim()) { onAgregar(nuevo.trim()); setNuevo(''); } }} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 700, cursor: 'pointer' }}>Agregar</button>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {items.map(item => (
-          <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#2c2c2e', borderRadius: 8, padding: '10px 14px' }}>
+          <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px' }}>
             <span style={{ fontSize: 14 }}>{item[campo] || item.nombre}</span>
-            <button onClick={() => onEliminar(item.id)} style={{ background: 'none', border: 'none', color: '#ff3b30', fontSize: 18, cursor: 'pointer' }}>✕</button>
+            <button onClick={() => onEliminar(item.id)} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', fontSize: 18, cursor: 'pointer' }}>✕</button>
           </div>
         ))}
-        {items.length === 0 && <p style={{ color: '#86868b', fontSize: 13 }}>No hay {titulo.toLowerCase()} cargados</p>}
+        {items.length === 0 && <p style={{ color: 'var(--rv-text-dim)', fontSize: 13 }}>No hay {titulo.toLowerCase()} cargados</p>}
       </div>
     </div>
   );
@@ -195,7 +195,7 @@ export default function Configuracion() {
       <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 24 }}>⚙️ Configuración</h1>
 
       {/* Sección Mi Negocio */}
-      <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 24, marginBottom: 16 }}>
+      <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 24, marginBottom: 16 }}>
         <h3 style={{ margin: '0 0 20px', fontSize: 15, fontWeight: 700 }}>🏪 Mi Negocio</h3>
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
 
@@ -219,7 +219,7 @@ export default function Configuracion() {
             <button
               onClick={guardarNegocio}
               disabled={savingNegocio || !nombreNegocio.trim()}
-              style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', opacity: savingNegocio ? 0.7 : 1 }}
+              style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', opacity: savingNegocio ? 0.7 : 1 }}
             >
               {savingNegocio ? 'Guardando...' : 'Guardar cambios'}
             </button>
@@ -227,7 +227,7 @@ export default function Configuracion() {
         </div>
       </div>
 
-      <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 24, marginBottom: 16 }}>
+      <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 24, marginBottom: 16 }}>
         <h3 style={{ margin: '0 0 18px', fontSize: 15, fontWeight: 700 }}>💵 Tipo de cambio (ARS por USD)</h3>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end' }}>
 
@@ -252,7 +252,7 @@ export default function Configuracion() {
               onChange={e => setTipoCambio(e.target.value)}
               placeholder="1430"
               readOnly={tipoDolar !== 'manual'}
-              style={{ ...inputStyle, color: tipoDolar !== 'manual' ? '#7DD3FC' : '#fff', cursor: tipoDolar !== 'manual' ? 'default' : 'text' }}
+              style={{ ...inputStyle, color: tipoDolar !== 'manual' ? 'var(--rv-accent)' : 'var(--rv-text)', cursor: tipoDolar !== 'manual' ? 'default' : 'text' }}
             />
           </div>
 
@@ -262,13 +262,13 @@ export default function Configuracion() {
               <button
                 onClick={() => fetchDolar(tipoDolar)}
                 disabled={fetchingDolar}
-                style={{ background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 16px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', opacity: fetchingDolar ? 0.7 : 1 }}
+                style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 16px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', opacity: fetchingDolar ? 0.7 : 1 }}
               >
                 {fetchingDolar ? 'Actualizando...' : '🔄 Actualizar'}
               </button>
             )}
             {tipoDolar === 'manual' && (
-              <button onClick={guardarTC} disabled={savingTC} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 16px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <button onClick={guardarTC} disabled={savingTC} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 16px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 {savingTC ? 'Guardando...' : 'Guardar'}
               </button>
             )}
@@ -277,9 +277,9 @@ export default function Configuracion() {
 
         {/* Última actualización */}
         {ultimaActualizacion && tipoDolar !== 'manual' && (
-          <p style={{ color: '#86868b', fontSize: 12, marginTop: 10, marginBottom: 0 }}>
+          <p style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 10, marginBottom: 0 }}>
             Última actualización: {new Date(ultimaActualizacion).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
-            {tipoCambio && <span style={{ color: '#7DD3FC', fontWeight: 700, marginLeft: 8 }}>${Number(tipoCambio).toLocaleString('es-AR')}</span>}
+            {tipoCambio && <span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginLeft: 8 }}>${Number(tipoCambio).toLocaleString('es-AR')}</span>}
           </p>
         )}
       </div>
@@ -291,9 +291,9 @@ export default function Configuracion() {
       <SeccionLista titulo="Modelos de iPhone" icono="📱" items={modelos} onAgregar={agregarEnConfig('modelos')} onEliminar={eliminarDeConfig('modelos', modelos, setModelos)} campo="nombre" placeholder="Ej: iPhone 18 Pro..." />
 
       {/* Plan Canje */}
-      <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 24, marginBottom: 16 }}>
+      <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 24, marginBottom: 16 }}>
         <h3 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700 }}>💱 Plan Canje</h3>
-        <p style={{ color: '#86868b', fontSize: 12, marginBottom: 16 }}>
+        <p style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginBottom: 16 }}>
           Cuánto tomás cada modelo como parte de pago. Tus clientes lo van a ver en el catálogo público para calcular cuánto les falta pagar.
         </p>
         <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
@@ -303,16 +303,16 @@ export default function Configuracion() {
           </select>
           <input value={nuevoCanje.gb} onChange={e => setNuevoCanje({ ...nuevoCanje, gb: e.target.value })} placeholder="GB" style={{ ...inputStyle, flex: '1 1 70px' }} />
           <input type="number" value={nuevoCanje.valorUsd} onChange={e => setNuevoCanje({ ...nuevoCanje, valorUsd: e.target.value })} placeholder="Toma USD" style={{ ...inputStyle, flex: '1 1 100px' }} />
-          <button onClick={agregarCanje} disabled={guardandoCanje} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 700, cursor: 'pointer' }}>Agregar</button>
+          <button onClick={agregarCanje} disabled={guardandoCanje} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 700, cursor: 'pointer' }}>Agregar</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {listaCanje.map(c => (
-            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#2c2c2e', borderRadius: 8, padding: '10px 14px' }}>
+            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px' }}>
               <span style={{ fontSize: 14 }}>{c.modelo} {c.gb ? `${c.gb}GB` : ''} — toma USD {c.valorUsd}</span>
-              <button onClick={() => eliminarCanje(c.id)} style={{ background: 'none', border: 'none', color: '#ff3b30', fontSize: 18, cursor: 'pointer' }}>✕</button>
+              <button onClick={() => eliminarCanje(c.id)} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', fontSize: 18, cursor: 'pointer' }}>✕</button>
             </div>
           ))}
-          {listaCanje.length === 0 && <p style={{ color: '#86868b', fontSize: 13 }}>Todavía no cargaste ningún valor de toma</p>}
+          {listaCanje.length === 0 && <p style={{ color: 'var(--rv-text-dim)', fontSize: 13 }}>Todavía no cargaste ningún valor de toma</p>}
         </div>
       </div>
     </div>

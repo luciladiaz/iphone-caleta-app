@@ -113,13 +113,13 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
-      <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 16, padding: 28, width: '100%', maxWidth: 480, margin: 'auto' }}>
+      <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 480, margin: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
           <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>📄 Comprobante de venta</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#86868b', fontSize: 20, cursor: 'pointer' }}>✕</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', fontSize: 20, cursor: 'pointer' }}>✕</button>
         </div>
 
-        <div style={{ color: '#86868b', fontSize: 13, marginBottom: 20 }}>
+        <div style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 20 }}>
           {venta.modelo} {venta.gb}GB {venta.color} · {venta.cliente || 'Sin cliente'}
         </div>
 
@@ -127,49 +127,49 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
           <>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
               {ITEMS_CHECKLIST.map(i => (
-                <div key={i.key} style={{ display: 'flex', gap: 8, fontSize: 13, color: '#ebebf5cc' }}>
-                  <span style={{ color: '#30d158' }}>✓</span> {i.label}
+                <div key={i.key} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--rv-text-mid)' }}>
+                  <span style={{ color: 'var(--rv-text-mid)' }}>✓</span> {i.label}
                 </div>
               ))}
             </div>
-            <div style={{ background: '#fff', borderRadius: 10, padding: 8, marginBottom: 12 }}>
+            <div style={{ background: '#fff', border: '1px solid var(--rv-border)', borderRadius: 10, padding: 8, marginBottom: 12 }}>
               <img src={c.firma} alt="Firma del cliente" style={{ width: '100%', display: 'block' }} />
             </div>
-            <div style={{ color: '#86868b', fontSize: 12, marginBottom: 20 }}>
+            <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginBottom: 20 }}>
               Generado por {c.generadoPor}
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={volverADescargar} disabled={guardando} style={{ flex: 1, background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, padding: '12px', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: guardando ? 0.7 : 1 }}>
+              <button onClick={volverADescargar} disabled={guardando} style={{ flex: 1, background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '12px', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: guardando ? 0.7 : 1 }}>
                 {guardando ? 'Generando...' : '⬇️ Volver a descargar'}
               </button>
-              <button onClick={() => setModoFirma(true)} style={{ background: '#2c2c2e', color: '#ff9f0a', border: '1px solid #3a3a3c', borderRadius: 10, padding: '12px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={() => setModoFirma(true)} style={{ background: 'var(--rv-surface-alt)', color: 'var(--rv-text-mid)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '12px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                 Rehacer
               </button>
             </div>
           </>
         ) : (
           <>
-            <div style={{ color: '#86868b', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
+            <div style={{ color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
               Chequeo delante del cliente
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
               {ITEMS_CHECKLIST.map(i => (
-                <label key={i.key} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#ebebf5cc', cursor: 'pointer' }}>
+                <label key={i.key} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--rv-text-mid)', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
                     checked={checklist[i.key]}
                     onChange={e => setChecklist(ch => ({ ...ch, [i.key]: e.target.checked }))}
-                    style={{ width: 18, height: 18, accentColor: '#2563EB' }}
+                    style={{ width: 18, height: 18, accentColor: 'var(--rv-accent)' }}
                   />
                   {i.label}
                 </label>
               ))}
             </div>
 
-            <div style={{ color: '#86868b', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
+            <div style={{ color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
               Firma del cliente al retirar
             </div>
-            <div style={{ background: '#fff', borderRadius: 10, marginBottom: 8, touchAction: 'none' }}>
+            <div style={{ background: '#fff', border: '1px solid var(--rv-border)', borderRadius: 10, marginBottom: 8, touchAction: 'none' }}>
               <canvas
                 ref={canvasRef}
                 width={420} height={160}
@@ -180,7 +180,7 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
                 onPointerLeave={terminarTrazo}
               />
             </div>
-            <button onClick={borrarFirma} style={{ background: 'none', border: 'none', color: '#86868b', fontSize: 12, cursor: 'pointer', marginBottom: 20 }}>
+            <button onClick={borrarFirma} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', fontSize: 12, cursor: 'pointer', marginBottom: 20 }}>
               Borrar y firmar de nuevo
             </button>
 
@@ -188,9 +188,9 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
               onClick={guardarYGenerar}
               disabled={guardando || !todoTildado || firmaVacia}
               style={{
-                width: '100%', background: (!todoTildado || firmaVacia) ? '#2c2c2e' : '#2563EB',
-                color: (!todoTildado || firmaVacia) ? '#86868b' : '#fff',
-                border: 'none', borderRadius: 10, padding: '13px', fontSize: 14, fontWeight: 700,
+                width: '100%', background: (!todoTildado || firmaVacia) ? 'var(--rv-surface-alt)' : 'var(--rv-accent)',
+                color: (!todoTildado || firmaVacia) ? 'var(--rv-text-dim)' : '#fff',
+                border: (!todoTildado || firmaVacia) ? '1px solid var(--rv-border)' : 'none', borderRadius: 10, padding: '13px', fontSize: 14, fontWeight: 700,
                 cursor: (guardando || !todoTildado || firmaVacia) ? 'not-allowed' : 'pointer',
               }}
             >
@@ -202,7 +202,7 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
 
       {/* Plantilla del recibo, fuera de pantalla — se captura con html2canvas para el PNG */}
       <div style={{ position: 'fixed', left: -9999, top: 0 }}>
-        <div ref={reciboRef} style={{ width: 560, background: '#ffffff', color: '#111', fontFamily: "'Inter', Arial, sans-serif", padding: 36 }}>
+        <div ref={reciboRef} style={{ width: 560, background: '#ffffff', color: '#111', fontFamily: "'Manrope', Arial, sans-serif", padding: 36 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #111', paddingBottom: 16, marginBottom: 20 }}>
             <div style={{ fontSize: 20, fontWeight: 800 }}>{negocioNombre || 'Negocio'}</div>
             <div style={{ fontSize: 13, color: '#555' }}>Comprobante de venta</div>

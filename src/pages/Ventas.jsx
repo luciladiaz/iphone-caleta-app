@@ -5,9 +5,9 @@ import { useAuth } from '../context/AuthContext';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
 import ComprobanteVenta from '../components/ComprobanteVenta';
 
-const inputStyle = { width: '100%', padding: '10px 12px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
-const labelStyle = { color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
-const estadoColor = { pendiente: '#ff9f0a', entregado: '#30d158', cancelado: '#ff3b30' };
+const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
+const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
+const estadoColor = { pendiente: 'var(--rv-text-mid)', entregado: 'var(--rv-text)', cancelado: 'var(--rv-text-dim)' };
 
 const ORIGENES = ['Instagram ReventApp', 'WhatsApp', 'Local físico', 'Referido', 'Facebook', 'TikTok', 'Otro'];
 const FORMAS_PAGO = ['Efectivo ARS', 'Efectivo USD', 'Transferencia ARS', 'Transferencia USD', 'Cuotas personales', 'iPhone como parte de pago'];
@@ -172,7 +172,7 @@ export default function Ventas() {
     finally { setGuardando(false); }
   };
 
-  if (loading) return <div style={{ color: '#86868b', padding: 40 }}>Cargando ventas...</div>;
+  if (loading) return <div style={{ color: 'var(--rv-text-dim)', padding: 40 }}>Cargando ventas...</div>;
 
   const hoyV = new Date();
   const primerDiaMesV = new Date(hoyV.getFullYear(), hoyV.getMonth(), 1);
@@ -194,49 +194,49 @@ export default function Ventas() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Ventas</h1>
-          <p style={{ color: '#86868b', fontSize: 13, margin: '4px 0 0' }}>{ventas.length} ventas registradas</p>
+          <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, margin: '4px 0 0' }}>{ventas.length} ventas registradas</p>
         </div>
-        <button onClick={handleNuevaVenta} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+        <button onClick={handleNuevaVenta} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
           + Nueva venta
         </button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {ventas.map(v => (
-          <div key={v.id} style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 12, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <div key={v.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
             <div>
               <div style={{ fontWeight: 700, fontSize: 15 }}>{v.modelo} {v.gb}GB {v.color}</div>
-              <div style={{ color: '#86868b', fontSize: 12, marginTop: 3 }}>
+              <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3 }}>
                 👤 {v.cliente || 'Sin cliente'}
                 {v.telefono ? (
-                  <a href={`tel:${v.telefono}`} style={{ color: '#2563EB', marginLeft: 4, textDecoration: 'none' }}>
+                  <a href={`tel:${v.telefono}`} style={{ color: 'var(--rv-accent)', marginLeft: 4, textDecoration: 'none' }}>
                     📞 {v.telefono}
                   </a>
                 ) : (
                   <span title="Sin teléfono — editá la venta para agregarlo" style={{ marginLeft: 4, opacity: 0.5, cursor: 'help', textDecoration: 'line-through' }}>📵</span>
                 )}
                 {' '}· 🧑‍💼 {v.vendedor || '-'} · 📣 {v.origen || '-'}
-                {v.tipoCambio && <span style={{ color: '#2563EB', marginLeft: 6 }}>· TC ${v.tipoCambio}</span>}
+                {v.tipoCambio && <span style={{ color: 'var(--rv-accent)', marginLeft: 6 }}>· TC ${v.tipoCambio}</span>}
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 99, background: `${estadoColor[v.estado]}22`, color: estadoColor[v.estado] }}>
+              <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 99, border: '1px solid var(--rv-border)', color: estadoColor[v.estado] }}>
                 {v.estado}
               </span>
-              <button onClick={() => abrirComprobante(v)} style={{ background: v.comprobante ? 'rgba(48,209,88,0.1)' : '#2c2c2e', border: `1px solid ${v.comprobante ? 'rgba(48,209,88,0.3)' : '#3a3a3c'}`, color: v.comprobante ? '#30d158' : '#ebebf5cc', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={() => abrirComprobante(v)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: v.comprobante ? 'var(--rv-text)' : 'var(--rv-text-mid)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                 📄 {v.comprobante ? 'Ver comprobante' : 'Comprobante'}
               </button>
-              <button onClick={() => abrirEditar(v)} style={{ background: '#2c2c2e', border: '1px solid #3a3a3c', color: '#2563EB', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={() => abrirEditar(v)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-accent)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                 ✏️ Editar
               </button>
-              <button onClick={() => eliminarVenta(v)} style={{ background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', color: '#ff3b30', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={() => eliminarVenta(v)} style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', color: 'var(--rv-danger)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                 🗑️
               </button>
             </div>
           </div>
         ))}
         {ventas.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 60, color: '#86868b' }}>
+          <div style={{ textAlign: 'center', padding: 60, color: 'var(--rv-text-dim)' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>💰</div>
             <p>No hay ventas registradas</p>
           </div>
@@ -245,10 +245,10 @@ export default function Ventas() {
 
       {modal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
-          <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 16, padding: 28, width: '100%', maxWidth: 600, margin: 'auto' }}>
+          <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 600, margin: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{editando ? '✏️ Editar venta' : 'Nueva venta'}</h2>
-              <button onClick={cerrarModal} style={{ background: 'none', border: 'none', color: '#86868b', fontSize: 20, cursor: 'pointer' }}>✕</button>
+              <button onClick={cerrarModal} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', fontSize: 20, cursor: 'pointer' }}>✕</button>
             </div>
             <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Equipo */}
@@ -262,7 +262,7 @@ export default function Ventas() {
                 </div>
               )}
               {equipoSeleccionado && (
-                <div style={{ background: '#2c2c2e', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#2563EB' }}>
+                <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--rv-accent)' }}>
                   📦 {equipoSeleccionado.modelo} · {equipoSeleccionado.gb}GB · {equipoSeleccionado.color} · Bat {equipoSeleccionado.bateria}% · Costo USD {equipoSeleccionado.costoUsd}
                 </div>
               )}
@@ -308,7 +308,7 @@ export default function Ventas() {
                 <div>
                   <label style={labelStyle}>
                     Tipo de cambio (ARS/USD)
-                    {tipoCambioGlobal && <span style={{ color: '#86868b', fontWeight: 400, marginLeft: 6 }}>— Global: ${tipoCambioGlobal}</span>}
+                    {tipoCambioGlobal && <span style={{ color: 'var(--rv-text-dim)', fontWeight: 400, marginLeft: 6 }}>— Global: ${tipoCambioGlobal}</span>}
                   </label>
                   <input
                     type="number"
@@ -319,17 +319,17 @@ export default function Ventas() {
                   />
                 </div>
                 <div style={{ gridColumn: '1/-1' }}>
-                  <div style={{ fontSize: 11, color: '#86868b' }}>
+                  <div style={{ fontSize: 11, color: 'var(--rv-text-dim)' }}>
                     Si no modificás el TC, se usa el tipo de cambio global de configuración.
                   </div>
                 </div>
               </div>
 
               {/* Cobros */}
-              <div style={{ borderTop: '1px solid #2c2c2e', paddingTop: 16 }}>
+              <div style={{ borderTop: '1px solid var(--rv-border)', paddingTop: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <label style={{ ...labelStyle, margin: 0 }}>Formas de pago</label>
-                  <button type="button" onClick={agregarCobro} style={{ background: 'none', border: '1px solid #c9a96e', color: '#2563EB', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>+ Agregar</button>
+                  <button type="button" onClick={agregarCobro} style={{ background: 'none', border: '1px solid var(--rv-accent)', color: 'var(--rv-accent)', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>+ Agregar</button>
                 </div>
                 {(() => {
                   const tc = Number(form.tipoCambio || tipoCambioGlobal) || 0;
@@ -350,7 +350,7 @@ export default function Ventas() {
                   return (
                     <>
                       {form.cobros.map((cobro, i) => (
-                        <div key={i} style={{ background: '#2c2c2e', borderRadius: 10, padding: 14, marginBottom: 10 }}>
+                        <div key={i} style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: 14, marginBottom: 10 }}>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                             <div style={{ gridColumn: '1/-1' }}>
                               <label style={labelStyle}>Tipo</label>
@@ -369,7 +369,7 @@ export default function Ventas() {
                                   <label style={labelStyle}>Monto</label>
                                   <input type="number" value={cobro.monto} onChange={e => updateCobro(i, 'monto', e.target.value)} placeholder="0" style={inputStyle} />
                                   {tc > 0 && cobro.monto > 0 && (
-                                    <div style={{ fontSize: 11, color: '#7DD3FC', marginTop: 4 }}>
+                                    <div style={{ fontSize: 11, color: 'var(--rv-accent)', marginTop: 4 }}>
                                       {cobro.moneda === 'ARS'
                                         ? `≈ USD ${(Number(cobro.monto) / tc).toFixed(0)}`
                                         : `≈ ARS $${(Number(cobro.monto) * tc).toLocaleString('es-AR')}`}
@@ -394,7 +394,7 @@ export default function Ventas() {
                                   <label style={labelStyle}>Monto por cuota</label>
                                   <input type="number" value={cobro.montoCuota} onChange={e => updateCobro(i, 'montoCuota', e.target.value)} placeholder="0" style={inputStyle} />
                                   {tc > 0 && cobro.montoCuota > 0 && cobro.cuotas > 0 && (
-                                    <div style={{ fontSize: 11, color: '#7DD3FC', marginTop: 4 }}>
+                                    <div style={{ fontSize: 11, color: 'var(--rv-accent)', marginTop: 4 }}>
                                       Total {cobro.cuotas} cuotas: {cobro.moneda === 'ARS'
                                         ? `$${(Number(cobro.cuotas) * Number(cobro.montoCuota)).toLocaleString('es-AR')} ≈ USD ${((Number(cobro.cuotas) * Number(cobro.montoCuota)) / tc).toFixed(0)}`
                                         : `USD ${Number(cobro.cuotas) * Number(cobro.montoCuota)}`}
@@ -409,27 +409,27 @@ export default function Ventas() {
                             )}
                           </div>
                           {form.cobros.length > 1 && (
-                            <button type="button" onClick={() => quitarCobro(i)} style={{ marginTop: 8, background: 'none', border: 'none', color: '#ff3b30', fontSize: 12, cursor: 'pointer' }}>Quitar</button>
+                            <button type="button" onClick={() => quitarCobro(i)} style={{ marginTop: 8, background: 'none', border: 'none', color: 'var(--rv-danger)', fontSize: 12, cursor: 'pointer' }}>Quitar</button>
                           )}
                         </div>
                       ))}
 
                       {/* Resumen de pago */}
                       {pvUsd > 0 && tc > 0 && (
-                        <div style={{ borderRadius: 10, border: '1px solid rgba(37,99,235,0.3)', background: 'rgba(37,99,235,0.06)', padding: 14, marginTop: 4 }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: '#86868b', marginBottom: 10, textTransform: 'uppercase' }}>Resumen de pago</div>
+                        <div style={{ borderRadius: 10, border: '1px solid rgba(47,111,237,0.3)', background: 'var(--rv-accent-soft)', padding: 14, marginTop: 4 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--rv-text-dim)', marginBottom: 10, textTransform: 'uppercase' }}>Resumen de pago</div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                              <span style={{ color: '#86868b' }}>Precio de venta</span>
-                              <span style={{ fontWeight: 700 }}>USD {pvUsd} <span style={{ color: '#86868b', fontWeight: 400 }}>· ${(pvUsd * tc).toLocaleString('es-AR')} ARS</span></span>
+                              <span style={{ color: 'var(--rv-text-dim)' }}>Precio de venta</span>
+                              <span style={{ fontWeight: 700 }}>USD {pvUsd} <span style={{ color: 'var(--rv-text-dim)', fontWeight: 400 }}>· ${(pvUsd * tc).toLocaleString('es-AR')} ARS</span></span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                              <span style={{ color: '#86868b' }}>Cobrado</span>
-                              <span style={{ fontWeight: 700, color: '#30d158' }}>USD {totalPagadoUsd.toFixed(0)} <span style={{ color: '#86868b', fontWeight: 400 }}>· ${(totalPagadoUsd * tc).toLocaleString('es-AR')} ARS</span></span>
+                              <span style={{ color: 'var(--rv-text-dim)' }}>Cobrado</span>
+                              <span style={{ fontWeight: 700, color: 'var(--rv-text)' }}>USD {totalPagadoUsd.toFixed(0)} <span style={{ color: 'var(--rv-text-dim)', fontWeight: 400 }}>· ${(totalPagadoUsd * tc).toLocaleString('es-AR')} ARS</span></span>
                             </div>
-                            <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                            <div style={{ borderTop: '1px solid var(--rv-border)', paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
                               <span style={{ fontWeight: 700 }}>Saldo restante</span>
-                              <span style={{ fontWeight: 800, color: saldoUsd <= 0 ? '#30d158' : '#ff9f0a' }}>
+                              <span style={{ fontWeight: 800, color: saldoUsd <= 0 ? 'var(--rv-text)' : 'var(--rv-text-mid)' }}>
                                 {saldoUsd <= 0 ? '✅ Saldado' : `USD ${saldoUsd.toFixed(0)} · $${saldoArs.toLocaleString('es-AR')} ARS`}
                               </span>
                             </div>
@@ -443,43 +443,43 @@ export default function Ventas() {
 
               {/* Partes de pago iPhone */}
               {!editando && (
-                <div style={{ borderTop: '1px solid #2c2c2e', paddingTop: 16 }}>
+                <div style={{ borderTop: '1px solid var(--rv-border)', paddingTop: 16 }}>
                   <label style={{ ...labelStyle, marginBottom: 12 }}>iPhones recibidos como parte de pago</label>
                   {form.partesDePago.map((p, i) => (
-                    <div key={i} style={{ background: '#2c2c2e', borderRadius: 8, padding: '10px 14px', marginBottom: 8, fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div key={i} style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px', marginBottom: 8, fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <span style={{ color: '#2563EB', fontWeight: 600 }}>📱 {p.modelo} {p.gb}GB {p.color}</span>
-                        <div style={{ color: '#86868b', fontSize: 11, marginTop: 3 }}>
+                        <span style={{ color: 'var(--rv-accent)', fontWeight: 600 }}>📱 {p.modelo} {p.gb}GB {p.color}</span>
+                        <div style={{ color: 'var(--rv-text-dim)', fontSize: 11, marginTop: 3 }}>
                           Toma: USD {p.costoUsd} · Venta: USD {p.pvUsd}
                         </div>
                       </div>
-                      <button type="button" onClick={() => setForm(f => ({ ...f, partesDePago: f.partesDePago.filter((_, idx) => idx !== i) }))} style={{ background: 'none', border: 'none', color: '#ff3b30', cursor: 'pointer', fontSize: 18 }}>✕</button>
+                      <button type="button" onClick={() => setForm(f => ({ ...f, partesDePago: f.partesDePago.filter((_, idx) => idx !== i) }))} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', fontSize: 18 }}>✕</button>
                     </div>
                   ))}
-                  <div style={{ background: '#2c2c2e', borderRadius: 10, padding: 14 }}>
+                  <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: 14 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                       <div><label style={labelStyle}>Modelo</label><input value={nuevaParte.modelo} onChange={e => setNuevaParte({ ...nuevaParte, modelo: e.target.value })} placeholder="iPhone 13" style={inputStyle} /></div>
                       <div><label style={labelStyle}>GB</label><input value={nuevaParte.gb} onChange={e => setNuevaParte({ ...nuevaParte, gb: e.target.value })} placeholder="128" style={inputStyle} /></div>
                       <div><label style={labelStyle}>Color</label><input value={nuevaParte.color} onChange={e => setNuevaParte({ ...nuevaParte, color: e.target.value })} placeholder="Negro" style={inputStyle} /></div>
                       <div><label style={labelStyle}>Batería %</label><input type="number" value={nuevaParte.bateria} onChange={e => setNuevaParte({ ...nuevaParte, bateria: e.target.value })} placeholder="85" style={inputStyle} /></div>
                       <div><label style={labelStyle}>IMEI</label><input value={nuevaParte.imei} onChange={e => setNuevaParte({ ...nuevaParte, imei: e.target.value })} style={inputStyle} /></div>
-                      <div style={{ gridColumn: '1/-1', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.15)', borderRadius: 8, padding: 10 }}>
-                        <div style={{ color: '#2563EB', fontSize: 11, fontWeight: 600, marginBottom: 8 }}>VALUACIÓN DEL EQUIPO RECIBIDO</div>
+                      <div style={{ gridColumn: '1/-1', background: 'var(--rv-accent-soft)', border: '1px solid rgba(47,111,237,0.15)', borderRadius: 8, padding: 10 }}>
+                        <div style={{ color: 'var(--rv-accent)', fontSize: 11, fontWeight: 600, marginBottom: 8 }}>VALUACIÓN DEL EQUIPO RECIBIDO</div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                           <div>
                             <label style={labelStyle}>Lo tomo a USD (costo)</label>
                             <input type="number" value={nuevaParte.costoUsd} onChange={e => setNuevaParte({ ...nuevaParte, costoUsd: e.target.value })} placeholder="200" style={inputStyle} />
-                            <div style={{ fontSize: 10, color: '#86868b', marginTop: 3 }}>Valor que le reconocés al cliente</div>
+                            <div style={{ fontSize: 10, color: 'var(--rv-text-dim)', marginTop: 3 }}>Valor que le reconocés al cliente</div>
                           </div>
                           <div>
                             <label style={labelStyle}>Lo vendo a USD (precio venta)</label>
                             <input type="number" value={nuevaParte.pvUsd} onChange={e => setNuevaParte({ ...nuevaParte, pvUsd: e.target.value })} placeholder="280" style={inputStyle} />
-                            <div style={{ fontSize: 10, color: '#86868b', marginTop: 3 }}>Se carga en stock como precio de venta</div>
+                            <div style={{ fontSize: 10, color: 'var(--rv-text-dim)', marginTop: 3 }}>Se carga en stock como precio de venta</div>
                           </div>
                         </div>
                       </div>
                     </div>
-                    <button type="button" onClick={agregarParte} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>+ Agregar iPhone</button>
+                    <button type="button" onClick={agregarParte} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>+ Agregar iPhone</button>
                   </div>
                 </div>
               )}
@@ -490,8 +490,8 @@ export default function Ventas() {
               </div>
 
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
-                <button type="button" onClick={cerrarModal} style={{ padding: '10px 20px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
-                <button type="submit" disabled={guardando} style={{ padding: '10px 24px', background: '#2563EB', border: 'none', borderRadius: 8, color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                <button type="button" onClick={cerrarModal} style={{ padding: '10px 20px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
+                <button type="submit" disabled={guardando} style={{ padding: '10px 24px', background: 'var(--rv-accent)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
                   {guardando ? 'Guardando...' : 'Guardar venta'}
                 </button>
               </div>

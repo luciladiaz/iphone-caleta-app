@@ -127,12 +127,12 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
     <div>
       {/* ── Banner: pago exitoso (redirect en curso) ───────────────────────── */}
       {pago === 'exitoso' && (
-        <div style={{ background: 'rgba(48,209,88,0.1)', border: '1px solid rgba(48,209,88,0.4)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
+        <div style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
           <div style={{ fontSize: 20, marginBottom: 6 }}>{planActivo && plan !== 'trial' ? '✅' : '⏳'}</div>
-          <div style={{ fontWeight: 700, fontSize: 16, color: '#30d158', marginBottom: 6 }}>
+          <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--rv-text)', marginBottom: 6 }}>
             {planActivo && plan !== 'trial' ? 'Plan activado. Llevándote al panel...' : 'Pago recibido. Activando tu plan...'}
           </div>
-          <div style={{ color: '#86868b', fontSize: 14 }}>
+          <div style={{ color: 'var(--rv-text-dim)', fontSize: 14 }}>
             {planActivo && plan !== 'trial'
               ? 'Tu suscripción está activa. Serás redirigido automáticamente.'
               : verificando
@@ -144,12 +144,12 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
 
       {/* ── Banner: pago rechazado ─────────────────────────────────────────── */}
       {pago === 'fallido' && (
-        <div style={{ background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
+        <div style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
           <div style={{ fontSize: 20, marginBottom: 6 }}>❌</div>
-          <div style={{ fontWeight: 700, fontSize: 16, color: '#ff3b30', marginBottom: 6 }}>
+          <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--rv-danger)', marginBottom: 6 }}>
             El pago fue rechazado
           </div>
-          <div style={{ color: '#86868b', fontSize: 14 }}>
+          <div style={{ color: 'var(--rv-text-dim)', fontSize: 14 }}>
             Verificá que tu tarjeta tenga fondos suficientes e intentá de nuevo, o contactanos por WhatsApp.
           </div>
         </div>
@@ -157,12 +157,12 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
 
       {/* ── Banner: pago pendiente ─────────────────────────────────────────── */}
       {pago === 'pendiente' && (
-        <div style={{ background: 'rgba(255,159,10,0.1)', border: '1px solid rgba(255,159,10,0.3)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
+        <div style={{ background: 'var(--rv-accent-soft)', border: '1px solid rgba(47,111,237,0.3)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
           <div style={{ fontSize: 20, marginBottom: 6 }}>⏳</div>
-          <div style={{ fontWeight: 700, fontSize: 16, color: '#ff9f0a', marginBottom: 6 }}>
+          <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--rv-accent)', marginBottom: 6 }}>
             Pago pendiente de acreditación
           </div>
-          <div style={{ color: '#86868b', fontSize: 14 }}>
+          <div style={{ color: 'var(--rv-text-dim)', fontSize: 14 }}>
             Tu pago está siendo procesado. Te avisaremos cuando se confirme y tu plan se activará automáticamente.
           </div>
         </div>
@@ -170,18 +170,18 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
 
       {/* ── Banner: cuenta suspendida por pago fallido ────────────────────── */}
       {motivo === 'suspendido' && !planActivo && (
-        <div style={{ background: 'rgba(255,59,48,0.12)', border: '1px solid rgba(255,59,48,0.5)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
+        <div style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.5)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
           <div style={{ fontSize: 20, marginBottom: 6 }}>⚠️</div>
-          <div style={{ fontWeight: 700, fontSize: 16, color: '#ff3b30', marginBottom: 6 }}>
+          <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--rv-danger)', marginBottom: 6 }}>
             Tu acceso fue suspendido
           </div>
-          <div style={{ color: '#86868b', fontSize: 14, marginBottom: 12 }}>
+          <div style={{ color: 'var(--rv-text-dim)', fontSize: 14, marginBottom: 12 }}>
             Tu último pago no pudo procesarse y MercadoPago agotó los reintentos automáticos.
             Tus datos están guardados. Actualizá tu método de pago para recuperar el acceso inmediatamente.
           </div>
           <button
             onClick={() => { const msg = encodeURIComponent('Hola, necesito actualizar mi método de pago en ReventApp'); window.open(`https://wa.me/${WHATSAPP_SOPORTE}?text=${msg}`, '_blank'); }}
-            style={{ background: '#ff3b30', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            style={{ background: 'var(--rv-danger)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
           >
             Actualizar método de pago →
           </button>
@@ -190,12 +190,12 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
 
       {/* ── Banner: trial vencido ──────────────────────────────────────────── */}
       {motivo === 'vencido' && !planActivo && (
-        <div style={{ background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
+        <div style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
           <div style={{ fontSize: 20, marginBottom: 6 }}>⏰</div>
-          <div style={{ fontWeight: 700, fontSize: 16, color: '#ff3b30', marginBottom: 6 }}>
+          <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--rv-danger)', marginBottom: 6 }}>
             Tu período de prueba de 7 días ha vencido
           </div>
-          <div style={{ color: '#86868b', fontSize: 14 }}>
+          <div style={{ color: 'var(--rv-text-dim)', fontSize: 14 }}>
             Elegí un plan para seguir organizando tu negocio. Tus datos están guardados y seguros.
           </div>
         </div>
@@ -203,37 +203,37 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
 
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
         <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-1px', marginBottom: 8 }}>Un solo plan. Todo incluido.</h1>
-        <p style={{ color: '#86868b', fontSize: 16 }}>Sin letra chica, sin funciones bloqueadas por precio.</p>
+        <p style={{ color: 'var(--rv-text-dim)', fontSize: 16 }}>Sin letra chica, sin funciones bloqueadas por precio.</p>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'center', maxWidth: 1060, margin: '0 auto 40px' }}>
         <div ref={proRef} style={{
-          background: 'rgba(37,99,235,0.06)', border: `2px solid ${upgrade ? '#ff9f0a' : '#2563EB'}`, borderRadius: 16,
+          background: 'var(--rv-accent-soft)', border: '2px solid var(--rv-accent)', borderRadius: 16,
           padding: isMobile ? 28 : 36, display: 'flex', flexDirection: 'column', gap: 16,
           flex: '1 1 100%', maxWidth: 420, position: 'relative',
         }}>
           <div>
-            <div style={{ fontSize: 12, color: '#2563EB', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Plan Completo</div>
-            <div style={{ fontSize: 44, fontWeight: 800, color: '#2563EB', letterSpacing: '-1px' }}>
-              $29.900<span style={{ fontSize: 14, fontWeight: 400, color: '#86868b' }}>/mes</span>
+            <div style={{ fontSize: 12, color: 'var(--rv-accent)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Plan Completo</div>
+            <div style={{ fontSize: 44, fontWeight: 800, color: 'var(--rv-accent)', letterSpacing: '-1px' }}>
+              $29.900<span style={{ fontSize: 14, fontWeight: 400, color: 'var(--rv-text-dim)' }}>/mes</span>
             </div>
-            <div style={{ fontSize: 12, color: '#86868b', marginTop: 4 }}>= $997 ARS por día.</div>
+            <div style={{ fontSize: 12, color: 'var(--rv-text-dim)', marginTop: 4 }}>= $997 ARS por día.</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {PLAN_INCLUYE.map(f => (
-              <div key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: '#ebebf5cc', alignItems: 'flex-start' }}>
-                <span style={{ color: '#30d158', flexShrink: 0, marginTop: 1 }}>✓</span> {f}
+              <div key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--rv-text-mid)', alignItems: 'flex-start' }}>
+                <span style={{ color: 'var(--rv-accent)', flexShrink: 0, marginTop: 1 }}>✓</span> {f}
               </div>
             ))}
           </div>
           <button onClick={handleProMax}
-            style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+            style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
             Contratar ahora
           </button>
         </div>
       </div>
 
-      <div style={{ textAlign: 'center', color: '#86868b', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
+      <div style={{ textAlign: 'center', color: 'var(--rv-text-dim)', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
         <span>💳 Pagá con tarjeta, débito o transferencia via MercadoPago</span>
         <span>🔄 Cancelá cuando quieras · ✓ 7 días de prueba gratis al registrarte</span>
       </div>

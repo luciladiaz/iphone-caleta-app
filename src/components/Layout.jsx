@@ -72,14 +72,14 @@ const NAV = [
 function PlanBadge({ plan, diasRestantesTrial }) {
   if (!plan) return null;
   const configs = {
-    trial:  { label: `Trial · ${diasRestantesTrial ?? '?'} días`, color: '#2563EB', stars: '🧪' },
-    promax: { label: 'Plan Completo', color: '#ffd700', stars: '⭐' },
+    trial:  { label: `Trial · ${diasRestantesTrial ?? '?'} días`, color: 'var(--rv-accent)', stars: '🧪' },
+    promax: { label: 'Plan Completo', color: 'var(--rv-accent)', stars: '⭐' },
   };
   const cfg = configs[plan] || configs.promax;
   return (
     <NavLink to="/planes" style={{ textDecoration: 'none', display: 'block', margin: '8px 12px 0' }}>
       <div style={{
-        background: 'rgba(37,99,235,0.12)', borderRadius: 8, padding: '8px 12px',
+        background: 'var(--rv-accent-soft)', borderRadius: 8, padding: '8px 12px',
         display: 'flex', alignItems: 'center', gap: 6,
       }}>
         <span style={{ fontSize: 12 }}>{cfg.stars}</span>
@@ -103,17 +103,17 @@ export default function Layout({ children }) {
 
   const SidebarContent = () => (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '20px 20px', borderBottom: '1px solid rgba(37,99,235,0.2)' }}>
+      <div style={{ padding: '20px 20px', borderBottom: '1px solid var(--rv-border-soft)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {negocio?.logoUrl
-            ? <img src={negocio.logoUrl} alt="logo" style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover', flexShrink: 0, border: '1px solid rgba(255,255,255,0.1)' }} />
-            : <svg viewBox="0 0 24 24" style={{ width: 26, height: 26, fill: '#fff', flexShrink: 0 }}><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+            ? <img src={negocio.logoUrl} alt="logo" style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover', flexShrink: 0, border: '1px solid var(--rv-border)' }} />
+            : <svg viewBox="0 0 24 24" style={{ width: 26, height: 26, fill: 'var(--rv-accent)', flexShrink: 0 }}><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
           }
           <div style={{ overflow: 'hidden' }}>
-            <div style={{ color: '#fff', fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ color: 'var(--rv-text)', fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {negocio?.nombre || 'ReventApp'}
             </div>
-            <div style={{ color: '#2563EB', fontSize: 11, fontWeight: 600 }}>
+            <div style={{ color: 'var(--rv-accent)', fontSize: 11, fontWeight: 600 }}>
               {perfil?.rol === 'admin' ? 'Administrador' : 'Vendedor'}
             </div>
           </div>
@@ -129,16 +129,16 @@ export default function Layout({ children }) {
               style={({ isActive }) => ({
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '10px 12px', borderRadius: 10, marginBottom: 2,
-                textDecoration: 'none', fontSize: 14, fontWeight: 500,
-                background: isActive ? 'rgba(37,99,235,0.12)' : 'transparent',
-                color: isActive ? '#7DD3FC' : bloqueado ? '#3a3a3c' : '#ebebf5cc',
-                borderLeft: isActive ? '3px solid #2563EB' : '3px solid transparent',
+                textDecoration: 'none', fontSize: 14, fontWeight: isActive ? 650 : 500,
+                background: isActive ? 'var(--rv-accent-soft)' : 'transparent',
+                color: isActive ? 'var(--rv-accent)' : bloqueado ? '#c2c9d6' : 'var(--rv-text-mid)',
+                borderLeft: isActive ? '3px solid var(--rv-accent)' : '3px solid transparent',
                 transition: 'all .15s',
               })}
             >
               {icon}
               <span>{label}</span>
-              {bloqueado && <span style={{ fontSize: 11, color: '#3a3a3c', marginLeft: 'auto' }}>🔒</span>}
+              {bloqueado && <span style={{ fontSize: 11, color: '#c2c9d6', marginLeft: 'auto' }}>🔒</span>}
             </NavLink>
           );
         })}
@@ -146,24 +146,24 @@ export default function Layout({ children }) {
 
       <PlanBadge plan={plan} diasRestantesTrial={diasRestantesTrial} />
 
-      <div style={{ padding: '16px 12px', borderTop: '1px solid rgba(37,99,235,0.2)', marginTop: 8 }}>
-        <div style={{ color: '#86868b', fontSize: 12, marginBottom: 8, paddingLeft: 4 }}>
+      <div style={{ padding: '16px 12px', borderTop: '1px solid var(--rv-border-soft)', marginTop: 8 }}>
+        <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginBottom: 8, paddingLeft: 4 }}>
           {perfil?.nombre || perfil?.email}
         </div>
         <button onClick={handleLogout} style={{
-          width: '100%', padding: '9px', background: 'rgba(255,59,48,0.1)',
-          border: '1px solid rgba(255,59,48,0.2)', borderRadius: 8,
-          color: '#ff3b30', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          width: '100%', padding: '9px', background: 'var(--rv-surface-alt)',
+          border: '1px solid var(--rv-border)', borderRadius: 8,
+          color: 'var(--rv-text-mid)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
         }}>Cerrar sesión</button>
       </div>
     </div>
   );
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#0f172a', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--rv-bg)', fontFamily: "'Manrope', sans-serif" }}>
       {/* Sidebar desktop */}
       <aside style={{
-        width: 220, background: '#1e293b', borderRight: '1px solid rgba(37,99,235,0.2)',
+        width: 220, background: 'var(--rv-surface)', borderRight: '1px solid var(--rv-border-soft)',
         position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 50,
         display: 'flex', flexDirection: 'column',
       }} className="sidebar-desktop">
@@ -173,28 +173,28 @@ export default function Layout({ children }) {
       {/* Header mobile */}
       <div style={{
         position: 'fixed', top: 0, left: 0, right: 0, height: 56,
-        background: '#1e293b', borderBottom: '1px solid rgba(37,99,235,0.2)',
+        background: 'var(--rv-surface)', borderBottom: '1px solid var(--rv-border-soft)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 16px', zIndex: 60,
       }} className="mobile-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {negocio?.logoUrl
-            ? <img src={negocio.logoUrl} alt="logo" style={{ width: 28, height: 28, borderRadius: 7, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} />
-            : <svg viewBox="0 0 24 24" style={{ width: 22, height: 22, fill: '#fff' }}><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+            ? <img src={negocio.logoUrl} alt="logo" style={{ width: 28, height: 28, borderRadius: 7, objectFit: 'cover', border: '1px solid var(--rv-border)' }} />
+            : <svg viewBox="0 0 24 24" style={{ width: 22, height: 22, fill: 'var(--rv-accent)' }}><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
           }
-          <span style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>{negocio?.nombre || 'ReventApp'}</span>
+          <span style={{ color: 'var(--rv-text)', fontWeight: 700, fontSize: 15 }}>{negocio?.nombre || 'ReventApp'}</span>
         </div>
         <button onClick={() => setMenuOpen(!menuOpen)} style={{
-          background: 'none', border: 'none', color: '#fff', fontSize: 22, cursor: 'pointer',
+          background: 'none', border: 'none', color: 'var(--rv-text)', fontSize: 22, cursor: 'pointer',
         }}>☰</button>
       </div>
 
       {/* Mobile menu overlay */}
       {menuOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 70, background: '#1e293b' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'var(--rv-surface)' }}>
           <div style={{ display: 'flex', justifyContent: 'flex-end', padding: 16 }}>
             <button onClick={() => setMenuOpen(false)} style={{
-              background: 'none', border: 'none', color: '#fff', fontSize: 24, cursor: 'pointer',
+              background: 'none', border: 'none', color: 'var(--rv-text)', fontSize: 24, cursor: 'pointer',
             }}>✕</button>
           </div>
           <SidebarContent />
@@ -204,7 +204,7 @@ export default function Layout({ children }) {
       {/* Main content */}
       <main style={{
         marginLeft: 220, flex: 1, padding: '32px 28px',
-        minHeight: '100vh', color: '#fff',
+        minHeight: '100vh', color: 'var(--rv-text)',
       }} className="main-content">
         <BannerTrial />
         {children}

@@ -42,16 +42,16 @@ export default function ModalLimiteAlcanzado({ tipo, planActual, cantidadActual,
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
     }}>
       <div style={{
-        background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 16,
+        background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16,
         padding: 32, width: '100%', maxWidth: 420, textAlign: 'center',
       }}>
         <div style={{ fontSize: 40, marginBottom: 16 }}>{cfg.icono}</div>
         <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 12 }}>{cfg.titulo}</h2>
-        <p style={{ color: '#86868b', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>{descripcion}</p>
+        <p style={{ color: 'var(--rv-text-dim)', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>{descripcion}</p>
         <button
           onClick={() => { onCerrar(); navigate(`/planes?upgrade=${planRequerido}`); }}
           style={{
-            width: '100%', background: '#2563EB', color: '#fff', border: 'none',
+            width: '100%', background: 'var(--rv-accent)', color: '#fff', border: 'none',
             borderRadius: 10, padding: '13px', fontSize: 15, fontWeight: 700, cursor: 'pointer', marginBottom: 10,
           }}
         >
@@ -59,7 +59,7 @@ export default function ModalLimiteAlcanzado({ tipo, planActual, cantidadActual,
         </button>
         <button
           onClick={onCerrar}
-          style={{ background: 'none', border: 'none', color: '#86868b', fontSize: 14, cursor: 'pointer' }}
+          style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', fontSize: 14, cursor: 'pointer' }}
         >
           Cancelar
         </button>

@@ -34,7 +34,7 @@ function PrivateRoute({ children, modulo }) {
   if (!planActivo) return <Navigate to={`/planes?motivo=${motivoBloqueo || 'vencido'}`} />;
 
   if (modulo && !puedeVer(modulo)) return (
-    <div style={{ padding: 60, textAlign: 'center', color: '#86868b', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ padding: 60, textAlign: 'center', color: 'var(--rv-text-dim)', fontFamily: 'Manrope, sans-serif' }}>
       <div style={{ fontSize: 40, marginBottom: 12 }}>🔒</div>
       <p>No tenés permiso para acceder a esta sección.</p>
     </div>

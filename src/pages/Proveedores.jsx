@@ -35,28 +35,28 @@ export default function Proveedores() {
     cargar();
   }, [negocioId]);
 
-  if (loading) return <div style={{ color: '#86868b', padding: 40 }}>Cargando...</div>;
+  if (loading) return <div style={{ color: 'var(--rv-text-dim)', padding: 40 }}>Cargando...</div>;
 
   return (
     <div>
       <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>🏭 Proveedores</h1>
-      <p style={{ color: '#86868b', fontSize: 13, marginBottom: 28 }}>Cargá los proveedores desde ⚙️ Configuración</p>
+      <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 28 }}>Cargá los proveedores desde ⚙️ Configuración</p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
         {proveedores.map(p => {
           const d = detalle[p.id] || {};
           return (
-            <div key={p.id} style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 22 }}>
+            <div key={p.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 22 }}>
               <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>🏭 {p.nombre}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#86868b' }}>Equipos totales</span><span style={{ fontWeight: 700 }}>{d.total || 0}</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#86868b' }}>Disponibles</span><span style={{ color: '#30d158', fontWeight: 700 }}>{d.disponibles || 0}</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#86868b' }}>Vendidos</span><span style={{ fontWeight: 700 }}>{d.vendidos || 0}</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#86868b' }}>En consignación</span><span style={{ color: '#ff9f0a', fontWeight: 700 }}>{d.consignacion || 0}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--rv-text-dim)' }}>Equipos totales</span><span style={{ fontWeight: 700 }}>{d.total || 0}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--rv-text-dim)' }}>Disponibles</span><span style={{ color: 'var(--rv-text)', fontWeight: 700 }}>{d.disponibles || 0}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--rv-text-dim)' }}>Vendidos</span><span style={{ fontWeight: 700 }}>{d.vendidos || 0}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--rv-text-dim)' }}>En consignación</span><span style={{ color: 'var(--rv-text-mid)', fontWeight: 700 }}>{d.consignacion || 0}</span></div>
               </div>
             </div>
           );
         })}
-        {proveedores.length === 0 && <div style={{ color: '#86868b', fontSize: 14 }}>No hay proveedores. Agregá desde ⚙️ Configuración.</div>}
+        {proveedores.length === 0 && <div style={{ color: 'var(--rv-text-dim)', fontSize: 14 }}>No hay proveedores. Agregá desde ⚙️ Configuración.</div>}
       </div>
     </div>
   );

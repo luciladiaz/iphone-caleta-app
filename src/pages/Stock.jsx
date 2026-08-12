@@ -10,10 +10,10 @@ const COLORES = ['Negro','Blanco','Azul','Natural','Desert','Desert Titanium','N
 const GBS = ['64','128','256','512','1TB'];
 const TIPOS = ['compra','consignacion'];
 const ESTADOS = ['disponible','asignado','vendido'];
-const estadoColor = { disponible: '#30d158', asignado: '#ff9f0a', vendido: '#86868b' };
+const estadoColor = { disponible: 'var(--rv-accent)', asignado: 'var(--rv-text-mid)', vendido: 'var(--rv-text-dim)' };
 
-const inputStyle = { width: '100%', padding: '10px 12px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
-const labelStyle = { color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
+const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
+const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 
 export default function Stock() {
   const { perfil, negocioId, plan, limitesPlan } = useAuth();
@@ -128,22 +128,22 @@ export default function Stock() {
     setModal(true);
   };
 
-  if (loading) return <div style={{ color: '#86868b', padding: 40 }}>Cargando stock...</div>;
+  if (loading) return <div style={{ color: 'var(--rv-text-dim)', padding: 40 }}>Cargando stock...</div>;
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Stock</h1>
-          <p style={{ color: '#86868b', fontSize: 13, margin: '4px 0 0' }}>
+          <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, margin: '4px 0 0' }}>
             {stockDisponible.length} disponibles · {equipos.length} total
-            {esAdmin && totalValorUSD > 0 && <span style={{ color: '#2563EB', marginLeft: 8 }}>· USD {totalValorUSD.toFixed(0)} en stock</span>}
+            {esAdmin && totalValorUSD > 0 && <span style={{ color: 'var(--rv-accent)', marginLeft: 8 }}>· USD {totalValorUSD.toFixed(0)} en stock</span>}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button onClick={() => setShowCalculadora(true)} style={{ background: '#2c2c2e', color: '#2563EB', border: '1px solid #3a3a3c', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🧮 Calculadora</button>
-          <button onClick={() => setModalCatalogo(true)} style={{ background: '#2c2c2e', color: '#fff', border: '1px solid #3a3a3c', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🔗 Catálogo</button>
-          {esAdmin && <button onClick={handleAgregarEquipo} style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>+ Agregar equipo</button>}
+          <button onClick={() => setShowCalculadora(true)} style={{ background: 'var(--rv-surface-alt)', color: 'var(--rv-accent)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🧮 Calculadora</button>
+          <button onClick={() => setModalCatalogo(true)} style={{ background: 'var(--rv-surface-alt)', color: 'var(--rv-text)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🔗 Catálogo</button>
+          {esAdmin && <button onClick={handleAgregarEquipo} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>+ Agregar equipo</button>}
         </div>
       </div>
 
@@ -151,41 +151,41 @@ export default function Stock() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
         {equiposFiltrados.map(eq => (
-          <div key={eq.id} style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 20, borderTop: `3px solid ${estadoColor[eq.estado] || '#2563EB'}` }}>
+          <div key={eq.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 20, borderTop: `3px solid ${estadoColor[eq.estado] || 'var(--rv-accent)'}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 15 }}>{eq.modelo}</div>
-                <div style={{ color: '#86868b', fontSize: 12, marginTop: 2 }}>{eq.gb}GB · {eq.color}</div>
+                <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 2 }}>{eq.gb}GB · {eq.color}</div>
               </div>
-              <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 99, textTransform: 'uppercase', background: `${estadoColor[eq.estado]}22`, color: estadoColor[eq.estado] }}>{eq.estado}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 99, textTransform: 'uppercase', border: '1px solid var(--rv-border)', color: estadoColor[eq.estado] }}>{eq.estado}</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: '#ebebf5cc', marginBottom: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: 'var(--rv-text-mid)', marginBottom: 12 }}>
               <span>🔋 Batería: {eq.bateria}%</span>
               {eq.imei && <span>📋 IMEI: {eq.imei}</span>}
               {eq.puntoVenta && <span>📍 {eq.puntoVenta}</span>}
               {eq.asignadoA && <span>👤 {eq.asignadoA}</span>}
-              <span style={{ color: eq.tipo === 'consignacion' ? '#ff9f0a' : '#30d158', fontWeight: 600, marginTop: 4 }}>
+              <span style={{ color: 'var(--rv-text-mid)', fontWeight: 600, marginTop: 4 }}>
                 {eq.tipo === 'consignacion' ? '🤝 Consignación' : '🛒 Compra directa'}
               </span>
-              {esAdmin && eq.costoUsd && <span style={{ color: '#86868b' }}>Costo: USD {eq.costoUsd}</span>}
-              {eq.pvUsd && <span style={{ color: '#2563EB', fontWeight: 600 }}>Venta: USD {eq.pvUsd}</span>}
-              {eq.fechaIngreso && <span style={{ color: '#86868b' }}>📅 {eq.fechaIngreso.toDate ? eq.fechaIngreso.toDate().toLocaleDateString('es-AR') : new Date(eq.fechaIngreso).toLocaleDateString('es-AR')}</span>}
+              {esAdmin && eq.costoUsd && <span style={{ color: 'var(--rv-text-dim)' }}>Costo: USD {eq.costoUsd}</span>}
+              {eq.pvUsd && <span style={{ color: 'var(--rv-accent)', fontWeight: 600 }}>Venta: USD {eq.pvUsd}</span>}
+              {eq.fechaIngreso && <span style={{ color: 'var(--rv-text-dim)' }}>📅 {eq.fechaIngreso.toDate ? eq.fechaIngreso.toDate().toLocaleDateString('es-AR') : new Date(eq.fechaIngreso).toLocaleDateString('es-AR')}</span>}
             </div>
             {eq.estado === 'disponible' && (
-              <button onClick={() => copiarFicha(eq)} style={{ width: '100%', background: copiado === eq.id ? 'rgba(48,209,88,0.15)' : '#2c2c2e', border: `1px solid ${copiado === eq.id ? 'rgba(48,209,88,0.3)' : '#3a3a3c'}`, color: copiado === eq.id ? '#30d158' : '#2563EB', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={() => copiarFicha(eq)} style={{ width: '100%', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: copiado === eq.id ? 'var(--rv-text)' : 'var(--rv-accent)', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                 {copiado === eq.id ? '✓ Ficha copiada' : '📤 Compartir ficha WhatsApp'}
               </button>
             )}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => abrirEditar(eq)} style={{ flex: 1, background: '#2c2c2e', border: '1px solid #3a3a3c', color: '#2563EB', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>✏️ Editar</button>
-              {esAdmin && <button onClick={() => eliminarEquipo(eq.id)} style={{ background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', color: '#ff3b30', borderRadius: 8, padding: '8px 12px', fontSize: 12, cursor: 'pointer' }}>🗑️</button>}
+              <button onClick={() => abrirEditar(eq)} style={{ flex: 1, background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-accent)', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>✏️ Editar</button>
+              {esAdmin && <button onClick={() => eliminarEquipo(eq.id)} style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', color: 'var(--rv-danger)', borderRadius: 8, padding: '8px 12px', fontSize: 12, cursor: 'pointer' }}>🗑️</button>}
             </div>
           </div>
         ))}
       </div>
 
       {equiposFiltrados.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 60, color: '#86868b' }}>
+        <div style={{ textAlign: 'center', padding: 60, color: 'var(--rv-text-dim)' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>📦</div>
           <p>No hay equipos en stock</p>
         </div>
@@ -194,10 +194,10 @@ export default function Stock() {
       {/* Modal agregar */}
       {modal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 16, padding: 28, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{editandoId ? '✏️ Editar equipo' : 'Agregar equipo'}</h2>
-              <button onClick={cerrarModal} style={{ background: 'none', border: 'none', color: '#86868b', fontSize: 20, cursor: 'pointer' }}>✕</button>
+              <button onClick={cerrarModal} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', fontSize: 20, cursor: 'pointer' }}>✕</button>
             </div>
             <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -217,8 +217,8 @@ export default function Stock() {
                 <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>Notas</label><textarea value={form.notas} onChange={e => setForm({...form, notas: e.target.value})} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
               </div>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
-                <button type="button" onClick={cerrarModal} style={{ padding: '10px 20px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
-                <button type="submit" disabled={guardando} style={{ padding: '10px 24px', background: '#2563EB', border: 'none', borderRadius: 8, color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{guardando ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Agregar equipo'}</button>
+                <button type="button" onClick={cerrarModal} style={{ padding: '10px 20px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
+                <button type="submit" disabled={guardando} style={{ padding: '10px 24px', background: 'var(--rv-accent)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{guardando ? 'Guardando...' : editandoId ? 'Guardar cambios' : 'Agregar equipo'}</button>
               </div>
             </form>
           </div>
@@ -228,15 +228,15 @@ export default function Stock() {
       {/* Modal catálogo */}
       {modalCatalogo && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 16, padding: 28, width: '100%', maxWidth: 480 }}>
+          <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 480 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>🔗 Tu catálogo público</h2>
-              <button onClick={() => setModalCatalogo(false)} style={{ background: 'none', border: 'none', color: '#86868b', fontSize: 20, cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setModalCatalogo(false)} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', fontSize: 20, cursor: 'pointer' }}>✕</button>
             </div>
-            <p style={{ color: '#86868b', fontSize: 13, marginBottom: 16 }}>Compartí este link con tus clientes. Solo muestra los equipos disponibles, sin precios de costo.</p>
-            <div style={{ background: '#2c2c2e', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: '#2563EB', wordBreak: 'break-all', marginBottom: 16 }}>{urlCatalogo}</div>
+            <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 16 }}>Compartí este link con tus clientes. Solo muestra los equipos disponibles, sin precios de costo.</p>
+            <div style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: 'var(--rv-accent)', wordBreak: 'break-all', marginBottom: 16 }}>{urlCatalogo}</div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => { navigator.clipboard.writeText(urlCatalogo); }} style={{ flex: 1, background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Copiar link</button>
+              <button onClick={() => { navigator.clipboard.writeText(urlCatalogo); }} style={{ flex: 1, background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Copiar link</button>
               <a href={`https://wa.me/?text=Mirá mi catálogo de iPhones: ${urlCatalogo}`} target="_blank" rel="noreferrer" style={{ flex: 1, background: '#25D366', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Compartir por WhatsApp</a>
             </div>
           </div>

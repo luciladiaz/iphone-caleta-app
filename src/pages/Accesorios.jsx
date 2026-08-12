@@ -6,12 +6,12 @@ import { useAuth } from '../context/AuthContext';
 const CATEGORIAS = ['Fundas', 'Vidrios templados', 'Cables', 'Cargadores', 'Adaptadores', 'Audio / AirPods', 'MagSafe', 'Power banks', 'Soportes', 'Otros'];
 
 const inputStyle = {
-  width: '100%', padding: '10px 12px', background: '#2c2c2e',
-  border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff',
+  width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)',
+  border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)',
   fontSize: 14, outline: 'none', boxSizing: 'border-box',
 };
 const labelStyle = {
-  color: '#86868b', fontSize: 11, fontWeight: 600,
+  color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600,
   display: 'block', marginBottom: 4, textTransform: 'uppercase',
 };
 
@@ -79,7 +79,7 @@ export default function Accesorios() {
   const totalUnidades = accesorios.reduce((s, a) => s + (a.cantidad || 0), 0);
   const valorStock = accesorios.reduce((s, a) => s + ((a.cantidad || 0) * (a.precioCosto || 0)), 0);
 
-  if (loading) return <div style={{ color: '#86868b', padding: 40 }}>Cargando...</div>;
+  if (loading) return <div style={{ color: 'var(--rv-text-dim)', padding: 40 }}>Cargando...</div>;
 
   return (
     <div>
@@ -87,7 +87,7 @@ export default function Accesorios() {
         <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>🎒 Accesorios</h1>
         <button
           onClick={() => setMostrarForm(!mostrarForm)}
-          style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
+          style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
         >
           {mostrarForm ? 'Cancelar' : '+ Agregar accesorio'}
         </button>
@@ -100,17 +100,17 @@ export default function Accesorios() {
           { label: 'Unidades', valor: totalUnidades, icono: '🔢' },
           { label: 'Valor stock (costo)', valor: `$${valorStock.toLocaleString('es-AR')}`, icono: '💰' },
         ].map(({ label, valor, icono }) => (
-          <div key={label} style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 12, padding: '16px 18px' }}>
+          <div key={label} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '16px 18px' }}>
             <div style={{ fontSize: 20, marginBottom: 4 }}>{icono}</div>
             <div style={{ fontSize: 20, fontWeight: 800 }}>{valor}</div>
-            <div style={{ color: '#86868b', fontSize: 12 }}>{label}</div>
+            <div style={{ color: 'var(--rv-text-dim)', fontSize: 12 }}>{label}</div>
           </div>
         ))}
       </div>
 
       {/* Formulario */}
       {mostrarForm && (
-        <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 24, marginBottom: 24 }}>
+        <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 24, marginBottom: 24 }}>
           <h3 style={{ margin: '0 0 18px', fontSize: 15, fontWeight: 700 }}>Nuevo accesorio</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14 }}>
             <div style={{ gridColumn: '1 / -1' }}>
@@ -148,11 +148,11 @@ export default function Accesorios() {
           </div>
           <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
             <button onClick={guardar} disabled={saving || !form.nombre.trim() || !form.cantidad}
-              style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 700, cursor: 'pointer', opacity: (saving || !form.nombre.trim() || !form.cantidad) ? 0.5 : 1 }}>
+              style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 700, cursor: 'pointer', opacity: (saving || !form.nombre.trim() || !form.cantidad) ? 0.5 : 1 }}>
               {saving ? 'Guardando...' : 'Guardar'}
             </button>
             <button onClick={() => { setForm(FORM_VACIO); setMostrarForm(false); }}
-              style={{ background: 'none', border: '1px solid #3a3a3c', borderRadius: 8, padding: '10px 20px', color: '#86868b', cursor: 'pointer', fontWeight: 600 }}>
+              style={{ background: 'none', border: '1px solid var(--rv-border)', borderRadius: 8, padding: '10px 20px', color: 'var(--rv-text-dim)', cursor: 'pointer', fontWeight: 600 }}>
               Cancelar
             </button>
           </div>
@@ -175,15 +175,15 @@ export default function Accesorios() {
 
       {/* Tabla */}
       {filtrados.length === 0 ? (
-        <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 48, textAlign: 'center', color: '#86868b' }}>
+        <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 48, textAlign: 'center', color: 'var(--rv-text-dim)' }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>🎒</div>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>No hay accesorios cargados</div>
           <div style={{ fontSize: 13 }}>Hacé clic en "+ Agregar accesorio" para empezar</div>
         </div>
       ) : (
-        <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, overflow: 'hidden' }}>
           {/* Header tabla */}
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr auto', gap: 8, padding: '10px 16px', background: '#2c2c2e', fontSize: 11, fontWeight: 700, color: '#86868b', textTransform: 'uppercase' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr auto', gap: 8, padding: '10px 16px', background: 'var(--rv-surface-alt)', fontSize: 11, fontWeight: 700, color: 'var(--rv-text-dim)', textTransform: 'uppercase' }}>
             <span>Producto</span>
             <span>Categoría</span>
             <span>Stock</span>
@@ -195,15 +195,15 @@ export default function Accesorios() {
             <div key={a.id} style={{
               display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr auto',
               gap: 8, padding: '12px 16px', alignItems: 'center',
-              borderTop: i === 0 ? 'none' : '1px solid #2c2c2e',
-              background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
+              borderTop: i === 0 ? 'none' : '1px solid var(--rv-border)',
+              background: i % 2 === 0 ? 'transparent' : 'var(--rv-surface-alt)',
             }}>
               <div>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{a.nombre}</div>
-                {a.color && <div style={{ color: '#86868b', fontSize: 12 }}>{a.color}</div>}
+                {a.color && <div style={{ color: 'var(--rv-text-dim)', fontSize: 12 }}>{a.color}</div>}
               </div>
               <div>
-                <span style={{ background: '#2c2c2e', borderRadius: 6, padding: '3px 8px', fontSize: 12, color: '#86868b' }}>
+                <span style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 6, padding: '3px 8px', fontSize: 12, color: 'var(--rv-text-mid)' }}>
                   {a.categoria}
                 </span>
               </div>
@@ -215,25 +215,25 @@ export default function Accesorios() {
                       onKeyDown={e => { if (e.key === 'Enter') guardarCantidad(a.id); if (e.key === 'Escape') setEditandoId(null); }}
                       autoFocus
                     />
-                    <button onClick={() => guardarCantidad(a.id)} style={{ background: '#30d158', border: 'none', borderRadius: 6, padding: '4px 8px', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>✓</button>
-                    <button onClick={() => setEditandoId(null)} style={{ background: 'none', border: '1px solid #3a3a3c', borderRadius: 6, padding: '4px 8px', color: '#86868b', cursor: 'pointer', fontSize: 12 }}>✕</button>
+                    <button onClick={() => guardarCantidad(a.id)} style={{ background: 'var(--rv-accent)', border: 'none', borderRadius: 6, padding: '4px 8px', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>✓</button>
+                    <button onClick={() => setEditandoId(null)} style={{ background: 'none', border: '1px solid var(--rv-border)', borderRadius: 6, padding: '4px 8px', color: 'var(--rv-text-dim)', cursor: 'pointer', fontSize: 12 }}>✕</button>
                   </div>
                 ) : (
                   <button onClick={() => { setEditandoId(a.id); setEditCantidad(String(a.cantidad)); }}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontWeight: 700, fontSize: 16, color: a.cantidad === 0 ? '#ff3b30' : '#fff' }}>{a.cantidad}</span>
-                    <span style={{ fontSize: 11, color: '#86868b' }}>✏️</span>
+                    <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--rv-text)' }}>{a.cantidad}</span>
+                    <span style={{ fontSize: 11, color: 'var(--rv-text-dim)' }}>✏️</span>
                   </button>
                 )}
               </div>
-              <div style={{ color: '#86868b', fontSize: 14 }}>
+              <div style={{ color: 'var(--rv-text-dim)', fontSize: 14 }}>
                 {a.precioCosto ? `$${a.precioCosto.toLocaleString('es-AR')}` : '—'}
               </div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: '#2563EB' }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--rv-accent)' }}>
                 {a.precioVenta ? `$${a.precioVenta.toLocaleString('es-AR')}` : '—'}
               </div>
               <button onClick={() => eliminar(a.id)}
-                style={{ background: 'none', border: 'none', color: '#ff3b30', fontSize: 18, cursor: 'pointer', padding: '0 4px' }}>
+                style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', fontSize: 18, cursor: 'pointer', padding: '0 4px' }}>
                 ✕
               </button>
             </div>

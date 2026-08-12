@@ -6,8 +6,8 @@ import { db, firebaseConfig } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
 
-const inputStyle = { width: '100%', padding: '10px 12px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
-const labelStyle = { color: '#86868b', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
+const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
+const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 
 const MODULOS = [
   { key: 'dashboard', label: 'Dashboard' },
@@ -85,30 +85,30 @@ export default function Usuarios() {
             if (maxU !== Infinity && usuarios.length >= maxU) { setModalLimite(true); return; }
             setModal(true);
           }}
-          style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+          style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
         >+ Nuevo usuario</button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {usuarios.map(u => (
-          <div key={u.id} style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 12, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <div key={u.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             <div>
               <div style={{ fontWeight: 700, fontSize: 15 }}>{u.nombre}</div>
-              <div style={{ color: '#86868b', fontSize: 12, marginTop: 3 }}>{u.email} · {u.rol} {u.puntoVenta ? `· ${u.puntoVenta}` : ''}</div>
+              <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3 }}>{u.email} · {u.rol} {u.puntoVenta ? `· ${u.puntoVenta}` : ''}</div>
               <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {u.rol === 'admin' ? (
-                  <span style={{ fontSize: 10, background: 'rgba(37,99,235,0.15)', color: '#2563EB', padding: '2px 8px', borderRadius: 99, fontWeight: 600 }}>Todos los módulos</span>
+                  <span style={{ fontSize: 10, background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text-mid)', padding: '2px 8px', borderRadius: 99, fontWeight: 600 }}>Todos los módulos</span>
                 ) : MODULOS.filter(m => u.permisos?.[m.key]).map(m => (
-                  <span key={m.key} style={{ fontSize: 10, background: '#2c2c2e', color: '#ebebf5cc', padding: '2px 8px', borderRadius: 99 }}>{m.label}</span>
+                  <span key={m.key} style={{ fontSize: 10, background: 'var(--rv-surface-alt)', color: 'var(--rv-text-mid)', padding: '2px 8px', borderRadius: 99 }}>{m.label}</span>
                 ))}
               </div>
             </div>
-            <button onClick={() => toggleActivo(u)} style={{ background: u.activo ? 'rgba(48,209,88,0.1)' : 'rgba(255,59,48,0.1)', border: `1px solid ${u.activo ? 'rgba(48,209,88,0.3)' : 'rgba(255,59,48,0.3)'}`, color: u.activo ? '#30d158' : '#ff3b30', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+            <button onClick={() => toggleActivo(u)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text-mid)', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
               {u.activo ? 'Activo' : 'Inactivo'}
             </button>
           </div>
         ))}
-        {usuarios.length === 0 && <p style={{ color: '#86868b' }}>No hay usuarios creados.</p>}
+        {usuarios.length === 0 && <p style={{ color: 'var(--rv-text-dim)' }}>No hay usuarios creados.</p>}
       </div>
 
       {modalLimite && (
@@ -120,10 +120,10 @@ export default function Usuarios() {
       )}
       {modal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
-          <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 16, padding: 28, width: '100%', maxWidth: 500, margin: 'auto' }}>
+          <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 500, margin: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Nuevo usuario</h2>
-              <button onClick={() => setModal(false)} style={{ background: 'none', border: 'none', color: '#86868b', fontSize: 20, cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setModal(false)} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', fontSize: 20, cursor: 'pointer' }}>✕</button>
             </div>
             <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div><label style={labelStyle}>Nombre</label><input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} required style={inputStyle} /></div>
@@ -138,18 +138,18 @@ export default function Usuarios() {
                   <label style={{ ...labelStyle, marginBottom: 10 }}>Permisos de módulos</label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     {MODULOS.map(m => (
-                      <label key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: '#ebebf5cc' }}>
-                        <input type="checkbox" checked={!!form.permisos[m.key]} onChange={() => togglePermiso(m.key)} style={{ accentColor: '#2563EB' }} />
+                      <label key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--rv-text-mid)' }}>
+                        <input type="checkbox" checked={!!form.permisos[m.key]} onChange={() => togglePermiso(m.key)} style={{ accentColor: 'var(--rv-accent)' }} />
                         {m.label}
                       </label>
                     ))}
                   </div>
                 </div>
               )}
-              {error && <div style={{ background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', borderRadius: 8, padding: '10px 14px', color: '#ff3b30', fontSize: 13 }}>{error}</div>}
+              {error && <div style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', borderRadius: 8, padding: '10px 14px', color: 'var(--rv-danger)', fontSize: 13 }}>{error}</div>}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
-                <button type="button" onClick={() => setModal(false)} style={{ padding: '10px 20px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 8, color: '#fff', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
-                <button type="submit" disabled={guardando} style={{ padding: '10px 24px', background: '#2563EB', border: 'none', borderRadius: 8, color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{guardando ? 'Creando...' : 'Crear usuario'}</button>
+                <button type="button" onClick={() => setModal(false)} style={{ padding: '10px 20px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
+                <button type="submit" disabled={guardando} style={{ padding: '10px 24px', background: 'var(--rv-accent)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{guardando ? 'Creando...' : 'Crear usuario'}</button>
               </div>
             </form>
           </div>

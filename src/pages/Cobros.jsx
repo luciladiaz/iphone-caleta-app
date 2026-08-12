@@ -22,8 +22,8 @@ function calcSemaforo(diasVencidos) {
   return 'verde';
 }
 
-const colorSem = { rojo: '#ff3b30', amarillo: '#ff9f0a', verde: '#30d158' };
-const bgSem = { rojo: 'rgba(255,59,48,0.10)', amarillo: 'rgba(255,159,10,0.10)', verde: 'rgba(48,209,88,0.10)' };
+const colorSem = { rojo: 'var(--rv-danger)', amarillo: 'var(--rv-text-mid)', verde: 'var(--rv-text-dim)' };
+const bgSem = { rojo: 'var(--rv-danger-soft)', amarillo: 'var(--rv-surface-alt)', verde: 'var(--rv-surface-alt)' };
 const etiquetaSem = { rojo: 'URGENTE', amarillo: 'ATENCIÓN', verde: 'AL DÍA' };
 
 function textoDeuda(d) {
@@ -81,7 +81,7 @@ export default function Cobros() {
     setVentas(vs => vs.map(v => v.id === ventaId ? { ...v, cobros } : v));
   };
 
-  if (loading) return <div style={{ color: '#86868b', padding: 40 }}>Cargando...</div>;
+  if (loading) return <div style={{ color: 'var(--rv-text-dim)', padding: 40 }}>Cargando...</div>;
 
   // Calcular deudores
   const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -203,41 +203,41 @@ export default function Cobros() {
 
     return (
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-        <div style={{ background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: 18, padding: 28, maxWidth: 380, width: '100%' }}>
+        <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 18, padding: 28, maxWidth: 380, width: '100%' }}>
           <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>📲 Enviar recordatorio por WhatsApp</div>
-          <div style={{ color: '#86868b', fontSize: 13, marginBottom: 20 }}>
+          <div style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 20 }}>
             {d.cliente} · {textoDeuda(d)}
           </div>
 
-          <div style={{ color: '#86868b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
+          <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
             ¿Cómo querés mostrar la deuda?
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
             {esUSD && (
-              <button onClick={() => enviar(false)} style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.4)', borderRadius: 12, padding: '14px 18px', cursor: 'pointer', textAlign: 'left' }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: '#60a5fa' }}>USD {montoUSD.toLocaleString('es-AR')}</div>
-                <div style={{ color: '#86868b', fontSize: 12, marginTop: 3 }}>Enviar en dólares (monto acordado)</div>
+              <button onClick={() => enviar(false)} style={{ background: 'var(--rv-accent-soft)', border: '1px solid rgba(47,111,237,0.4)', borderRadius: 12, padding: '14px 18px', cursor: 'pointer', textAlign: 'left' }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--rv-accent)' }}>USD {montoUSD.toLocaleString('es-AR')}</div>
+                <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3 }}>Enviar en dólares (monto acordado)</div>
               </button>
             )}
             {esUSD && montoARS ? (
-              <button onClick={() => enviar(true)} style={{ background: 'rgba(48,209,88,0.08)', border: '1px solid rgba(48,209,88,0.3)', borderRadius: 12, padding: '14px 18px', cursor: 'pointer', textAlign: 'left' }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: '#30d158' }}>${Math.round(montoARS).toLocaleString('es-AR')} ARS</div>
-                <div style={{ color: '#86868b', fontSize: 12, marginTop: 3 }}>Equivalente al TC del día · 1 USD = ${tipoCambio?.toLocaleString('es-AR')}</div>
+              <button onClick={() => enviar(true)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '14px 18px', cursor: 'pointer', textAlign: 'left' }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--rv-text)' }}>${Math.round(montoARS).toLocaleString('es-AR')} ARS</div>
+                <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3 }}>Equivalente al TC del día · 1 USD = ${tipoCambio?.toLocaleString('es-AR')}</div>
               </button>
             ) : esUSD && !montoARS ? (
-              <div style={{ background: '#2c2c2e', borderRadius: 12, padding: '14px 18px' }}>
-                <div style={{ color: '#86868b', fontSize: 13 }}>⚠️ No hay tipo de cambio cargado. Actualizalo en Configuración.</div>
+              <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 12, padding: '14px 18px' }}>
+                <div style={{ color: 'var(--rv-text-dim)', fontSize: 13 }}>⚠️ No hay tipo de cambio cargado. Actualizalo en Configuración.</div>
               </div>
             ) : (
-              <button onClick={() => enviar(false)} style={{ background: 'rgba(48,209,88,0.08)', border: '1px solid rgba(48,209,88,0.3)', borderRadius: 12, padding: '14px 18px', cursor: 'pointer', textAlign: 'left' }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: '#30d158' }}>${montoUSD.toLocaleString('es-AR')} ARS</div>
-                <div style={{ color: '#86868b', fontSize: 12, marginTop: 3 }}>Monto en pesos argentinos</div>
+              <button onClick={() => enviar(false)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '14px 18px', cursor: 'pointer', textAlign: 'left' }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--rv-text)' }}>${montoUSD.toLocaleString('es-AR')} ARS</div>
+                <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3 }}>Monto en pesos argentinos</div>
               </button>
             )}
           </div>
 
-          <button onClick={() => setModalWA(null)} style={{ width: '100%', background: '#2c2c2e', border: 'none', borderRadius: 10, padding: '11px', color: '#86868b', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+          <button onClick={() => setModalWA(null)} style={{ width: '100%', background: 'var(--rv-surface-alt)', border: 'none', borderRadius: 10, padding: '11px', color: 'var(--rv-text-dim)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
             Cancelar
           </button>
         </div>
@@ -252,9 +252,9 @@ export default function Cobros() {
 
       {/* Panel deudores */}
       {deudores.length === 0 && (
-        <div style={{ marginBottom: 32, background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: '28px 20px', textAlign: 'center' }}>
+        <div style={{ marginBottom: 32, background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: '28px 20px', textAlign: 'center' }}>
           <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>Deudores con cuotas pendientes</div>
-          <div style={{ color: '#86868b', fontSize: 13, maxWidth: 420, margin: '0 auto' }}>
+          <div style={{ color: 'var(--rv-text-dim)', fontSize: 13, maxWidth: 420, margin: '0 auto' }}>
             Por ahora no tenés ventas con saldo pendiente. En cuanto registres una venta en <strong>Ventas</strong> que quede en cuotas o pagada solo en parte (cualquier forma de pago), vas a poder verla acá con semáforo de atraso y mandar recordatorios por WhatsApp.
           </div>
         </div>
@@ -263,13 +263,13 @@ export default function Cobros() {
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 15, fontWeight: 700 }}>Deudores con cuotas pendientes</span>
-            <span style={{ background: 'rgba(255,59,48,0.15)', color: '#ff3b30', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99 }}>{deudores.filter(d => d.cuotasVencidas > 0).length} con atraso</span>
+            <span style={{ background: 'var(--rv-danger-soft)', color: 'var(--rv-danger)', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99 }}>{deudores.filter(d => d.cuotasVencidas > 0).length} con atraso</span>
           </div>
 
           {/* Filtros */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
             {FILTROS.map(f => (
-              <button key={f.key} onClick={() => setFiltro(f.key)} style={{ background: filtro === f.key ? '#2563EB' : '#2c2c2e', color: filtro === f.key ? '#000' : '#ebebf5cc', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              <button key={f.key} onClick={() => setFiltro(f.key)} style={{ background: filtro === f.key ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: filtro === f.key ? '#fff' : 'var(--rv-text-mid)', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                 {f.label}
               </button>
             ))}
@@ -277,22 +277,27 @@ export default function Cobros() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {deudoresFiltrados.map((d, idx) => (
-              <div key={idx} style={{ background: d.cuotasVencidas > 0 ? bgSem[d.sem] : '#1c1c1e', border: `1px solid ${d.cuotasVencidas > 0 ? colorSem[d.sem] + '44' : '#2c2c2e'}`, borderLeft: d.cuotasVencidas > 0 ? `4px solid ${colorSem[d.sem]}` : '4px solid #2c2c2e', borderRadius: 12, padding: '14px 18px' }}>
+              <div key={idx} style={{
+                background: d.cuotasVencidas > 0 && d.sem === 'rojo' ? 'var(--rv-danger-soft)' : 'var(--rv-surface)',
+                border: d.cuotasVencidas > 0 && d.sem === 'rojo' ? '1px solid rgba(212,61,61,0.3)' : '1px solid var(--rv-border)',
+                borderLeft: d.cuotasVencidas > 0 ? `4px solid ${colorSem[d.sem]}` : '4px solid var(--rv-border)',
+                borderRadius: 12, padding: '14px 18px'
+              }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-                      {d.cuotasVencidas > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: colorSem[d.sem] + '22', color: colorSem[d.sem] }}>{etiquetaSem[d.sem]}</span>}
+                      {d.cuotasVencidas > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, border: '1px solid var(--rv-border)', color: colorSem[d.sem] }}>{etiquetaSem[d.sem]}</span>}
                       <span style={{ fontWeight: 700, fontSize: 14 }}>{d.cliente}</span>
-                      <span style={{ color: '#86868b', fontSize: 12 }}>{d.modelo}</span>
+                      <span style={{ color: 'var(--rv-text-dim)', fontSize: 12 }}>{d.modelo}</span>
                     </div>
-                    <div style={{ fontSize: 12, color: '#86868b' }}>
+                    <div style={{ fontSize: 12, color: 'var(--rv-text-dim)' }}>
                       {d.cuotasVencidas > 0 && (
                         <span style={{ color: colorSem[d.sem], fontWeight: 600 }}>
                           {textoDeuda(d)} · Hace {d.maxDias} días
                         </span>
                       )}
-                      {d.cuotasVencidas > 0 && d.montoVencido > 0 && <span style={{ color: '#fff', fontWeight: 600, marginLeft: 8 }}>· Debe {d.moneda} {d.montoVencido.toLocaleString('es-AR')}</span>}
-                      {d.cuotasVencidas === 0 && <span style={{ color: '#30d158' }}>Al día ✓</span>}
+                      {d.cuotasVencidas > 0 && d.montoVencido > 0 && <span style={{ color: 'var(--rv-text)', fontWeight: 600, marginLeft: 8 }}>· Debe {d.moneda} {d.montoVencido.toLocaleString('es-AR')}</span>}
+                      {d.cuotasVencidas === 0 && <span style={{ color: 'var(--rv-text-dim)' }}>Al día ✓</span>}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -306,7 +311,7 @@ export default function Cobros() {
                 </div>
               </div>
             ))}
-            {deudoresFiltrados.length === 0 && <div style={{ textAlign: 'center', color: '#30d158', padding: 20, fontSize: 14 }}>✅ No hay deudores en esta categoría</div>}
+            {deudoresFiltrados.length === 0 && <div style={{ textAlign: 'center', color: 'var(--rv-text-dim)', padding: 20, fontSize: 14 }}>✅ No hay deudores en esta categoría</div>}
           </div>
         </div>
       )}
@@ -315,23 +320,23 @@ export default function Cobros() {
       <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Detalle de cuotas</h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {ventasConCobros.map(v => (
-          <div key={v.id} style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 20 }}>
+          <div key={v.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 20 }}>
             <div style={{ marginBottom: 14 }}>
               <div style={{ fontWeight: 700, fontSize: 15 }}>{v.modelo} {v.gb}GB · {v.cliente || 'Sin cliente'}</div>
-              <div style={{ color: '#86868b', fontSize: 12, marginTop: 2 }}>
+              <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 2 }}>
                 Vendedor: {v.vendedor || '-'}
-                {v.telefono && <a href={`tel:${v.telefono}`} style={{ color: '#2563EB', marginLeft: 8 }}>📞 {v.telefono}</a>}
+                {v.telefono && <a href={`tel:${v.telefono}`} style={{ color: 'var(--rv-accent)', marginLeft: 8 }}>📞 {v.telefono}</a>}
               </div>
             </div>
             {v.cobros.map((cobro, ci) => (
-              <div key={ci} style={{ background: '#2c2c2e', borderRadius: 10, padding: 14, marginBottom: 10 }}>
+              <div key={ci} style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: 14, marginBottom: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <span style={{ fontWeight: 600, fontSize: 14 }}>{cobro.tipo}</span>
-                  {cobro.monto && <span style={{ color: '#2563EB', fontWeight: 700 }}>{cobro.moneda} {cobro.monto}</span>}
+                  {cobro.monto && <span style={{ color: 'var(--rv-accent)', fontWeight: 700 }}>{cobro.moneda} {cobro.monto}</span>}
                 </div>
                 {cobro.tipo === 'Cuotas personales' && cobro.cuotas && (
                   <div>
-                    <div style={{ color: '#86868b', fontSize: 12, marginBottom: 8 }}>{cobro.cuotas} cuotas de {cobro.moneda} {cobro.montoCuota}</div>
+                    <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginBottom: 8 }}>{cobro.cuotas} cuotas de {cobro.moneda} {cobro.montoCuota}</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {Array.from({ length: Number(cobro.cuotas) }).map((_, qi) => {
                         const pagada = (cobro.cuotasPagadas || []).includes(qi);
@@ -340,9 +345,9 @@ export default function Cobros() {
                         const fecha = fc ? fc.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' }) : `Cuota ${qi + 1}`;
                         return (
                           <button key={qi} onClick={() => marcarCuota(v.id, ci, qi, pagada)} style={{
-                            padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
-                            background: pagada ? 'rgba(48,209,88,0.15)' : vencida ? 'rgba(255,59,48,0.15)' : 'rgba(255,159,10,0.15)',
-                            color: pagada ? '#30d158' : vencida ? '#ff3b30' : '#ff9f0a',
+                            padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--rv-border)',
+                            background: vencida ? 'var(--rv-danger-soft)' : 'var(--rv-surface-alt)',
+                            color: pagada ? 'var(--rv-text-mid)' : vencida ? 'var(--rv-danger)' : 'var(--rv-text-dim)',
                           }}>
                             {pagada ? '✓' : vencida ? '⚠' : ''} {fecha}
                           </button>
@@ -351,13 +356,13 @@ export default function Cobros() {
                     </div>
                   </div>
                 )}
-                {cobro.tipo === 'iPhone como parte de pago' && <div style={{ color: '#2563EB', fontSize: 13 }}>📱 iPhone recibido como parte de pago</div>}
+                {cobro.tipo === 'iPhone como parte de pago' && <div style={{ color: 'var(--rv-accent)', fontSize: 13 }}>📱 iPhone recibido como parte de pago</div>}
               </div>
             ))}
           </div>
         ))}
         {ventasConCobros.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 60, color: '#86868b' }}>
+          <div style={{ textAlign: 'center', padding: 60, color: 'var(--rv-text-dim)' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>💳</div>
             <p>No hay cobros registrados</p>
           </div>

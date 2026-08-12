@@ -3,15 +3,19 @@ import { collection, getDocs, query, orderBy, limit, doc, getDoc, updateDoc } fr
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 
-function StatCard({ icon, label, value, sub, color, bg }) {
+function StatCard({ icon, label, value, sub, urgente }) {
   return (
-    <div style={{ background: bg || '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{
+      background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14,
+      padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 8, position: 'relative', overflow: 'hidden',
+      borderLeft: urgente ? '3px solid var(--rv-danger)' : '1px solid var(--rv-border)',
+    }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ fontSize: 20 }}>{icon}</span>
-        <span style={{ color: '#86868b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px' }}>{label}</span>
+        <span style={{ color: 'var(--rv-text-dim)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px' }}>{label}</span>
       </div>
-      <div style={{ fontSize: 26, fontWeight: 800, color: color || '#2563EB', letterSpacing: '-1px' }}>{value}</div>
-      {sub && <div style={{ fontSize: 12, color: '#86868b' }}>{sub}</div>}
+      <div style={{ fontSize: 26, fontWeight: 800, color: urgente ? 'var(--rv-danger)' : 'var(--rv-text)', letterSpacing: '-1px' }}>{value}</div>
+      {sub && <div style={{ fontSize: 12, color: 'var(--rv-text-dim)' }}>{sub}</div>}
     </div>
   );
 }
@@ -144,36 +148,36 @@ export default function Dashboard() {
     setTodasVentas(vs => vs.map(v => v.id === cobro.ventaId ? { ...v, cobros } : v));
   };
 
-  if (loading) return <div style={{ color: '#86868b', padding: 40 }}>Cargando...</div>;
+  if (loading) return <div style={{ color: 'var(--rv-text-dim)', padding: 40 }}>Cargando...</div>;
 
   return (
     <div>
       <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 4, letterSpacing: '-0.5px' }}>Dashboard</h1>
-      <p style={{ color: '#86868b', fontSize: 14, marginBottom: 28 }}>Bienvenido, {perfil?.nombre || 'Admin'} 👋</p>
+      <p style={{ color: 'var(--rv-text-dim)', fontSize: 14, marginBottom: 28 }}>Bienvenido, {perfil?.nombre || 'Admin'} 👋</p>
 
       {/* Ganancia del mes */}
-      <div style={{ background: 'rgba(48,209,88,0.06)', border: '1px solid rgba(48,209,88,0.2)', borderRadius: 14, padding: '20px 24px', marginBottom: 16 }}>
-        <div style={{ color: '#86868b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>💰 Ganancia este mes</div>
-        <div style={{ fontSize: 32, fontWeight: 800, color: '#30d158', letterSpacing: '-1px' }}>USD {stats.gananciaUSD}</div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: '#30d158', opacity: 0.7, marginTop: 2 }}>ARS {stats.gananciaARS}</div>
-        <div style={{ fontSize: 12, color: '#86868b', marginTop: 6 }}>en {stats.ventasMes} ventas entregadas</div>
+      <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: '20px 24px', marginBottom: 16 }}>
+        <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>💰 Ganancia este mes</div>
+        <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--rv-text)', letterSpacing: '-1px' }}>USD {stats.gananciaUSD}</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--rv-text-dim)', marginTop: 2 }}>ARS {stats.gananciaARS}</div>
+        <div style={{ fontSize: 12, color: 'var(--rv-text-dim)', marginTop: 6 }}>en {stats.ventasMes} ventas entregadas</div>
       </div>
 
       {/* Valor del stock */}
-      <div style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 14, padding: '20px 24px', marginBottom: 24 }}>
-        <div style={{ color: '#86868b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>📦 Tu stock disponible vale</div>
-        <div style={{ fontSize: 32, fontWeight: 800, color: '#2563EB', letterSpacing: '-1px' }}>USD {stats.stockValorUSD}</div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: '#2563EB', opacity: 0.7, marginTop: 2 }}>ARS {stats.stockValorARS}</div>
-        <div style={{ fontSize: 12, color: '#86868b', marginTop: 6 }}>{stats.stockDisponible} equipos disponibles de {stats.stockTotal} totales</div>
+      <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: '20px 24px', marginBottom: 24 }}>
+        <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>📦 Tu stock disponible vale</div>
+        <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--rv-text)', letterSpacing: '-1px' }}>USD {stats.stockValorUSD}</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--rv-text-dim)', marginTop: 2 }}>ARS {stats.stockValorARS}</div>
+        <div style={{ fontSize: 12, color: 'var(--rv-text-dim)', marginTop: 6 }}>{stats.stockDisponible} equipos disponibles de {stats.stockTotal} totales</div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14, marginBottom: 32 }}>
-        <StatCard icon="⏳" label="Ventas pendientes" value={stats.pendientesCobro} color="#ff9f0a" />
-        <StatCard icon="🚨" label="Deudores urgentes" value={stats.deudoresUrgentes} color={stats.deudoresUrgentes > 0 ? '#ff3b30' : '#30d158'} />
+        <StatCard icon="⏳" label="Ventas pendientes" value={stats.pendientesCobro} />
+        <StatCard icon="🚨" label="Deudores urgentes" value={stats.deudoresUrgentes} urgente={stats.deudoresUrgentes > 0} />
       </div>
 
       {/* Cobros del día */}
-      <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 24, marginBottom: 28 }}>
+      <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 24, marginBottom: 28 }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>📲 Cobros del día</h2>
 
         <>
@@ -181,33 +185,33 @@ export default function Dashboard() {
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
               {tabs.map(t => (
                 <button key={t.key} onClick={() => setTabCobros(t.key)} style={{
-                  background: tabCobros === t.key ? '#2563EB' : '#2c2c2e',
-                  color: tabCobros === t.key ? '#000' : '#ebebf5cc',
+                  background: tabCobros === t.key ? 'var(--rv-accent)' : 'var(--rv-surface-alt)',
+                  color: tabCobros === t.key ? '#fff' : 'var(--rv-text-mid)',
                   border: 'none', borderRadius: 8, padding: '7px 14px',
                   fontSize: 13, fontWeight: 600, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: 6,
                 }}>
                   {t.label}
-                  {t.count > 0 && <span style={{ background: tabCobros === t.key ? 'rgba(0,0,0,0.2)' : 'rgba(255,59,48,0.3)', color: tabCobros === t.key ? '#000' : '#ff3b30', fontSize: 11, fontWeight: 800, padding: '1px 6px', borderRadius: 99 }}>{t.count}</span>}
+                  {t.count > 0 && <span style={{ background: tabCobros === t.key ? 'rgba(255,255,255,0.25)' : 'var(--rv-danger-soft)', color: tabCobros === t.key ? '#fff' : 'var(--rv-danger)', fontSize: 11, fontWeight: 800, padding: '1px 6px', borderRadius: 99 }}>{t.count}</span>}
                 </button>
               ))}
             </div>
 
             {cobrosFiltrados.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '24px 16px', color: '#30d158', fontSize: 14 }}>
+              <div style={{ textAlign: 'center', padding: '24px 16px', color: 'var(--rv-text-dim)', fontSize: 14 }}>
                 ✅ Todo al día — No tenés cobros pendientes por hoy
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {cobrosFiltrados.map((c, i) => (
-                  <div key={i} style={{ background: '#2c2c2e', borderRadius: 10, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                  <div key={i} style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14 }}>{c.cliente}</div>
-                      <div style={{ color: '#86868b', fontSize: 12, marginTop: 2 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--rv-text)' }}>{c.cliente}</div>
+                      <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 2 }}>
                         {c.modelo} {c.gb}GB · Cuota {c.cuotaNum} de {c.totalCuotas}
-                        {c.diasAtraso > 0 && <span style={{ color: '#ff3b30', marginLeft: 8, fontWeight: 600 }}>· {c.diasAtraso} días de atraso</span>}
+                        {c.diasAtraso > 0 && <span style={{ color: 'var(--rv-danger)', marginLeft: 8, fontWeight: 600 }}>· {c.diasAtraso} días de atraso</span>}
                       </div>
-                      <div style={{ color: '#2563EB', fontWeight: 700, fontSize: 13, marginTop: 4 }}>
+                      <div style={{ color: 'var(--rv-text)', fontWeight: 700, fontSize: 13, marginTop: 4 }}>
                         {c.moneda} {Number(c.monto).toLocaleString('es-AR')}
                       </div>
                     </div>
@@ -222,7 +226,7 @@ export default function Dashboard() {
                         }}>
                         📲 Recordatorio
                       </button>
-                      <button onClick={() => marcarCuotaPagada(c)} style={{ background: 'rgba(48,209,88,0.15)', border: '1px solid rgba(48,209,88,0.3)', color: '#30d158', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                      <button onClick={() => marcarCuotaPagada(c)} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', color: 'var(--rv-text-mid)', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                         ✓ Pagada
                       </button>
                     </div>
@@ -234,19 +238,19 @@ export default function Dashboard() {
       </div>
 
       {/* Últimas ventas */}
-      <div style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 24 }}>
+      <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 24 }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Últimas ventas</h2>
         {ventasRecientes.length === 0 ? (
-          <p style={{ color: '#86868b', fontSize: 14 }}>No hay ventas registradas aún.</p>
+          <p style={{ color: 'var(--rv-text-dim)', fontSize: 14 }}>No hay ventas registradas aún.</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {ventasRecientes.map(v => (
-              <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#2c2c2e', borderRadius: 10 }}>
+              <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--rv-surface-alt)', borderRadius: 10 }}>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{v.modelo} {v.gb}GB {v.color}</div>
-                  <div style={{ color: '#86868b', fontSize: 12 }}>{v.cliente || 'Sin cliente'} · {v.vendedor || '-'}</div>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--rv-text)' }}>{v.modelo} {v.gb}GB {v.color}</div>
+                  <div style={{ color: 'var(--rv-text-dim)', fontSize: 12 }}>{v.cliente || 'Sin cliente'} · {v.vendedor || '-'}</div>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 99, background: v.estado === 'entregado' ? '#d4edda22' : v.estado === 'cancelado' ? '#f8d7da22' : '#fff3cd22', color: v.estado === 'entregado' ? '#30d158' : v.estado === 'cancelado' ? '#ff3b30' : '#ff9f0a' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 99, border: '1px solid var(--rv-border)', color: 'var(--rv-text-mid)' }}>
                   {v.estado || 'pendiente'}
                 </span>
               </div>

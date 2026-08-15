@@ -147,6 +147,43 @@ const FEATURES = [
   },
 ];
 
+const SCREENSHOT_HERO = { titulo: 'Dashboard', desc: 'Tu ganancia del mes en USD y ARS, de un vistazo.', url: 'app.reventapp.com.ar/dashboard', img: '/screenshots/dashboard.jpg' };
+
+const SCREENSHOTS_THUMB = [
+  { titulo: 'Stock con IMEI y batería', url: '/stock', img: '/screenshots/stock.jpg' },
+  { titulo: 'Catálogo público por WhatsApp', url: '/catalogo', img: '/screenshots/catalogo.jpg' },
+  { titulo: 'Comprobante con firma digital', url: '/comprobante', img: '/screenshots/comprobante.jpg' },
+];
+
+const PLAN_INCLUYE = [
+  { categoria: 'Ventas y catálogo', items: [
+    'Catálogo público compartible por WhatsApp',
+    'Plan Canje: calculadora de diferencia para tu cliente',
+    'Comprobante de venta con checklist y firma digital',
+    'Stock y ventas ilimitadas',
+    'Múltiples puntos de venta',
+  ]},
+  { categoria: 'Cobros y proveedores', items: [
+    'Cobros, cuotas y saldos pendientes',
+    'Panel de deudores con semáforo de atraso',
+    'Botón WhatsApp directo a deudores',
+    'Resumen de cobros del día',
+    'Proveedores y pagos',
+  ]},
+  { categoria: 'Ganancias y reportes', items: [
+    'Multi-moneda ARS/USD en tiempo real',
+    'Reportes de ganancia en USD y ARS',
+    'Calculadora de precio con rentabilidad',
+    'Dashboard gerencial',
+    'Reportes por vendedor',
+    'Exportar ventas y stock a Excel',
+  ]},
+  { categoria: 'Usuarios y equipos', items: [
+    'Usuarios ilimitados con permisos',
+    'Historial completo de cada equipo',
+  ]},
+];
+
 const FAQS = [
   { q: '¿Funciona para cualquier tipo de revendedor?', a: 'Sí. Funciona tanto si tenés un local físico como si vendés solo por Instagram o WhatsApp.' },
   { q: '¿Qué pasa con mis datos si cancelo?', a: 'Tus datos quedan guardados por 30 días después de cancelar. Podés exportarlos cuando quieras.' },
@@ -208,16 +245,71 @@ function CardFeature({ icon, titulo, desc, gradient, shadow }) {
   );
 }
 
+function MacHero({ titulo, desc, url, img }) {
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 0 0' }}>
+        <div style={{ width: 'min(880px, 100%)' }}>
+          <div style={{ position: 'relative', background: 'linear-gradient(180deg,#3a3f47 0%,#1c1f24 100%)', borderRadius: '20px 20px 8px 8px', padding: '16px 16px 22px', boxShadow: '0 40px 90px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06) inset' }}>
+            <div style={{ position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', width: 10, height: 10, borderRadius: '50%', background: '#0a0c10' }} />
+            <div style={{ background: C.bgCard, borderRadius: 8, overflow: 'hidden', boxShadow: '0 0 0 1px rgba(255,255,255,0.05)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', background: '#141f36', borderBottom: `1px solid ${C.border}` }}>
+                <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#ff5f57', flexShrink: 0 }} />
+                <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#febc2e', flexShrink: 0 }} />
+                <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#28c840', flexShrink: 0 }} />
+                <div className="mac-url" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 7, padding: '6px 14px', margin: '0 60px', fontFamily: 'ui-monospace, SF Mono, Consolas, monospace', fontSize: 12, color: C.textSecondary }}>
+                  🔒 {url}
+                </div>
+              </div>
+              <img src={img} alt={titulo} style={{ display: 'block', width: '100%', height: 'auto' }} loading="lazy" />
+            </div>
+          </div>
+          <div style={{ width: '106%', marginLeft: '-3%', height: 16, background: 'linear-gradient(180deg,#4a5058 0%,#2a2d33 100%)', borderRadius: '0 0 12px 12px', position: 'relative', boxShadow: '0 10px 24px rgba(0,0,0,0.4)' }}>
+            <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 120, height: 6, background: '#1c1f24', borderRadius: '0 0 8px 8px' }} />
+          </div>
+        </div>
+      </div>
+      <div style={{ textAlign: 'center', marginTop: 36 }}>
+        <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 6 }}>{titulo}</div>
+        <div style={{ color: C.textSecondary, fontSize: 14 }}>{desc}</div>
+      </div>
+    </div>
+  );
+}
+
+function Thumb({ titulo, url, img }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{ background: C.bgCard, border: `1px solid ${hover ? C.accentBlue : 'rgba(255,255,255,0.1)'}`, borderRadius: 9, overflow: 'hidden', transition: 'transform .2s, border-color .2s', transform: hover ? 'translateY(-3px)' : 'none' }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', background: '#141f36', borderBottom: `1px solid ${C.border}` }}>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ff5f57', flexShrink: 0 }} />
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#febc2e', flexShrink: 0 }} />
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#28c840', flexShrink: 0 }} />
+        <span style={{ flex: 1, fontFamily: 'ui-monospace, SF Mono, Consolas, monospace', fontSize: 9, color: C.textSecondary, background: 'rgba(255,255,255,0.05)', borderRadius: 4, padding: '2px 7px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{url}</span>
+      </div>
+      <img src={img} alt={titulo} style={{ display: 'block', width: '100%', height: 'auto' }} loading="lazy" />
+      <div style={{ padding: '10px 12px', fontSize: 12, fontWeight: 600, color: C.textPrimary }}>{titulo}</div>
+    </div>
+  );
+}
+
 export default function Landing() {
   return (
     <div style={{ background: C.bgPrimary, color: C.textPrimary, fontFamily: "'Inter', -apple-system, sans-serif", lineHeight: 1.6, WebkitFontSmoothing: 'antialiased' }}>
       <style>{`
         .landing-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
         .landing-grid-2 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .landing-grid-thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 900px; margin: 0 auto; }
         @media (max-width: 768px) {
           .landing-grid-3 { grid-template-columns: 1fr !important; }
           .landing-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
+          .landing-grid-thumbs { grid-template-columns: 1fr !important; }
           .precio-pro-scale { transform: scale(1) !important; }
+          .mac-url { margin: 0 24px !important; }
         }
         @media (max-width: 480px) {
           .landing-grid-2 { grid-template-columns: 1fr !important; }
@@ -330,6 +422,25 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ASÍ SE VE POR DENTRO — capturas reales */}
+      <section style={{ padding: '70px 24px 80px', background: C.bgPrimary }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 8 }}>
+            <h2 style={{ fontSize: 'clamp(24px, 4vw, 34px)', fontWeight: 800, letterSpacing: '-1px', marginBottom: 12 }}>Así se ve por dentro</h2>
+            <p style={{ color: C.textSecondary, fontSize: 16, marginBottom: 56 }}>Nada de planillas. Este es el sistema real que usan +200 revendedores en toda Argentina.</p>
+          </div>
+
+          <MacHero {...SCREENSHOT_HERO} />
+
+          <div style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: C.textSecondary, margin: '64px 0 22px' }}>
+            También adentro del sistema
+          </div>
+          <div className="landing-grid-thumbs">
+            {SCREENSHOTS_THUMB.map(s => <Thumb key={s.titulo} {...s} />)}
+          </div>
+        </div>
+      </section>
+
       {/* PRECIOS */}
       <section style={{ padding: '80px 24px', background: C.bgPrimary }}>
         <div style={{ maxWidth: 1060, margin: '0 auto', textAlign: 'center' }}>
@@ -343,10 +454,17 @@ export default function Landing() {
                 <span style={{ color: C.accentLight }}>$</span>29.900<span style={{ fontSize: 13, fontWeight: 400, color: C.textSecondary }}>/mes</span>
               </div>
               <div style={{ fontSize: 11, color: C.textSecondary, marginBottom: 18 }}>= $997 ARS por día.</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 24 }}>
-                {['Stock y ventas ilimitadas', 'Multi-moneda ARS/USD en tiempo real', 'Usuarios ilimitados con permisos', 'Catálogo público compartible por WhatsApp', 'Plan Canje: calculadora de diferencia para tu cliente', 'Comprobante de venta con checklist y firma digital', 'Reportes de ganancia USD y ARS', 'Cobros, cuotas y saldos pendientes', 'Panel de deudores con semáforo', 'Botón WhatsApp directo a deudores', 'Múltiples puntos de venta', 'Reportes por vendedor y dashboard gerencial', 'Soporte WhatsApp prioritario'].map(f => (
-                  <div key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: '#ebebf5cc' }}>
-                    <span style={{ color: C.accentBlue, flexShrink: 0 }}>✓</span>{f}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
+                {PLAN_INCLUYE.map(grupo => (
+                  <div key={grupo.categoria}>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, color: C.accentLight, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{grupo.categoria}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                      {grupo.items.map(f => (
+                        <div key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: '#ebebf5cc' }}>
+                          <span style={{ color: C.accentBlue, flexShrink: 0 }}>✓</span>{f}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>

@@ -5,23 +5,32 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 const WHATSAPP_SOPORTE = '5493364400111';
 
 const PLAN_INCLUYE = [
-  'Stock y ventas ilimitadas',
-  'Multi-moneda ARS/USD en tiempo real',
-  'Cobros, cuotas y saldos pendientes',
-  'Proveedores y pagos',
-  'Usuarios ilimitados con permisos',
-  'Catálogo público compartible por WhatsApp',
-  'Reportes de ganancia en USD y ARS',
-  'Calculadora de precio con rentabilidad',
-  'Panel de deudores con semáforo de atraso',
-  'Botón WhatsApp directo a deudores',
-  'Resumen de cobros del día',
-  'Exportar ventas y stock a Excel',
-  'Múltiples puntos de venta',
-  'Reportes por vendedor',
-  'Dashboard gerencial',
-  'Historial completo de cada equipo',
-  'Soporte WhatsApp prioritario',
+  { categoria: 'Ventas y catálogo', items: [
+    'Catálogo público compartible por WhatsApp',
+    'Plan Canje: calculadora de diferencia para tu cliente',
+    'Comprobante de venta con checklist y firma digital',
+    'Stock y ventas ilimitadas',
+    'Múltiples puntos de venta',
+  ]},
+  { categoria: 'Cobros y proveedores', items: [
+    'Cobros, cuotas y saldos pendientes',
+    'Panel de deudores con semáforo de atraso',
+    'Botón WhatsApp directo a deudores',
+    'Resumen de cobros del día',
+    'Proveedores y pagos',
+  ]},
+  { categoria: 'Ganancias y reportes', items: [
+    'Multi-moneda ARS/USD en tiempo real',
+    'Reportes de ganancia en USD y ARS',
+    'Calculadora de precio con rentabilidad',
+    'Dashboard gerencial',
+    'Reportes por vendedor',
+    'Exportar ventas y stock a Excel',
+  ]},
+  { categoria: 'Usuarios y equipos', items: [
+    'Usuarios ilimitados con permisos',
+    'Historial completo de cada equipo',
+  ]},
 ];
 
 export default function Planes() {
@@ -219,10 +228,17 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
             </div>
             <div style={{ fontSize: 12, color: 'var(--rv-text-dim)', marginTop: 4 }}>= $997 ARS por día.</div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {PLAN_INCLUYE.map(f => (
-              <div key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--rv-text-mid)', alignItems: 'flex-start' }}>
-                <span style={{ color: 'var(--rv-accent)', flexShrink: 0, marginTop: 1 }}>✓</span> {f}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {PLAN_INCLUYE.map(grupo => (
+              <div key={grupo.categoria}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--rv-accent)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{grupo.categoria}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {grupo.items.map(f => (
+                    <div key={f} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--rv-text-mid)', alignItems: 'flex-start' }}>
+                      <span style={{ color: 'var(--rv-accent)', flexShrink: 0, marginTop: 1 }}>✓</span> {f}
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>

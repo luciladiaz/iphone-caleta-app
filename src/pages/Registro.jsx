@@ -1,6 +1,6 @@
 ﻿import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { IconMail } from '../components/Icons';
@@ -69,7 +69,15 @@ export default function Registro() {
         modelos: ['iPhone 12','iPhone 12 Pro','iPhone 12 Pro Max','iPhone 13','iPhone 13 Pro','iPhone 13 Pro Max','iPhone 14','iPhone 14 Pro','iPhone 14 Pro Max','iPhone 15','iPhone 15 Pro','iPhone 15 Pro Max','iPhone 16','iPhone 16 Plus','iPhone 16 Pro','iPhone 16 Pro Max','iPhone 17','iPhone 17 Air','iPhone 17 Pro','iPhone 17 Pro Max'],
       });
 
-      await sendEmailVerification(cred.user);
+      try {
+        await fetch('/api/enviar-verificacion', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: form.email, nombre: form.nombre }),
+        });
+      } catch (mailErr) {
+        console.error('Error enviando mail de verificación:', mailErr);
+      }
       if (typeof fbq !== 'undefined') fbq('track', 'Lead');
       if (comprar) navigate('/planes?comprar=1');
       else setVerificando(true);

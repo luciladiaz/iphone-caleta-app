@@ -1,6 +1,5 @@
 ﻿import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { sendEmailVerification } from 'firebase/auth';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
@@ -21,7 +20,15 @@ export default function Login() {
       const cred = await login(email, password);
       if (!cred.user.emailVerified) {
         // Reenviar el link y cerrar sesión — no pueden entrar sin verificar
-        await sendEmailVerification(cred.user);
+        try {
+          await fetch('/api/enviar-verificacion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: cred.user.email }),
+          });
+        } catch (mailErr) {
+          console.error('Error enviando mail de verificación:', mailErr);
+        }
         await logout();
         setError('Necesitás verificar tu email antes de entrar. Te reenviamos el link a tu casilla. Revisá también el spam.');
         return;

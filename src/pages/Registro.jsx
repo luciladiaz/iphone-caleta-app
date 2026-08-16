@@ -74,12 +74,18 @@ export default function Registro() {
       if (comprar) navigate('/planes?comprar=1');
       else setVerificando(true);
     } catch (err) {
-      if (err.code === 'auth/email-already-in-use') setError('Ese email ya tiene una cuenta.');
+      if (err.code === 'auth/email-already-in-use') {
+        setError(comprar
+          ? 'Ese email ya tiene una cuenta. Iniciá sesión para continuar con el pago.'
+          : 'Ese email ya tiene una cuenta.');
+      }
       else if (err.code === 'auth/invalid-email') setError('Email inválido.');
       else setError('Ocurrió un error. Intentá de nuevo.');
       console.error(err);
     } finally { setLoading(false); }
   };
+
+  const loginHref = comprar ? '/login?redirect=' + encodeURIComponent('/planes?comprar=1') : '/login';
 
   if (verificando) return (
     <div style={{ minHeight: '100vh', background: 'var(--rv-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Manrope', sans-serif", padding: 16 }}>
@@ -151,7 +157,7 @@ export default function Registro() {
 
         <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: 'var(--rv-text-dim)' }}>
           ¿Ya tenés cuenta?{' '}
-          <Link to="/login" style={{ color: 'var(--rv-accent)', fontWeight: 600 }}>Iniciar sesión →</Link>
+          <Link to={loginHref} style={{ color: 'var(--rv-accent)', fontWeight: 600 }}>Iniciar sesión →</Link>
         </p>
       </div>
     </div>

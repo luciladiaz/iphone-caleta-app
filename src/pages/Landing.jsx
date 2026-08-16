@@ -147,13 +147,14 @@ const FEATURES = [
   },
 ];
 
-const SCREENSHOT_HERO = { titulo: 'Dashboard', desc: 'Tu ganancia del mes en USD y ARS, de un vistazo.', url: 'app.reventapp.com.ar/dashboard', img: '/screenshots/dashboard.jpg' };
-
-const SCREENSHOTS_THUMB = [
-  { titulo: 'Stock con IMEI y batería', url: '/stock', img: '/screenshots/stock.jpg' },
-  { titulo: 'Catálogo público por WhatsApp', url: '/catalogo', img: '/screenshots/catalogo.jpg' },
-  { titulo: 'Comprobante con firma digital', url: '/comprobante', img: '/screenshots/comprobante.jpg' },
+const HERO_NAV = [
+  { key: 'dashboard', top: 8.7, img: '/screenshots/hero/dashboard-content.png' },
+  { key: 'stock', top: 12.8, img: '/screenshots/hero/stock-content.png' },
+  { key: 'ventas', top: 21, img: '/screenshots/hero/ventas-content.png' },
+  { key: 'cobros', top: 25.1, img: '/screenshots/hero/cobros-content.png' },
 ];
+const HERO_ROW_H = 3.9;
+const HERO_SIDEBAR_PCT = (220 / 1400) * 100;
 
 const PLAN_INCLUYE = [
   { categoria: 'Ventas y catálogo', items: [
@@ -245,54 +246,65 @@ function CardFeature({ icon, titulo, desc, gradient, shadow }) {
   );
 }
 
-function MacHero({ titulo, desc, url, img }) {
+function InteractiveHero() {
+  const [activeView, setActiveView] = useState('dashboard');
+  const activeImg = HERO_NAV.find(n => n.key === activeView)?.img;
+
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 0 0' }}>
-        <div style={{ width: 'min(880px, 100%)' }}>
-          <div style={{ position: 'relative', background: 'linear-gradient(180deg,#3a3f47 0%,#1c1f24 100%)', borderRadius: '20px 20px 8px 8px', padding: '16px 16px 22px', boxShadow: '0 40px 90px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06) inset' }}>
-            <div style={{ position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', width: 10, height: 10, borderRadius: '50%', background: '#0a0c10' }} />
-            <div style={{ background: C.bgCard, borderRadius: 8, overflow: 'hidden', boxShadow: '0 0 0 1px rgba(255,255,255,0.05)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', background: '#141f36', borderBottom: `1px solid ${C.border}` }}>
-                <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#ff5f57', flexShrink: 0 }} />
-                <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#febc2e', flexShrink: 0 }} />
-                <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#28c840', flexShrink: 0 }} />
-                <div className="mac-url" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 7, padding: '6px 14px', margin: '0 60px', fontFamily: 'ui-monospace, SF Mono, Consolas, monospace', fontSize: 12, color: C.textSecondary }}>
-                  🔒 {url}
-                </div>
-              </div>
-              <img src={img} alt={titulo} style={{ display: 'block', width: '100%', height: 'auto' }} loading="lazy" />
+    <div style={{ position: 'relative', background: 'linear-gradient(180deg, #f4f7fd 0%, #eef2fb 100%)', borderRadius: 24, padding: '56px 32px', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: -180, right: -160, width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(47,95,224,0.14) 0%, rgba(47,95,224,0) 70%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: -200, left: -140, width: 480, height: 480, borderRadius: '50%', background: 'radial-gradient(circle, rgba(47,95,224,0.10) 0%, rgba(47,95,224,0) 70%)', pointerEvents: 'none' }} />
+
+      <div style={{ position: 'relative', maxWidth: 1240, margin: '0 auto', display: 'grid', gridTemplateColumns: 'minmax(260px, 320px) minmax(480px, 800px)', gap: 40, alignItems: 'center' }} className="hero-interactivo-grid">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#e7edfc', color: '#2f5fe0', fontSize: 13, fontWeight: 600, padding: '7px 14px', borderRadius: 999, width: 'fit-content' }}>
+            reventapp.com.ar
+          </div>
+          <h2 style={{ margin: 0, fontSize: 34, lineHeight: 1.15, fontWeight: 800, color: '#10162b', letterSpacing: '-0.01em' }}>
+            Gestioná tu negocio de reventa de iPhones desde un solo lugar
+          </h2>
+          <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#4b5468', maxWidth: 380 }}>
+            Stock, ventas, cobros y proveedores conectados en un panel simple y profesional.
+          </p>
+          <p style={{ margin: 0, fontSize: 13, color: '#8892a8' }}>Probá el panel de acá al lado — las pestañas de arriba son interactivas.</p>
+          <div style={{ display: 'flex', gap: 14, marginTop: 4, flexWrap: 'wrap' }}>
+            <Link to="/registro" style={{ background: '#2f5fe0', color: '#fff', fontSize: 15, fontWeight: 600, padding: '14px 26px', borderRadius: 10, boxShadow: '0 10px 24px rgba(47,95,224,0.28)', textDecoration: 'none' }}>
+              Probar gratis 7 días
+            </Link>
+            <a href="#precios" style={{ background: '#fff', color: '#10162b', fontSize: 15, fontWeight: 600, padding: '14px 26px', borderRadius: 10, border: '1px solid #dde3f2', textDecoration: 'none' }}>
+              Ver planes
+            </a>
+          </div>
+        </div>
+
+        <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', width: '100%', aspectRatio: '1400 / 600', overflow: 'hidden', background: '#fff', borderRadius: 14, boxShadow: '0 24px 60px rgba(16,22,43,0.18)' }}>
+            <img src="/screenshots/hero/base-sidebar.png" alt="ReventApp" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'left top', display: 'block' }} />
+            <div style={{ position: 'absolute', left: `${HERO_SIDEBAR_PCT}%`, top: 0, width: `${100 - HERO_SIDEBAR_PCT}%`, height: '100%', overflow: 'hidden' }}>
+              <img src={activeImg} alt={activeView} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'left top', display: 'block' }} />
+            </div>
+            {HERO_NAV.map(item => (
+              <div
+                key={item.key}
+                onClick={() => setActiveView(item.key)}
+                style={{ position: 'absolute', left: 0, top: `${item.top}%`, width: `${HERO_SIDEBAR_PCT}%`, height: `${HERO_ROW_H}%`, cursor: 'pointer' }}
+              />
+            ))}
+          </div>
+
+          <div style={{ position: 'absolute', top: -28, right: -18, background: '#fff', borderRadius: 14, boxShadow: '0 14px 32px rgba(16,22,43,0.16)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#8892a8', textTransform: 'uppercase' }}>Venta confirmada</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#10162b' }}>+ USD 735</div>
             </div>
           </div>
-          <div style={{ width: '106%', marginLeft: '-3%', height: 16, background: 'linear-gradient(180deg,#4a5058 0%,#2a2d33 100%)', borderRadius: '0 0 12px 12px', position: 'relative', boxShadow: '0 10px 24px rgba(0,0,0,0.4)' }}>
-            <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 120, height: 6, background: '#1c1f24', borderRadius: '0 0 8px 8px' }} />
+          <div style={{ position: 'absolute', bottom: -22, right: -18, background: '#fff', borderRadius: 12, boxShadow: '0 14px 32px rgba(16,22,43,0.16)', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2f5fe0', flexShrink: 0 }} />
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: '#10162b' }}>Stock actualizado</span>
           </div>
         </div>
       </div>
-      <div style={{ textAlign: 'center', marginTop: 36 }}>
-        <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 6 }}>{titulo}</div>
-        <div style={{ color: C.textSecondary, fontSize: 14 }}>{desc}</div>
-      </div>
-    </div>
-  );
-}
-
-function Thumb({ titulo, url, img }) {
-  const [hover, setHover] = useState(false);
-  return (
-    <div
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{ background: C.bgCard, border: `1px solid ${hover ? C.accentBlue : 'rgba(255,255,255,0.1)'}`, borderRadius: 9, overflow: 'hidden', transition: 'transform .2s, border-color .2s', transform: hover ? 'translateY(-3px)' : 'none' }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', background: '#141f36', borderBottom: `1px solid ${C.border}` }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ff5f57', flexShrink: 0 }} />
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#febc2e', flexShrink: 0 }} />
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#28c840', flexShrink: 0 }} />
-        <span style={{ flex: 1, fontFamily: 'ui-monospace, SF Mono, Consolas, monospace', fontSize: 9, color: C.textSecondary, background: 'rgba(255,255,255,0.05)', borderRadius: 4, padding: '2px 7px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{url}</span>
-      </div>
-      <img src={img} alt={titulo} style={{ display: 'block', width: '100%', height: 'auto' }} loading="lazy" />
-      <div style={{ padding: '10px 12px', fontSize: 12, fontWeight: 600, color: C.textPrimary }}>{titulo}</div>
     </div>
   );
 }
@@ -303,13 +315,11 @@ export default function Landing() {
       <style>{`
         .landing-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
         .landing-grid-2 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-        .landing-grid-thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 900px; margin: 0 auto; }
         @media (max-width: 768px) {
           .landing-grid-3 { grid-template-columns: 1fr !important; }
           .landing-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
-          .landing-grid-thumbs { grid-template-columns: 1fr !important; }
           .precio-pro-scale { transform: scale(1) !important; }
-          .mac-url { margin: 0 24px !important; }
+          .hero-interactivo-grid { grid-template-columns: 1fr !important; }
         }
         @media (max-width: 480px) {
           .landing-grid-2 { grid-template-columns: 1fr !important; }
@@ -422,22 +432,10 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ASÍ SE VE POR DENTRO — capturas reales */}
+      {/* ASÍ SE VE POR DENTRO — mockup interactivo */}
       <section style={{ padding: '70px 24px 80px', background: C.bgPrimary }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 8 }}>
-            <h2 style={{ fontSize: 'clamp(24px, 4vw, 34px)', fontWeight: 800, letterSpacing: '-1px', marginBottom: 12 }}>Así se ve por dentro</h2>
-            <p style={{ color: C.textSecondary, fontSize: 16, marginBottom: 56 }}>Nada de planillas. Este es el sistema real que usan +200 revendedores en toda Argentina.</p>
-          </div>
-
-          <MacHero {...SCREENSHOT_HERO} />
-
-          <div style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: C.textSecondary, margin: '64px 0 22px' }}>
-            También adentro del sistema
-          </div>
-          <div className="landing-grid-thumbs">
-            {SCREENSHOTS_THUMB.map(s => <Thumb key={s.titulo} {...s} />)}
-          </div>
+        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+          <InteractiveHero />
         </div>
       </section>
 

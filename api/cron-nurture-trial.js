@@ -11,9 +11,9 @@ function botonWhatsapp(mensaje) {
 }
 
 const MENSAJES_WHATSAPP = {
-  1: (nombre) => `Hola ${nombre}! 👋 Vi que te registraste en ReventApp. Cualquier duda para cargar tu primer stock, quedo a un mensaje de distancia. Un tip: en 10 minutos podés tener todo cargado y tu primera venta registrada 🚀`,
-  4: (nombre) => `Hola ${nombre}! Van 4 días de tu prueba 👀 ¿Ya armaste tu catálogo? Se puede compartir por WhatsApp con un link que se actualiza solo. Te quedan 3 días de prueba, cualquier cosa contame`,
-  6: (nombre) => `Hola ${nombre}! Mañana se vence tu prueba gratis de ReventApp. Si querés seguir, el plan completo son $29.900/mes, con todo incluido, cancelás cuando quieras. ¿Tuviste algún problema con el pago o tenés dudas? Contame y te ayudo ahora mismo`,
+  1: (nombre) => `Hola ${nombre}! 👋 Vi que te registraste en ReventApp. En 10 minutos podés tener tu stock cargado y tu primera venta registrada. ¿Ya pudiste entrar y cargar el primer equipo? Contame con 👍 (todo bien) o 🤔 (medio trabado) y te ayudo`,
+  4: (nombre) => `Hola ${nombre}! Van 4 días de tu prueba 👀 Te quedan 3. ¿Cómo la venís pasando — te sirvió, te trabaste en algo puntual, o todavía no tuviste tiempo de probarla bien? Contame así te ayudo con lo que necesites en lo que queda`,
+  6: (nombre) => `Hola ${nombre}! Mañana se vence tu prueba gratis de ReventApp. Si querés seguir, el plan completo son $29.900/mes, con todo incluido, cancelás cuando quieras. ¿Tuviste algún problema con el pago o dudas del plan? Y si decidís no seguir, contame por qué — me ayuda un montón a mejorar la app`,
 };
 
 const EMAILS_FALLBACK = {

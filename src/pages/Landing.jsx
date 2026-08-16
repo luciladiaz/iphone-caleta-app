@@ -147,13 +147,14 @@ const FEATURES = [
   },
 ];
 
+// Porcentajes relativos a los 600px del recorte final (no a los 1000px originales sin recortar)
 const HERO_NAV = [
-  { key: 'dashboard', top: 8.7, img: '/screenshots/hero/dashboard-content.png' },
-  { key: 'stock', top: 12.8, img: '/screenshots/hero/stock-content.png' },
-  { key: 'ventas', top: 21, img: '/screenshots/hero/ventas-content.png' },
-  { key: 'cobros', top: 25.1, img: '/screenshots/hero/cobros-content.png' },
+  { key: 'dashboard', top: 14.5, img: '/screenshots/hero/dashboard-content.png' },
+  { key: 'stock', top: 21.33, img: '/screenshots/hero/stock-content.png' },
+  { key: 'ventas', top: 35, img: '/screenshots/hero/ventas-content.png' },
+  { key: 'cobros', top: 41.83, img: '/screenshots/hero/cobros-content.png' },
 ];
-const HERO_ROW_H = 3.9;
+const HERO_ROW_H = 6.5;
 const HERO_SIDEBAR_PCT = (220 / 1400) * 100;
 
 const PLAN_INCLUYE = [

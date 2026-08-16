@@ -467,14 +467,19 @@ export default function Landing() {
                   </div>
                 ))}
               </div>
-              <Link to="/registro" style={{ display: 'block', background: C.gradientCTA, color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 15, fontWeight: 700, textDecoration: 'none', textAlign: 'center', boxShadow: '0 0 16px rgba(37,99,235,0.4)' }}>
-                Empezar gratis
-              </Link>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <Link to="/registro" style={{ display: 'block', background: C.gradientCTA, color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 15, fontWeight: 700, textDecoration: 'none', textAlign: 'center', boxShadow: '0 0 16px rgba(37,99,235,0.4)' }}>
+                  Empezar gratis
+                </Link>
+                <Link to="/registro?comprar=1" style={{ display: 'block', background: 'transparent', color: C.accentLight, border: `1px solid ${C.accentBlue}`, borderRadius: 10, padding: '14px', fontSize: 15, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}>
+                  Comprar ahora
+                </Link>
+              </div>
             </div>
           </div>
           <div style={{ color: C.textSecondary, fontSize: 13, display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
             <span>💳 Pagá con tarjeta, débito o transferencia via MercadoPago</span>
-            <span>🔄 Cancelá cuando quieras · ✓ 7 días gratis sin tarjeta</span>
+            <span>🔄 Cancelá cuando quieras · ✓ 7 días gratis sin tarjeta, o comprá directo sin trial</span>
           </div>
         </div>
       </section>

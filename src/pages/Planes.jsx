@@ -42,6 +42,7 @@ export default function Planes() {
   const motivo = searchParams.get('motivo');
   const upgrade = searchParams.get('upgrade');
   const pago   = searchParams.get('pago');
+  const comprar = searchParams.get('comprar');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [verificando, setVerificando] = useState(false);
   const [modalCancelar, setModalCancelar] = useState(false);
@@ -49,6 +50,7 @@ export default function Planes() {
   const [cancelError, setCancelError] = useState('');
   const proRef = useRef(null);
   const verificacionRef = useRef(null);
+  const comprarDisparadoRef = useRef(false);
 
   useEffect(() => {
     const h = () => setIsMobile(window.innerWidth < 768);
@@ -136,6 +138,14 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
   };
 
   const handleProMax = () => handleContratar('promax');
+
+  // Compra directa desde la landing (?comprar=1): salta el trial y va directo a MercadoPago
+  // apenas el negocio recién creado está disponible.
+  useEffect(() => {
+    if (comprar !== '1' || comprarDisparadoRef.current || !negocioId || planActivo) return;
+    comprarDisparadoRef.current = true;
+    handleProMax();
+  }, [comprar, negocioId, planActivo]);
 
   const handleCancelar = async () => {
     setCancelando(true);

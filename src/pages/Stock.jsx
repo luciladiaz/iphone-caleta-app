@@ -92,6 +92,7 @@ export default function Stock() {
     try {
       if (editandoId) {
         const { fechaManual, ...datos } = form;
+        if (fechaManual) datos.fechaIngreso = new Date(fechaManual);
         await updateDoc(doc(db, ...base, 'stock', editandoId), datos);
       } else {
         const fechaIngreso = form.fechaManual ? new Date(form.fechaManual) : serverTimestamp();
@@ -153,23 +154,20 @@ export default function Stock() {
         {equiposFiltrados.map(eq => (
           <div key={eq.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 20, borderTop: `3px solid ${estadoColor[eq.estado] || 'var(--rv-accent)'}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>{eq.modelo}</div>
-                <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 2 }}>{eq.gb}GB · {eq.color}</div>
-              </div>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>{eq.modelo}</div>
               <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 99, textTransform: 'uppercase', border: '1px solid var(--rv-border)', color: estadoColor[eq.estado] }}>{eq.estado}</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: 'var(--rv-text-mid)', marginBottom: 12 }}>
-              <span>🔋 Batería: {eq.bateria}%</span>
-              {eq.imei && <span>📋 IMEI: {eq.imei}</span>}
-              {eq.puntoVenta && <span>📍 {eq.puntoVenta}</span>}
-              {eq.asignadoA && <span>👤 {eq.asignadoA}</span>}
-              <span style={{ color: 'var(--rv-text-mid)', fontWeight: 600, marginTop: 4 }}>
-                {eq.tipo === 'consignacion' ? '🤝 Consignación' : '🛒 Compra directa'}
-              </span>
-              {esAdmin && eq.costoUsd && <span style={{ color: 'var(--rv-text-dim)' }}>Costo: USD {eq.costoUsd}</span>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 12, color: 'var(--rv-text-mid)', marginBottom: 12 }}>
+              <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>{eq.gb}GB</span>
+              <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>{eq.color}</span>
+              <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>Batería {eq.bateria}%</span>
+              {eq.imei && <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>IMEI {eq.imei}</span>}
+              <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>{eq.tipo === 'consignacion' ? 'Consignación' : 'Compra directa'}</span>
+              {eq.puntoVenta && <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>{eq.puntoVenta}</span>}
+              {eq.asignadoA && <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>{eq.asignadoA}</span>}
+              {esAdmin && eq.costoUsd && <span style={{ color: 'var(--rv-text-dim)', marginTop: 4 }}>Costo: USD {eq.costoUsd}</span>}
               {eq.pvUsd && <span style={{ color: 'var(--rv-accent)', fontWeight: 600 }}>Venta: USD {eq.pvUsd}</span>}
-              {eq.fechaIngreso && <span style={{ color: 'var(--rv-text-dim)' }}>📅 {eq.fechaIngreso.toDate ? eq.fechaIngreso.toDate().toLocaleDateString('es-AR') : new Date(eq.fechaIngreso).toLocaleDateString('es-AR')}</span>}
+              {eq.fechaIngreso && <span style={{ color: 'var(--rv-text-dim)' }}>{eq.fechaIngreso.toDate ? eq.fechaIngreso.toDate().toLocaleDateString('es-AR') : new Date(eq.fechaIngreso).toLocaleDateString('es-AR')}</span>}
             </div>
             {eq.estado === 'disponible' && (
               <button onClick={() => copiarFicha(eq)} style={{ width: '100%', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: copiado === eq.id ? 'var(--rv-text)' : 'var(--rv-accent)', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>

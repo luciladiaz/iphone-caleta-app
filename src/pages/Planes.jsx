@@ -66,15 +66,19 @@ export default function Planes() {
 
   const PRECIO_PLAN = { promax: 29900 };
 
-  // Redirigir al panel cuando el plan ya está activo
+  // Redirigir al panel cuando el plan ya está activo.
+  // Si el email todavía no está verificado (ej: compra directa sin pasar por el
+  // trial), PrivateRoute lo va a rebotar a /login sin explicación — mejor no
+  // navegar y mostrar el aviso de "verificá tu email" en el banner de abajo.
   useEffect(() => {
     if (pago === 'exitoso' && planActivo && plan && plan !== 'trial') {
       if (typeof fbq !== 'undefined') fbq('track', 'Purchase', { value: PRECIO_PLAN[plan] ?? 0, currency: 'ARS' });
       clearInterval(verificacionRef.current);
+      if (!user?.emailVerified) return;
       const t = setTimeout(() => navigate('/'), 2500);
       return () => clearTimeout(t);
     }
-  }, [pago, planActivo, plan, navigate]);
+  }, [pago, planActivo, plan, navigate, user]);
 
   // Verificación activa: consulta el estado de la suscripción directamente con MP
   // como respaldo si el webhook de MercadoPago no llega a tiempo
@@ -181,13 +185,21 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
       {/* ── Banner: pago exitoso (redirect en curso) ───────────────────────── */}
       {pago === 'exitoso' && (
         <div style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
-          <div style={{ marginBottom: 6 }}>{planActivo && plan !== 'trial' ? <IconCheckCircle size={20} style={{ color: 'var(--rv-accent)' }} /> : <IconClock size={20} />}</div>
+          <div style={{ marginBottom: 6 }}>
+            {planActivo && plan !== 'trial'
+              ? <IconCheckCircle size={20} style={{ color: 'var(--rv-accent)' }} />
+              : <IconClock size={20} />}
+          </div>
           <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--rv-text)', marginBottom: 6 }}>
-            {planActivo && plan !== 'trial' ? 'Plan activado. Llevándote al panel...' : 'Pago recibido. Activando tu plan...'}
+            {planActivo && plan !== 'trial'
+              ? (user?.emailVerified ? 'Plan activado. Llevándote al panel...' : 'Pago confirmado. Falta un paso más.')
+              : 'Pago recibido. Activando tu plan...'}
           </div>
           <div style={{ color: 'var(--rv-text-dim)', fontSize: 14 }}>
             {planActivo && plan !== 'trial'
-              ? 'Tu suscripción está activa. Serás redirigido automáticamente.'
+              ? (user?.emailVerified
+                  ? 'Tu suscripción está activa. Serás redirigido automáticamente.'
+                  : `Verificá tu email para poder ingresar: te enviamos un link a ${user?.email || 'tu casilla'}. Después iniciá sesión.`)
               : verificando
                 ? 'Verificando el estado del pago con MercadoPago...'
                 : 'Esperando confirmación de MercadoPago. Puede tardar unos segundos.'}

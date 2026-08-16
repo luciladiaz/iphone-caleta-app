@@ -44,9 +44,13 @@ function PrivateRoute({ children, modulo }) {
 }
 
 function AppRoutes() {
-  const { user } = useAuth();
+  const { user, negocioId, plan } = useAuth();
   const location = useLocation();
-  const redirectTo = new URLSearchParams(location.search).get('redirect') || '/';
+  const params = new URLSearchParams(location.search);
+  const redirectTo = params.get('redirect') || '/';
+  // Compra directa en curso (?comprar=1, plan todavía no es promax): no envolver en Layout
+  // para que el sidebar/panel interno no se vea ni un instante antes de ir a MercadoPago.
+  const comprandoSinLayout = params.get('comprar') === '1' && negocioId && plan && plan !== 'promax';
 
   return (
     <Routes>
@@ -64,7 +68,11 @@ function AppRoutes() {
       {/* /planes no usa PrivateRoute con planActivo para evitar loop cuando vence.
           Si no hay sesión (ej: click desde un mail en otro dispositivo), manda a
           /login con un redirect de vuelta a /planes en vez de perderse en /landing. */}
-      <Route path="/planes" element={user ? <Layout><Planes /></Layout> : <Navigate to="/login?redirect=/planes" />} />
+      <Route path="/planes" element={
+        user
+          ? (comprandoSinLayout ? <Planes /> : <Layout><Planes /></Layout>)
+          : <Navigate to="/login?redirect=/planes" />
+      } />
 
       {/* /studio — privado, acceso solo al owner. El componente hace la verificación de email. */}
       <Route path="/studio" element={<Studio />} />

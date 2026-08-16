@@ -48,6 +48,7 @@ export default function Planes() {
   const [modalCancelar, setModalCancelar] = useState(false);
   const [cancelando, setCancelando] = useState(false);
   const [cancelError, setCancelError] = useState('');
+  const [comprarError, setComprarError] = useState(false);
   const proRef = useRef(null);
   const verificacionRef = useRef(null);
   const comprarDisparadoRef = useRef(false);
@@ -125,7 +126,7 @@ export default function Planes() {
     };
   }, [pago, negocioId]);
 
-  const handleContratar = async (planId) => {
+  const handleContratar = async (planId, { silent = false } = {}) => {
 if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO_PLAN[planId] ?? 0, currency: 'ARS' });
     try {
       const res = await fetch('/api/crear-suscripcion', {
@@ -135,9 +136,11 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
       });
       const data = await res.json();
       if (data.init_point) window.location.href = data.init_point;
+      else if (silent) setComprarError(true);
       else alert('No pudimos procesar el pago. Verificá que tu cuenta esté registrada con un email real y válido, o contactanos por WhatsApp.');
     } catch {
-      alert('Error al conectar con MercadoPago. Contactanos por WhatsApp.');
+      if (silent) setComprarError(true);
+      else alert('Error al conectar con MercadoPago. Contactanos por WhatsApp.');
     }
   };
 
@@ -149,7 +152,7 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
   useEffect(() => {
     if (comprar !== '1' || comprarDisparadoRef.current || !negocioId || plan === 'promax') return;
     comprarDisparadoRef.current = true;
-    handleProMax();
+    handleContratar('promax', { silent: true });
   }, [comprar, negocioId, plan]);
 
   const handleCancelar = async () => {
@@ -179,6 +182,19 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
   const fechaVencePlan = negocio?.vencePlan ? (negocio.vencePlan?.toDate?.() || new Date(negocio.vencePlan)) : null;
   const canceladoConGracia = negocio?.renovacionAutomatica === false && planActivo && plan !== 'trial';
   const puedeCancel = plan !== 'trial' && planActivo && negocio?.renovacionAutomatica !== false;
+
+  // Compra directa (?comprar=1): mientras se dispara el checkout automático no mostramos
+  // el plan ni el panel de fondo — nadie sin pagar/verificar debería ver eso, ni siquiera
+  // un instante. Si el checkout falla, comprarError cae al flujo normal de la página.
+  if (comprar === '1' && !comprarError && plan && plan !== 'promax') {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, textAlign: 'center', padding: 24, fontFamily: "'Manrope', sans-serif" }}>
+        <IconClock size={32} style={{ color: 'var(--rv-accent)' }} />
+        <div style={{ fontWeight: 700, fontSize: 17, color: 'var(--rv-text)' }}>Redirigiéndote a MercadoPago...</div>
+        <div style={{ color: 'var(--rv-text-dim)', fontSize: 14, maxWidth: 320 }}>Estamos preparando tu pago, esto no debería tardar más que unos segundos.</div>
+      </div>
+    );
+  }
 
   return (
     <div>

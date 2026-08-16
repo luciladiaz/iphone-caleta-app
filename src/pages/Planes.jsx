@@ -140,12 +140,13 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
   const handleProMax = () => handleContratar('promax');
 
   // Compra directa desde la landing (?comprar=1): salta el trial y va directo a MercadoPago
-  // apenas el negocio recién creado está disponible.
+  // apenas el negocio recién creado está disponible. No usar planActivo como guarda: el trial
+  // recién creado también cuenta como "activo", así que bloquearía el checkout siempre.
   useEffect(() => {
-    if (comprar !== '1' || comprarDisparadoRef.current || !negocioId || planActivo) return;
+    if (comprar !== '1' || comprarDisparadoRef.current || !negocioId || plan === 'promax') return;
     comprarDisparadoRef.current = true;
     handleProMax();
-  }, [comprar, negocioId, planActivo]);
+  }, [comprar, negocioId, plan]);
 
   const handleCancelar = async () => {
     setCancelando(true);

@@ -2,6 +2,8 @@
 import { useAuth } from '../context/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
+import { IconCheckCircle, IconClock, IconXCircle, IconWarning } from '../components/Icons';
+
 const WHATSAPP_SOPORTE = '5493364400111';
 
 const PLAN_INCLUYE = [
@@ -137,7 +139,7 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
       {/* ── Banner: pago exitoso (redirect en curso) ───────────────────────── */}
       {pago === 'exitoso' && (
         <div style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
-          <div style={{ fontSize: 20, marginBottom: 6 }}>{planActivo && plan !== 'trial' ? '✅' : '⏳'}</div>
+          <div style={{ marginBottom: 6 }}>{planActivo && plan !== 'trial' ? <IconCheckCircle size={20} style={{ color: 'var(--rv-accent)' }} /> : <IconClock size={20} />}</div>
           <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--rv-text)', marginBottom: 6 }}>
             {planActivo && plan !== 'trial' ? 'Plan activado. Llevándote al panel...' : 'Pago recibido. Activando tu plan...'}
           </div>
@@ -154,7 +156,7 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
       {/* ── Banner: pago rechazado ─────────────────────────────────────────── */}
       {pago === 'fallido' && (
         <div style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
-          <div style={{ fontSize: 20, marginBottom: 6 }}>❌</div>
+          <div style={{ marginBottom: 6 }}><IconXCircle size={20} style={{ color: 'var(--rv-danger)' }} /></div>
           <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--rv-danger)', marginBottom: 6 }}>
             El pago fue rechazado
           </div>
@@ -167,7 +169,7 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
       {/* ── Banner: pago pendiente ─────────────────────────────────────────── */}
       {pago === 'pendiente' && (
         <div style={{ background: 'var(--rv-accent-soft)', border: '1px solid rgba(47,111,237,0.3)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
-          <div style={{ fontSize: 20, marginBottom: 6 }}>⏳</div>
+          <div style={{ marginBottom: 6 }}><IconClock size={20} style={{ color: 'var(--rv-accent)' }} /></div>
           <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--rv-accent)', marginBottom: 6 }}>
             Pago pendiente de acreditación
           </div>
@@ -180,7 +182,7 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
       {/* ── Banner: cuenta suspendida por pago fallido ────────────────────── */}
       {motivo === 'suspendido' && !planActivo && (
         <div style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.5)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
-          <div style={{ fontSize: 20, marginBottom: 6 }}>⚠️</div>
+          <div style={{ marginBottom: 6 }}><IconWarning size={20} style={{ color: 'var(--rv-danger)' }} /></div>
           <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--rv-danger)', marginBottom: 6 }}>
             Tu acceso fue suspendido
           </div>
@@ -250,8 +252,8 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
       </div>
 
       <div style={{ textAlign: 'center', color: 'var(--rv-text-dim)', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
-        <span>💳 Pagá con tarjeta, débito o transferencia via MercadoPago</span>
-        <span>🔄 Cancelá cuando quieras · ✓ 7 días de prueba gratis al registrarte</span>
+        <span>Pagá con tarjeta, débito o transferencia via MercadoPago</span>
+        <span>Cancelá cuando quieras · 7 días de prueba gratis al registrarte</span>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
+import { IconChart } from '../components/Icons';
 
 const fmt = (n) => new Intl.NumberFormat('es-AR').format(Math.round(n));
 
@@ -49,18 +50,18 @@ export default function ReporteVendedores() {
     setLoading(false);
   };
 
-  const medallas = ['🥇', '🥈', '🥉'];
+  const colorPuesto = ['#d4af37', '#a3a8b0', '#b8763e'];
 
   return (
     <div>
-      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>🏅 Rendimiento por Vendedor</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 10 }}><IconChart size={22} style={{ color: 'var(--rv-accent)' }} />Rendimiento por Vendedor</h1>
       <p style={{ color: 'var(--rv-text-dim)', fontSize: 14, marginBottom: 28 }}>Ranking del mes · {mesLabel}</p>
 
       {loading ? (
         <div style={{ color: 'var(--rv-text-dim)', textAlign: 'center', padding: 60 }}>Cargando datos...</div>
       ) : ranking.length === 0 ? (
         <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 48, textAlign: 'center', color: 'var(--rv-text-dim)' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>📊</div>
+          <IconChart size={36} style={{ marginBottom: 12 }} />
           <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--rv-text)', marginBottom: 8 }}>No hay ventas registradas este mes</p>
           <p style={{ fontSize: 13 }}>Cuando registres ventas con un vendedor asignado, aparecerán acá.</p>
         </div>
@@ -74,7 +75,7 @@ export default function ReporteVendedores() {
               borderRadius: 14, padding: '20px 24px',
               display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
             }}>
-              <div style={{ fontSize: 28, width: 40, textAlign: 'center' }}>{medallas[i] || `${i + 1}°`}</div>
+              <div style={{ width: 34, height: 34, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: 14, color: i < 3 ? '#fff' : 'var(--rv-text-mid)', background: i < 3 ? colorPuesto[i] : 'var(--rv-surface-alt)', border: i < 3 ? 'none' : '1px solid var(--rv-border)' }}>{i + 1}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--rv-text)' }}>{v.nombre}</div>
                 <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3 }}>

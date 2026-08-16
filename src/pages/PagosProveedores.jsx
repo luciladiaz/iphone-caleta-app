@@ -2,6 +2,7 @@
 import { collection, getDocs, doc, updateDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
+import { IconWallet, IconTruck, IconUser, IconClock, IconCheck, IconCheckCircle, IconCalendar, IconCoin, IconFile, IconX, IconBox } from '../components/Icons';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -60,7 +61,7 @@ export default function PagosProveedores() {
 
   return (
     <div>
-      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>💰 Pagos a Proveedores</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}><IconWallet size={22} style={{ color: 'var(--rv-accent)' }} />Pagos a Proveedores</h1>
       <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 28 }}>
         <div style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '14px 20px' }}>
           <div style={{ color: 'var(--rv-text-dim)', fontSize: 12 }}>Total pendiente</div>
@@ -72,7 +73,7 @@ export default function PagosProveedores() {
         </div>
       </div>
 
-      <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 14 }}>⏳ Pendientes ({pendientes.length})</h2>
+      <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}><IconClock size={15} />Pendientes ({pendientes.length})</h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
         {pendientes.map(v => {
           const ganancia = Number(v.pvUsd || 0) - Number(v.costoUsd || 0);
@@ -83,9 +84,9 @@ export default function PagosProveedores() {
               <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 15 }}>{v.modelo} {v.gb}GB {v.color}</div>
-                  <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 2 }}>🏭 {v.proveedor} · 👤 {v.cliente || '-'}</div>
+                  <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}><IconTruck size={11} />{v.proveedor} <span>· <IconUser size={11} style={{ verticalAlign: 'text-bottom' }} /> {v.cliente || '-'}</span></div>
                 </div>
-                <button onClick={() => abrirModalPago(v)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-accent)', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>✓ Registrar pago</button>
+                <button onClick={() => abrirModalPago(v)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-accent)', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}><IconCheck size={13} />Registrar pago</button>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10 }}>
                 <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '8px 12px' }}><div style={{ color: 'var(--rv-text-dim)', fontSize: 10, marginBottom: 2 }}>COSTO USD</div><div style={{ fontWeight: 700, color: 'var(--rv-accent)' }}>USD {v.costoUsd}</div></div>
@@ -103,26 +104,26 @@ export default function PagosProveedores() {
             </div>
           );
         })}
-        {pendientes.length === 0 && <p style={{ color: 'var(--rv-text-dim)', fontSize: 14 }}>No hay pagos pendientes ✅</p>}
+        {pendientes.length === 0 && <p style={{ color: 'var(--rv-text-dim)', fontSize: 14, display: 'flex', alignItems: 'center', gap: 7 }}><IconCheckCircle size={14} style={{ color: 'var(--rv-accent)' }} />No hay pagos pendientes</p>}
       </div>
 
       {pagados.length > 0 && (
         <>
-          <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 14 }}>✅ Pagados ({pagados.length})</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}><IconCheckCircle size={15} style={{ color: 'var(--rv-accent)' }} />Pagados ({pagados.length})</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {pagados.map(v => (
               <div key={v.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '14px 20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>{v.modelo} {v.gb}GB · 🏭 {v.proveedor}</div>
+                    <div style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>{v.modelo} {v.gb}GB · <IconTruck size={12} />{v.proveedor}</div>
                     <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-                      {v.fechaPagoProveedor && <span>📅 {new Date(v.fechaPagoProveedor).toLocaleDateString('es-AR')}</span>}
-                      {v.montoPagadoProveedor && <span>💵 USD {v.montoPagadoProveedor}</span>}
-                      {v.detallePagoProveedor && <span>📝 {v.detallePagoProveedor}</span>}
+                      {v.fechaPagoProveedor && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><IconCalendar size={11} />{new Date(v.fechaPagoProveedor).toLocaleDateString('es-AR')}</span>}
+                      {v.montoPagadoProveedor && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><IconCoin size={11} />USD {v.montoPagadoProveedor}</span>}
+                      {v.detallePagoProveedor && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><IconFile size={11} />{v.detallePagoProveedor}</span>}
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ color: 'var(--rv-text-mid)', fontSize: 12, fontWeight: 600 }}>✓ Pagado</span>
+                    <span style={{ color: 'var(--rv-text-mid)', fontSize: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5 }}><IconCheck size={12} />Pagado</span>
                     <button onClick={() => desmarcarPago(v)} style={{ background: 'none', border: '1px solid var(--rv-border)', color: 'var(--rv-text-dim)', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>Desmarcar</button>
                   </div>
                 </div>
@@ -137,9 +138,9 @@ export default function PagosProveedores() {
           <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 420 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
               <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Registrar pago</h2>
-              <button onClick={() => setModalPago(null)} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', fontSize: 20, cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setModalPago(null)} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
             </div>
-            <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: '10px 14px', marginBottom: 18, fontSize: 13, color: 'var(--rv-accent)' }}>📱 {modalPago.modelo} {modalPago.gb}GB · 🏭 {modalPago.proveedor}</div>
+            <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: '10px 14px', marginBottom: 18, fontSize: 13, color: 'var(--rv-accent)', display: 'flex', alignItems: 'center', gap: 7 }}><IconBox size={13} />{modalPago.modelo} {modalPago.gb}GB · {modalPago.proveedor}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div><label style={labelStyle}>Fecha de pago</label><input type="date" value={formPago.fecha} onChange={e => setFormPago({ ...formPago, fecha: e.target.value })} style={inputStyle} /></div>
               <div><label style={labelStyle}>Monto pagado (USD)</label><input type="number" value={formPago.monto} onChange={e => setFormPago({ ...formPago, monto: e.target.value })} placeholder="0" style={inputStyle} /></div>
@@ -147,7 +148,7 @@ export default function PagosProveedores() {
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
               <button onClick={() => setModalPago(null)} style={{ padding: '10px 18px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
-              <button onClick={confirmarPago} disabled={guardando} style={{ padding: '10px 22px', background: 'var(--rv-accent)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{guardando ? 'Guardando...' : '✓ Confirmar pago'}</button>
+              <button onClick={confirmarPago} disabled={guardando} style={{ padding: '10px 22px', background: 'var(--rv-accent)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>{guardando ? 'Guardando...' : <><IconCheck size={14} />Confirmar pago</>}</button>
             </div>
           </div>
         </div>

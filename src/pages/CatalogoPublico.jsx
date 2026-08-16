@@ -4,6 +4,7 @@ import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { PLANES } from '../config/planes';
 import PlanCanjeModal from '../components/PlanCanjeModal';
+import { IconWarning, IconArrowSwap, IconBox } from '../components/Icons';
 
 // Normaliza un teléfono argentino cargado en cualquier formato común
 // (con 0 nacional, 15 de celular, con o sin código de país) al formato
@@ -65,7 +66,7 @@ export default function CatalogoPublico() {
 
   if (!catalogoHabilitado) return (
     <div style={{ minHeight: '100vh', background: '#0d0d0d', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: "'Inter', sans-serif", padding: 32, textAlign: 'center' }}>
-      <div style={{ fontSize: 48, marginBottom: 16 }}>📵</div>
+      <IconWarning size={40} style={{ marginBottom: 16 }} />
       <div style={{ fontWeight: 800, fontSize: 20, marginBottom: 8 }}>Este catálogo no está disponible</div>
       <div style={{ color: '#86868b', fontSize: 14, maxWidth: 340 }}>
         El negocio no tiene habilitada la función de catálogo público en su plan actual.
@@ -145,7 +146,7 @@ export default function CatalogoPublico() {
                   onClick={() => setEquipoCanje(eq)}
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'none', border: '1px solid #3a3a3c', color: '#ebebf5cc', borderRadius: 10, padding: '9px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                 >
-                  💱 Plan Canje
+                  <IconArrowSwap size={14} />Plan Canje
                 </button>
               )}
             </div>
@@ -154,7 +155,7 @@ export default function CatalogoPublico() {
 
         {equiposFiltrados.length === 0 && (
           <div style={{ textAlign: 'center', padding: 60, color: '#86868b' }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>📱</div>
+            <IconBox size={36} style={{ marginBottom: 12 }} />
             <p>No hay equipos disponibles en este momento.</p>
           </div>
         )}

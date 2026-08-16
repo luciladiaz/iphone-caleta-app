@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
+import { IconBox, IconHash, IconCoin, IconEdit, IconCheck, IconX } from '../components/Icons';
 
 const CATEGORIAS = ['Fundas', 'Vidrios templados', 'Cables', 'Cargadores', 'Adaptadores', 'Audio / AirPods', 'MagSafe', 'Power banks', 'Soportes', 'Otros'];
 
@@ -84,7 +85,7 @@ export default function Accesorios() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>🎒 Accesorios</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}><IconBox size={22} style={{ color: 'var(--rv-accent)' }} />Accesorios</h1>
         <button
           onClick={() => setMostrarForm(!mostrarForm)}
           style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
@@ -96,12 +97,12 @@ export default function Accesorios() {
       {/* Resumen */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>
         {[
-          { label: 'Tipos', valor: accesorios.length, icono: '📦' },
-          { label: 'Unidades', valor: totalUnidades, icono: '🔢' },
-          { label: 'Valor stock (costo)', valor: `$${valorStock.toLocaleString('es-AR')}`, icono: '💰' },
-        ].map(({ label, valor, icono }) => (
+          { label: 'Tipos', valor: accesorios.length, Icono: IconBox },
+          { label: 'Unidades', valor: totalUnidades, Icono: IconHash },
+          { label: 'Valor stock (costo)', valor: `$${valorStock.toLocaleString('es-AR')}`, Icono: IconCoin },
+        ].map(({ label, valor, Icono }) => (
           <div key={label} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '16px 18px' }}>
-            <div style={{ fontSize: 20, marginBottom: 4 }}>{icono}</div>
+            <Icono size={20} style={{ color: 'var(--rv-accent)', marginBottom: 6 }} />
             <div style={{ fontSize: 20, fontWeight: 800 }}>{valor}</div>
             <div style={{ color: 'var(--rv-text-dim)', fontSize: 12 }}>{label}</div>
           </div>
@@ -176,7 +177,7 @@ export default function Accesorios() {
       {/* Tabla */}
       {filtrados.length === 0 ? (
         <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 48, textAlign: 'center', color: 'var(--rv-text-dim)' }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>🎒</div>
+          <IconBox size={34} style={{ marginBottom: 12 }} />
           <div style={{ fontWeight: 600, marginBottom: 4 }}>No hay accesorios cargados</div>
           <div style={{ fontSize: 13 }}>Hacé clic en "+ Agregar accesorio" para empezar</div>
         </div>
@@ -215,14 +216,14 @@ export default function Accesorios() {
                       onKeyDown={e => { if (e.key === 'Enter') guardarCantidad(a.id); if (e.key === 'Escape') setEditandoId(null); }}
                       autoFocus
                     />
-                    <button onClick={() => guardarCantidad(a.id)} style={{ background: 'var(--rv-accent)', border: 'none', borderRadius: 6, padding: '4px 8px', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>✓</button>
-                    <button onClick={() => setEditandoId(null)} style={{ background: 'none', border: '1px solid var(--rv-border)', borderRadius: 6, padding: '4px 8px', color: 'var(--rv-text-dim)', cursor: 'pointer', fontSize: 12 }}>✕</button>
+                    <button onClick={() => guardarCantidad(a.id)} style={{ background: 'var(--rv-accent)', border: 'none', borderRadius: 6, padding: '4px 8px', color: '#fff', cursor: 'pointer', display: 'flex' }}><IconCheck size={13} /></button>
+                    <button onClick={() => setEditandoId(null)} style={{ background: 'none', border: '1px solid var(--rv-border)', borderRadius: 6, padding: '4px 8px', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={13} /></button>
                   </div>
                 ) : (
                   <button onClick={() => { setEditandoId(a.id); setEditCantidad(String(a.cantidad)); }}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--rv-text)' }}>{a.cantidad}</span>
-                    <span style={{ fontSize: 11, color: 'var(--rv-text-dim)' }}>✏️</span>
+                    <IconEdit size={12} style={{ color: 'var(--rv-text-dim)' }} />
                   </button>
                 )}
               </div>
@@ -233,8 +234,8 @@ export default function Accesorios() {
                 {a.precioVenta ? `$${a.precioVenta.toLocaleString('es-AR')}` : '—'}
               </div>
               <button onClick={() => eliminar(a.id)}
-                style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', fontSize: 18, cursor: 'pointer', padding: '0 4px' }}>
-                ✕
+                style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', padding: '0 4px', display: 'flex' }}>
+                <IconX size={15} />
               </button>
             </div>
           ))}

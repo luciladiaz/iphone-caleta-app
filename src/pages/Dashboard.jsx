@@ -2,8 +2,9 @@
 import { collection, getDocs, query, orderBy, limit, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
+import { IconCoin, IconBox, IconClock, IconWarning, IconBell, IconCheckCircle, IconCheck } from '../components/Icons';
 
-function StatCard({ icon, label, value, sub, urgente }) {
+function StatCard({ Icon, label, value, sub, urgente }) {
   return (
     <div style={{
       background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14,
@@ -11,7 +12,7 @@ function StatCard({ icon, label, value, sub, urgente }) {
       borderLeft: urgente ? '3px solid var(--rv-danger)' : '1px solid var(--rv-border)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 20 }}>{icon}</span>
+        <Icon size={17} style={{ color: urgente ? 'var(--rv-danger)' : 'var(--rv-text-dim)' }} />
         <span style={{ color: 'var(--rv-text-dim)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px' }}>{label}</span>
       </div>
       <div style={{ fontSize: 26, fontWeight: 800, color: urgente ? 'var(--rv-danger)' : 'var(--rv-text)', letterSpacing: '-1px' }}>{value}</div>
@@ -131,9 +132,9 @@ export default function Dashboard() {
 
   const cobrosFiltrados = cobrosCalculados.filter(c => c.tipo === tabCobros);
   const tabs = [
-    { key: 'vencidas', label: '🔴 Vencidas', count: cobrosCalculados.filter(c => c.tipo === 'vencidas').length },
-    { key: 'hoy', label: '🟡 Vencen hoy', count: cobrosCalculados.filter(c => c.tipo === 'hoy').length },
-    { key: 'proximos', label: '🟠 Próximos 3 días', count: cobrosCalculados.filter(c => c.tipo === 'proximos').length },
+    { key: 'vencidas', label: 'Vencidas', dot: 'var(--rv-danger)', count: cobrosCalculados.filter(c => c.tipo === 'vencidas').length },
+    { key: 'hoy', label: 'Vencen hoy', dot: '#e6a700', count: cobrosCalculados.filter(c => c.tipo === 'hoy').length },
+    { key: 'proximos', label: 'Próximos 3 días', dot: '#e07b1a', count: cobrosCalculados.filter(c => c.tipo === 'proximos').length },
   ];
 
   const marcarCuotaPagada = async (cobro) => {
@@ -157,7 +158,7 @@ export default function Dashboard() {
 
       {/* Ganancia del mes */}
       <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: '20px 24px', marginBottom: 16 }}>
-        <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>💰 Ganancia este mes</div>
+        <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 7 }}><IconCoin size={14} />Ganancia este mes</div>
         <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--rv-text)', letterSpacing: '-1px' }}>USD {stats.gananciaUSD}</div>
         <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--rv-text-dim)', marginTop: 2 }}>ARS {stats.gananciaARS}</div>
         <div style={{ fontSize: 12, color: 'var(--rv-text-dim)', marginTop: 6 }}>en {stats.ventasMes} ventas entregadas</div>
@@ -165,20 +166,20 @@ export default function Dashboard() {
 
       {/* Valor del stock */}
       <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: '20px 24px', marginBottom: 24 }}>
-        <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>📦 Tu stock disponible vale</div>
+        <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 7 }}><IconBox size={14} />Tu stock disponible vale</div>
         <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--rv-text)', letterSpacing: '-1px' }}>USD {stats.stockValorUSD}</div>
         <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--rv-text-dim)', marginTop: 2 }}>ARS {stats.stockValorARS}</div>
         <div style={{ fontSize: 12, color: 'var(--rv-text-dim)', marginTop: 6 }}>{stats.stockDisponible} equipos disponibles de {stats.stockTotal} totales</div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14, marginBottom: 32 }}>
-        <StatCard icon="⏳" label="Ventas pendientes" value={stats.pendientesCobro} />
-        <StatCard icon="🚨" label="Deudores urgentes" value={stats.deudoresUrgentes} urgente={stats.deudoresUrgentes > 0} />
+        <StatCard Icon={IconClock} label="Ventas pendientes" value={stats.pendientesCobro} />
+        <StatCard Icon={IconWarning} label="Deudores urgentes" value={stats.deudoresUrgentes} urgente={stats.deudoresUrgentes > 0} />
       </div>
 
       {/* Cobros del día */}
       <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 24, marginBottom: 28 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>📲 Cobros del día</h2>
+        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}><IconBell size={16} />Cobros del día</h2>
 
         <>
             {/* Tabs */}
@@ -191,6 +192,7 @@ export default function Dashboard() {
                   fontSize: 13, fontWeight: 600, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: 6,
                 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: t.dot, flexShrink: 0 }} />
                   {t.label}
                   {t.count > 0 && <span style={{ background: tabCobros === t.key ? 'rgba(255,255,255,0.25)' : 'var(--rv-danger-soft)', color: tabCobros === t.key ? '#fff' : 'var(--rv-danger)', fontSize: 11, fontWeight: 800, padding: '1px 6px', borderRadius: 99 }}>{t.count}</span>}
                 </button>
@@ -198,8 +200,8 @@ export default function Dashboard() {
             </div>
 
             {cobrosFiltrados.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '24px 16px', color: 'var(--rv-text-dim)', fontSize: 14 }}>
-                ✅ Todo al día — No tenés cobros pendientes por hoy
+              <div style={{ textAlign: 'center', padding: '24px 16px', color: 'var(--rv-text-dim)', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <IconCheckCircle size={16} style={{ color: 'var(--rv-accent)' }} />Todo al día — No tenés cobros pendientes por hoy
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -223,11 +225,12 @@ export default function Dashboard() {
                           background: '#25D366', color: '#fff', border: 'none', borderRadius: 8,
                           padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: c.telefono ? 'pointer' : 'not-allowed',
                           opacity: c.telefono ? 1 : 0.4,
+                          display: 'flex', alignItems: 'center', gap: 6,
                         }}>
-                        📲 Recordatorio
+                        <IconBell size={13} />Recordatorio
                       </button>
-                      <button onClick={() => marcarCuotaPagada(c)} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', color: 'var(--rv-text-mid)', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                        ✓ Pagada
+                      <button onClick={() => marcarCuotaPagada(c)} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', color: 'var(--rv-text-mid)', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <IconCheck size={13} />Pagada
                       </button>
                     </div>
                   </div>

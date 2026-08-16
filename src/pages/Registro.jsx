@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
+import { IconMail } from '../components/Icons';
 
 export default function Registro() {
   const navigate = useNavigate();
@@ -80,7 +81,7 @@ export default function Registro() {
   if (verificando) return (
     <div style={{ minHeight: '100vh', background: 'var(--rv-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Manrope', sans-serif", padding: 16 }}>
       <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 40, width: '100%', maxWidth: 420, textAlign: 'center' }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>📧</div>
+        <IconMail size={40} style={{ marginBottom: 16 }} />
         <h2 style={{ color: 'var(--rv-text)', fontSize: 22, fontWeight: 800, margin: '0 0 12px' }}>Verificá tu email</h2>
         <p style={{ color: 'var(--rv-text-dim)', fontSize: 15, lineHeight: 1.6, marginBottom: 8 }}>
           Te enviamos un link de confirmación a:

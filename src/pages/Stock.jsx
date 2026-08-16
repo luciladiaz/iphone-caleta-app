@@ -4,6 +4,7 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import CalculadoraPrecio from '../components/CalculadoraPrecio';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
+import { IconCalculator, IconLink, IconShare, IconEdit, IconTrash, IconCheck, IconX, IconBox } from '../components/Icons';
 
 const MODELOS_DEFAULT = ['iPhone 12','iPhone 12 Pro','iPhone 12 Pro Max','iPhone 13','iPhone 13 Pro','iPhone 13 Pro Max','iPhone 14','iPhone 14 Pro','iPhone 14 Pro Max','iPhone 15','iPhone 15 Pro','iPhone 15 Pro Max','iPhone 16','iPhone 16 Plus','iPhone 16 Pro','iPhone 16 Pro Max','iPhone 17','iPhone 17 Air','iPhone 17 Pro','iPhone 17 Pro Max'];
 const COLORES = ['Negro','Blanco','Azul','Natural','Desert','Desert Titanium','Natural Titanium','Naranja','Rosa','Verde','Morado','Rojo'];
@@ -142,8 +143,8 @@ export default function Stock() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button onClick={() => setShowCalculadora(true)} style={{ background: 'var(--rv-surface-alt)', color: 'var(--rv-accent)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🧮 Calculadora</button>
-          <button onClick={() => setModalCatalogo(true)} style={{ background: 'var(--rv-surface-alt)', color: 'var(--rv-text)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>🔗 Catálogo</button>
+          <button onClick={() => setShowCalculadora(true)} style={{ background: 'var(--rv-surface-alt)', color: 'var(--rv-accent)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}><IconCalculator size={15} />Calculadora</button>
+          <button onClick={() => setModalCatalogo(true)} style={{ background: 'var(--rv-surface-alt)', color: 'var(--rv-text)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}><IconLink size={15} />Catálogo</button>
           {esAdmin && <button onClick={handleAgregarEquipo} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>+ Agregar equipo</button>}
         </div>
       </div>
@@ -170,13 +171,13 @@ export default function Stock() {
               {eq.fechaIngreso && <span style={{ color: 'var(--rv-text-dim)' }}>{eq.fechaIngreso.toDate ? eq.fechaIngreso.toDate().toLocaleDateString('es-AR') : new Date(eq.fechaIngreso).toLocaleDateString('es-AR')}</span>}
             </div>
             {eq.estado === 'disponible' && (
-              <button onClick={() => copiarFicha(eq)} style={{ width: '100%', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: copiado === eq.id ? 'var(--rv-text)' : 'var(--rv-accent)', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                {copiado === eq.id ? '✓ Ficha copiada' : '📤 Compartir ficha WhatsApp'}
+              <button onClick={() => copiarFicha(eq)} style={{ width: '100%', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: copiado === eq.id ? 'var(--rv-text)' : 'var(--rv-accent)', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+                {copiado === eq.id ? <><IconCheck size={13} />Ficha copiada</> : <><IconShare size={13} />Compartir ficha WhatsApp</>}
               </button>
             )}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => abrirEditar(eq)} style={{ flex: 1, background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-accent)', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>✏️ Editar</button>
-              {esAdmin && <button onClick={() => eliminarEquipo(eq.id)} style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', color: 'var(--rv-danger)', borderRadius: 8, padding: '8px 12px', fontSize: 12, cursor: 'pointer' }}>🗑️</button>}
+              <button onClick={() => abrirEditar(eq)} style={{ flex: 1, background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-accent)', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}><IconEdit size={13} />Editar</button>
+              {esAdmin && <button onClick={() => eliminarEquipo(eq.id)} style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', color: 'var(--rv-danger)', borderRadius: 8, padding: '8px 12px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center' }}><IconTrash size={14} /></button>}
             </div>
           </div>
         ))}
@@ -184,7 +185,7 @@ export default function Stock() {
 
       {equiposFiltrados.length === 0 && (
         <div style={{ textAlign: 'center', padding: 60, color: 'var(--rv-text-dim)' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>📦</div>
+          <IconBox size={36} style={{ marginBottom: 12 }} />
           <p>No hay equipos en stock</p>
         </div>
       )}
@@ -194,8 +195,8 @@ export default function Stock() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{editandoId ? '✏️ Editar equipo' : 'Agregar equipo'}</h2>
-              <button onClick={cerrarModal} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', fontSize: 20, cursor: 'pointer' }}>✕</button>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 9 }}>{editandoId ? <><IconEdit size={16} />Editar equipo</> : 'Agregar equipo'}</h2>
+              <button onClick={cerrarModal} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
             </div>
             <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -228,8 +229,8 @@ export default function Stock() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 480 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>🔗 Tu catálogo público</h2>
-              <button onClick={() => setModalCatalogo(false)} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', fontSize: 20, cursor: 'pointer' }}>✕</button>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 9 }}><IconLink size={16} />Tu catálogo público</h2>
+              <button onClick={() => setModalCatalogo(false)} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
             </div>
             <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 16 }}>Compartí este link con tus clientes. Solo muestra los equipos disponibles, sin precios de costo.</p>
             <div style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: 'var(--rv-accent)', wordBreak: 'break-all', marginBottom: 16 }}>{urlCatalogo}</div>

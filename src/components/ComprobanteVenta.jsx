@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import html2canvas from 'html2canvas';
 import { db } from '../firebase/config';
+import { IconFile, IconX, IconCheck, IconDownload, IconSave } from './Icons';
 
 const ITEMS_CHECKLIST = [
   { key: 'bateria', label: 'Batería revisada delante del cliente' },
@@ -115,8 +116,8 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
       <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 480, margin: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>📄 Comprobante de venta</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', fontSize: 20, cursor: 'pointer' }}>✕</button>
+          <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 9 }}><IconFile size={16} />Comprobante de venta</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
         </div>
 
         <div style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 20 }}>
@@ -127,8 +128,8 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
           <>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
               {ITEMS_CHECKLIST.map(i => (
-                <div key={i.key} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--rv-text-mid)' }}>
-                  <span style={{ color: 'var(--rv-text-mid)' }}>✓</span> {i.label}
+                <div key={i.key} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--rv-text-mid)', alignItems: 'center' }}>
+                  <IconCheck size={12} /> {i.label}
                 </div>
               ))}
             </div>
@@ -139,8 +140,8 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
               Generado por {c.generadoPor}
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={volverADescargar} disabled={guardando} style={{ flex: 1, background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '12px', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: guardando ? 0.7 : 1 }}>
-                {guardando ? 'Generando...' : '⬇️ Volver a descargar'}
+              <button onClick={volverADescargar} disabled={guardando} style={{ flex: 1, background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '12px', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: guardando ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                {guardando ? 'Generando...' : <><IconDownload size={15} />Volver a descargar</>}
               </button>
               <button onClick={() => setModoFirma(true)} style={{ background: 'var(--rv-surface-alt)', color: 'var(--rv-text-mid)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '12px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                 Rehacer
@@ -192,9 +193,10 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
                 color: (!todoTildado || firmaVacia) ? 'var(--rv-text-dim)' : '#fff',
                 border: (!todoTildado || firmaVacia) ? '1px solid var(--rv-border)' : 'none', borderRadius: 10, padding: '13px', fontSize: 14, fontWeight: 700,
                 cursor: (guardando || !todoTildado || firmaVacia) ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}
             >
-              {guardando ? 'Guardando...' : '💾 Guardar y generar comprobante'}
+              {guardando ? 'Guardando...' : <><IconSave size={15} />Guardar y generar comprobante</>}
             </button>
           </>
         )}

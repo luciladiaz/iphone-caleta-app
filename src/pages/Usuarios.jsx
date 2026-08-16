@@ -5,6 +5,7 @@ import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { db, firebaseConfig } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
+import { IconUser, IconX } from '../components/Icons';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -78,7 +79,7 @@ export default function Usuarios() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>👥 Usuarios</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}><IconUser size={22} style={{ color: 'var(--rv-accent)' }} />Usuarios</h1>
         <button
           onClick={() => {
             const maxU = limitesPlan?.maxUsuarios ?? Infinity;
@@ -123,7 +124,7 @@ export default function Usuarios() {
           <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 500, margin: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Nuevo usuario</h2>
-              <button onClick={() => setModal(false)} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', fontSize: 20, cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setModal(false)} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
             </div>
             <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div><label style={labelStyle}>Nombre</label><input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} required style={inputStyle} /></div>

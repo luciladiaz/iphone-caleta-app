@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { IconArrowSwap, IconX } from './Icons';
 
 export default function PlanCanjeModal({ equipo, listaCanje, tipoCambio, numeroWhatsapp, telefono, onClose }) {
   const [seleccion, setSeleccion] = useState('');
@@ -17,8 +18,8 @@ export default function PlanCanjeModal({ equipo, listaCanje, tipoCambio, numeroW
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
       <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 420, margin: 'auto', color: 'var(--rv-text)', fontFamily: "'Manrope', sans-serif" }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>💱 Plan Canje</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', fontSize: 20, cursor: 'pointer' }}>✕</button>
+          <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 9 }}><IconArrowSwap size={17} />Plan Canje</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
         </div>
         <div style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 20 }}>
           Querés: <strong style={{ color: 'var(--rv-text)' }}>{equipo.modelo} {equipo.gb}GB {equipo.color}</strong> — USD {precioEquipo}

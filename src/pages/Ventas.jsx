@@ -4,6 +4,7 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
 import ComprobanteVenta from '../components/ComprobanteVenta';
+import { IconUser, IconPhone, IconX, IconEdit, IconTrash, IconFile, IconWallet, IconBox, IconArrowSwap, IconCheckCircle } from '../components/Icons';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -206,16 +207,16 @@ export default function Ventas() {
           <div key={v.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
             <div>
               <div style={{ fontWeight: 700, fontSize: 15 }}>{v.modelo} {v.gb}GB {v.color}</div>
-              <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3 }}>
-                👤 {v.cliente || 'Sin cliente'}
+              <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                <IconUser size={11} />{v.cliente || 'Sin cliente'}
                 {v.telefono ? (
-                  <a href={`tel:${v.telefono}`} style={{ color: 'var(--rv-accent)', marginLeft: 4, textDecoration: 'none' }}>
-                    📞 {v.telefono}
+                  <a href={`tel:${v.telefono}`} style={{ color: 'var(--rv-accent)', marginLeft: 4, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <IconPhone size={11} />{v.telefono}
                   </a>
                 ) : (
-                  <span title="Sin teléfono — editá la venta para agregarlo" style={{ marginLeft: 4, opacity: 0.5, cursor: 'help', textDecoration: 'line-through' }}>📵</span>
+                  <span title="Sin teléfono — editá la venta para agregarlo" style={{ marginLeft: 4, opacity: 0.5, cursor: 'help', display: 'inline-flex' }}><IconPhone size={11} /></span>
                 )}
-                {' '}· 🧑‍💼 {v.vendedor || '-'} · 📣 {v.origen || '-'}
+                <span>· {v.vendedor || '-'} · {v.origen || '-'}</span>
                 {v.tipoCambio && <span style={{ color: 'var(--rv-accent)', marginLeft: 6 }}>· TC ${v.tipoCambio}</span>}
               </div>
             </div>
@@ -223,21 +224,21 @@ export default function Ventas() {
               <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 99, border: '1px solid var(--rv-border)', color: estadoColor[v.estado] }}>
                 {v.estado}
               </span>
-              <button onClick={() => abrirComprobante(v)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: v.comprobante ? 'var(--rv-text)' : 'var(--rv-text-mid)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                📄 {v.comprobante ? 'Ver comprobante' : 'Comprobante'}
+              <button onClick={() => abrirComprobante(v)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: v.comprobante ? 'var(--rv-text)' : 'var(--rv-text-mid)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <IconFile size={13} />{v.comprobante ? 'Ver comprobante' : 'Comprobante'}
               </button>
-              <button onClick={() => abrirEditar(v)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-accent)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                ✏️ Editar
+              <button onClick={() => abrirEditar(v)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-accent)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <IconEdit size={13} />Editar
               </button>
-              <button onClick={() => eliminarVenta(v)} style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', color: 'var(--rv-danger)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                🗑️
+              <button onClick={() => eliminarVenta(v)} style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', color: 'var(--rv-danger)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex' }}>
+                <IconTrash size={13} />
               </button>
             </div>
           </div>
         ))}
         {ventas.length === 0 && (
           <div style={{ textAlign: 'center', padding: 60, color: 'var(--rv-text-dim)' }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>💰</div>
+            <IconWallet size={36} style={{ marginBottom: 12 }} />
             <p>No hay ventas registradas</p>
           </div>
         )}
@@ -247,8 +248,8 @@ export default function Ventas() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
           <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 600, margin: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{editando ? '✏️ Editar venta' : 'Nueva venta'}</h2>
-              <button onClick={cerrarModal} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', fontSize: 20, cursor: 'pointer' }}>✕</button>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 9 }}>{editando ? <><IconEdit size={16} />Editar venta</> : 'Nueva venta'}</h2>
+              <button onClick={cerrarModal} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
             </div>
             <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Equipo */}
@@ -262,8 +263,8 @@ export default function Ventas() {
                 </div>
               )}
               {equipoSeleccionado && (
-                <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--rv-accent)' }}>
-                  📦 {equipoSeleccionado.modelo} · {equipoSeleccionado.gb}GB · {equipoSeleccionado.color} · Bat {equipoSeleccionado.bateria}% · Costo USD {equipoSeleccionado.costoUsd}
+                <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--rv-accent)', display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <IconBox size={13} />{equipoSeleccionado.modelo} · {equipoSeleccionado.gb}GB · {equipoSeleccionado.color} · Bat {equipoSeleccionado.bateria}% · Costo USD {equipoSeleccionado.costoUsd}
                 </div>
               )}
 
@@ -429,8 +430,8 @@ export default function Ventas() {
                             </div>
                             <div style={{ borderTop: '1px solid var(--rv-border)', paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
                               <span style={{ fontWeight: 700 }}>Saldo restante</span>
-                              <span style={{ fontWeight: 800, color: saldoUsd <= 0 ? 'var(--rv-text)' : 'var(--rv-text-mid)' }}>
-                                {saldoUsd <= 0 ? '✅ Saldado' : `USD ${saldoUsd.toFixed(0)} · $${saldoArs.toLocaleString('es-AR')} ARS`}
+                              <span style={{ fontWeight: 800, color: saldoUsd <= 0 ? 'var(--rv-text)' : 'var(--rv-text-mid)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                {saldoUsd <= 0 ? <><IconCheckCircle size={14} style={{ color: 'var(--rv-accent)' }} />Saldado</> : `USD ${saldoUsd.toFixed(0)} · $${saldoArs.toLocaleString('es-AR')} ARS`}
                               </span>
                             </div>
                           </div>
@@ -448,12 +449,12 @@ export default function Ventas() {
                   {form.partesDePago.map((p, i) => (
                     <div key={i} style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px', marginBottom: 8, fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <span style={{ color: 'var(--rv-accent)', fontWeight: 600 }}>📱 {p.modelo} {p.gb}GB {p.color}</span>
+                        <span style={{ color: 'var(--rv-accent)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}><IconArrowSwap size={13} />{p.modelo} {p.gb}GB {p.color}</span>
                         <div style={{ color: 'var(--rv-text-dim)', fontSize: 11, marginTop: 3 }}>
                           Toma: USD {p.costoUsd} · Venta: USD {p.pvUsd}
                         </div>
                       </div>
-                      <button type="button" onClick={() => setForm(f => ({ ...f, partesDePago: f.partesDePago.filter((_, idx) => idx !== i) }))} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', fontSize: 18 }}>✕</button>
+                      <button type="button" onClick={() => setForm(f => ({ ...f, partesDePago: f.partesDePago.filter((_, idx) => idx !== i) }))} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', display: 'flex' }}><IconX size={15} /></button>
                     </div>
                   ))}
                   <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: 14 }}>

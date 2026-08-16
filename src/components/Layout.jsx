@@ -2,6 +2,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import BannerTrial from './BannerTrial';
+import { IconClock, IconCheckCircle, IconLock, IconX, IconMenu } from './Icons';
 
 const SZ = { width: 17, height: 17, flexShrink: 0 };
 const SA = { fill: 'none', stroke: 'currentColor', strokeWidth: '1.75', strokeLinecap: 'round', strokeLinejoin: 'round' };
@@ -72,8 +73,8 @@ const NAV = [
 function PlanBadge({ plan, diasRestantesTrial }) {
   if (!plan) return null;
   const configs = {
-    trial:  { label: `Trial · ${diasRestantesTrial ?? '?'} días`, color: 'var(--rv-accent)', stars: '🧪' },
-    promax: { label: 'Plan Completo', color: 'var(--rv-accent)', stars: '⭐' },
+    trial:  { label: `Trial · ${diasRestantesTrial ?? '?'} días`, color: 'var(--rv-accent)', Icono: IconClock },
+    promax: { label: 'Plan Completo', color: 'var(--rv-accent)', Icono: IconCheckCircle },
   };
   const cfg = configs[plan] || configs.promax;
   return (
@@ -82,7 +83,7 @@ function PlanBadge({ plan, diasRestantesTrial }) {
         background: 'var(--rv-accent-soft)', borderRadius: 8, padding: '8px 12px',
         display: 'flex', alignItems: 'center', gap: 6,
       }}>
-        <span style={{ fontSize: 12 }}>{cfg.stars}</span>
+        <cfg.Icono size={13} style={{ color: cfg.color, flexShrink: 0 }} />
         <span style={{ fontSize: 12, fontWeight: 600, color: cfg.color }}>{cfg.label}</span>
       </div>
     </NavLink>
@@ -138,7 +139,7 @@ export default function Layout({ children }) {
             >
               {icon}
               <span>{label}</span>
-              {bloqueado && <span style={{ fontSize: 11, color: '#c2c9d6', marginLeft: 'auto' }}>🔒</span>}
+              {bloqueado && <IconLock size={12} style={{ color: '#c2c9d6', marginLeft: 'auto', flexShrink: 0 }} />}
             </NavLink>
           );
         })}
@@ -185,8 +186,8 @@ export default function Layout({ children }) {
           <span style={{ color: 'var(--rv-text)', fontWeight: 700, fontSize: 15 }}>{negocio?.nombre || 'ReventApp'}</span>
         </div>
         <button onClick={() => setMenuOpen(!menuOpen)} style={{
-          background: 'none', border: 'none', color: 'var(--rv-text)', fontSize: 22, cursor: 'pointer',
-        }}>☰</button>
+          background: 'none', border: 'none', color: 'var(--rv-text)', cursor: 'pointer', display: 'flex',
+        }}><IconMenu size={22} /></button>
       </div>
 
       {/* Mobile menu overlay */}
@@ -194,8 +195,8 @@ export default function Layout({ children }) {
         <div style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'var(--rv-surface)' }}>
           <div style={{ display: 'flex', justifyContent: 'flex-end', padding: 16 }}>
             <button onClick={() => setMenuOpen(false)} style={{
-              background: 'none', border: 'none', color: 'var(--rv-text)', fontSize: 24, cursor: 'pointer',
-            }}>✕</button>
+              background: 'none', border: 'none', color: 'var(--rv-text)', cursor: 'pointer', display: 'flex',
+            }}><IconX size={22} /></button>
           </div>
           <SidebarContent />
         </div>

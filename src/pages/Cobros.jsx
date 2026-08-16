@@ -2,6 +2,7 @@
 import { collection, getDocs, query, orderBy, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
+import { IconWallet, IconBell, IconCheck, IconCheckCircle, IconWarning, IconPhone, IconArrowSwap } from '../components/Icons';
 
 function diasDesde(fecha) {
   const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -38,11 +39,11 @@ const abrirWA = (telefono, mensaje) => {
 };
 
 const FILTROS = [
-  { key: 'vencidas', label: '🔴 Vencidas' },
-  { key: 'semana', label: '🟡 Esta semana' },
-  { key: 'mes', label: '🟠 Este mes' },
-  { key: 'aldia', label: '✅ Al día' },
-  { key: 'todas', label: 'Todas' },
+  { key: 'vencidas', label: 'Vencidas', dot: 'var(--rv-danger)' },
+  { key: 'semana', label: 'Esta semana', dot: '#e6a700' },
+  { key: 'mes', label: 'Este mes', dot: '#e07b1a' },
+  { key: 'aldia', label: 'Al día', dot: '#2fa64d' },
+  { key: 'todas', label: 'Todas', dot: null },
 ];
 
 export default function Cobros() {
@@ -204,7 +205,7 @@ export default function Cobros() {
     return (
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
         <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 18, padding: 28, maxWidth: 380, width: '100%' }}>
-          <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>📲 Enviar recordatorio por WhatsApp</div>
+          <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}><IconBell size={16} />Enviar recordatorio por WhatsApp</div>
           <div style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 20 }}>
             {d.cliente} · {textoDeuda(d)}
           </div>
@@ -227,7 +228,7 @@ export default function Cobros() {
               </button>
             ) : esUSD && !montoARS ? (
               <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 12, padding: '14px 18px' }}>
-                <div style={{ color: 'var(--rv-text-dim)', fontSize: 13 }}>⚠️ No hay tipo de cambio cargado. Actualizalo en Configuración.</div>
+                <div style={{ color: 'var(--rv-text-dim)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 7 }}><IconWarning size={14} />No hay tipo de cambio cargado. Actualizalo en Configuración.</div>
               </div>
             ) : (
               <button onClick={() => enviar(false)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '14px 18px', cursor: 'pointer', textAlign: 'left' }}>
@@ -248,7 +249,7 @@ export default function Cobros() {
   return (
     <div>
       <ModalWhatsApp />
-      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 24 }}>💳 Cobros</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}><IconWallet size={22} style={{ color: 'var(--rv-accent)' }} />Cobros</h1>
 
       {/* Panel deudores */}
       {deudores.length === 0 && (
@@ -269,7 +270,8 @@ export default function Cobros() {
           {/* Filtros */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
             {FILTROS.map(f => (
-              <button key={f.key} onClick={() => setFiltro(f.key)} style={{ background: filtro === f.key ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: filtro === f.key ? '#fff' : 'var(--rv-text-mid)', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              <button key={f.key} onClick={() => setFiltro(f.key)} style={{ background: filtro === f.key ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: filtro === f.key ? '#fff' : 'var(--rv-text-mid)', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                {f.dot && <span style={{ width: 7, height: 7, borderRadius: '50%', background: f.dot, flexShrink: 0 }} />}
                 {f.label}
               </button>
             ))}
@@ -297,21 +299,21 @@ export default function Cobros() {
                         </span>
                       )}
                       {d.cuotasVencidas > 0 && d.montoVencido > 0 && <span style={{ color: 'var(--rv-text)', fontWeight: 600, marginLeft: 8 }}>· Debe {d.moneda} {d.montoVencido.toLocaleString('es-AR')}</span>}
-                      {d.cuotasVencidas === 0 && <span style={{ color: 'var(--rv-text-dim)' }}>Al día ✓</span>}
+                      {d.cuotasVencidas === 0 && <span style={{ color: 'var(--rv-text-dim)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>Al día <IconCheck size={11} /></span>}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button
                       onClick={() => d.telefono ? setModalWA(d) : null}
                       title={!d.telefono ? 'Agregá el teléfono del cliente en la venta' : ''}
-                      style={{ background: '#25D366', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: d.telefono ? 'pointer' : 'not-allowed', opacity: d.telefono ? 1 : 0.4 }}>
-                      📲 WhatsApp
+                      style={{ background: '#25D366', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: d.telefono ? 'pointer' : 'not-allowed', opacity: d.telefono ? 1 : 0.4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <IconBell size={13} />WhatsApp
                     </button>
                   </div>
                 </div>
               </div>
             ))}
-            {deudoresFiltrados.length === 0 && <div style={{ textAlign: 'center', color: 'var(--rv-text-dim)', padding: 20, fontSize: 14 }}>✅ No hay deudores en esta categoría</div>}
+            {deudoresFiltrados.length === 0 && <div style={{ textAlign: 'center', color: 'var(--rv-text-dim)', padding: 20, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}><IconCheckCircle size={15} style={{ color: 'var(--rv-accent)' }} />No hay deudores en esta categoría</div>}
           </div>
         </div>
       )}
@@ -325,7 +327,7 @@ export default function Cobros() {
               <div style={{ fontWeight: 700, fontSize: 15 }}>{v.modelo} {v.gb}GB · {v.cliente || 'Sin cliente'}</div>
               <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 2 }}>
                 Vendedor: {v.vendedor || '-'}
-                {v.telefono && <a href={`tel:${v.telefono}`} style={{ color: 'var(--rv-accent)', marginLeft: 8 }}>📞 {v.telefono}</a>}
+                {v.telefono && <a href={`tel:${v.telefono}`} style={{ color: 'var(--rv-accent)', marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 5 }}><IconPhone size={11} />{v.telefono}</a>}
               </div>
             </div>
             {v.cobros.map((cobro, ci) => (
@@ -348,22 +350,23 @@ export default function Cobros() {
                             padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--rv-border)',
                             background: vencida ? 'var(--rv-danger-soft)' : 'var(--rv-surface-alt)',
                             color: pagada ? 'var(--rv-text-mid)' : vencida ? 'var(--rv-danger)' : 'var(--rv-text-dim)',
+                            display: 'inline-flex', alignItems: 'center', gap: 5,
                           }}>
-                            {pagada ? '✓' : vencida ? '⚠' : ''} {fecha}
+                            {pagada ? <IconCheck size={11} /> : vencida ? <IconWarning size={11} /> : null} {fecha}
                           </button>
                         );
                       })}
                     </div>
                   </div>
                 )}
-                {cobro.tipo === 'iPhone como parte de pago' && <div style={{ color: 'var(--rv-accent)', fontSize: 13 }}>📱 iPhone recibido como parte de pago</div>}
+                {cobro.tipo === 'iPhone como parte de pago' && <div style={{ color: 'var(--rv-accent)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 7 }}><IconArrowSwap size={13} />iPhone recibido como parte de pago</div>}
               </div>
             ))}
           </div>
         ))}
         {ventasConCobros.length === 0 && (
           <div style={{ textAlign: 'center', padding: 60, color: 'var(--rv-text-dim)' }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>💳</div>
+            <IconWallet size={36} style={{ marginBottom: 12 }} />
             <p>No hay cobros registrados</p>
           </div>
         )}

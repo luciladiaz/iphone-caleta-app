@@ -2,15 +2,16 @@
 import { collection, getDocs, addDoc, deleteDoc, doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
+import { IconGear, IconBox, IconCoin, IconArrowSwap, IconX, IconPin, IconUser, IconTruck, IconBell, IconTrendUp } from '../components/Icons';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 
-function SeccionLista({ titulo, icono, items, onAgregar, onEliminar, campo, placeholder }) {
+function SeccionLista({ titulo, Icono, items, onAgregar, onEliminar, campo, placeholder }) {
   const [nuevo, setNuevo] = useState('');
   return (
     <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 24, marginBottom: 16 }}>
-      <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700 }}>{icono} {titulo}</h3>
+      <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 9 }}><Icono size={15} style={{ color: 'var(--rv-accent)' }} />{titulo}</h3>
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         <input value={nuevo} onChange={e => setNuevo(e.target.value)} placeholder={placeholder} style={{ ...inputStyle, flex: 1 }}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (nuevo.trim()) { onAgregar(nuevo.trim()); setNuevo(''); } } }} />
@@ -20,7 +21,7 @@ function SeccionLista({ titulo, icono, items, onAgregar, onEliminar, campo, plac
         {items.map(item => (
           <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px' }}>
             <span style={{ fontSize: 14 }}>{item[campo] || item.nombre}</span>
-            <button onClick={() => onEliminar(item.id)} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', fontSize: 18, cursor: 'pointer' }}>✕</button>
+            <button onClick={() => onEliminar(item.id)} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', display: 'flex' }}><IconX size={15} /></button>
           </div>
         ))}
         {items.length === 0 && <p style={{ color: 'var(--rv-text-dim)', fontSize: 13 }}>No hay {titulo.toLowerCase()} cargados</p>}
@@ -192,11 +193,11 @@ export default function Configuracion() {
 
   return (
     <div>
-      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 24 }}>⚙️ Configuración</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}><IconGear size={22} style={{ color: 'var(--rv-accent)' }} />Configuración</h1>
 
       {/* Sección Mi Negocio */}
       <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 24, marginBottom: 16 }}>
-        <h3 style={{ margin: '0 0 20px', fontSize: 15, fontWeight: 700 }}>🏪 Mi Negocio</h3>
+        <h3 style={{ margin: '0 0 20px', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 9 }}><IconBox size={15} style={{ color: 'var(--rv-accent)' }} />Mi Negocio</h3>
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
 
           {/* Nombre y WhatsApp */}
@@ -228,7 +229,7 @@ export default function Configuracion() {
       </div>
 
       <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 24, marginBottom: 16 }}>
-        <h3 style={{ margin: '0 0 18px', fontSize: 15, fontWeight: 700 }}>💵 Tipo de cambio (ARS por USD)</h3>
+        <h3 style={{ margin: '0 0 18px', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 9 }}><IconCoin size={15} style={{ color: 'var(--rv-accent)' }} />Tipo de cambio (ARS por USD)</h3>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end' }}>
 
           {/* Selector de tipo de dólar */}
@@ -264,7 +265,7 @@ export default function Configuracion() {
                 disabled={fetchingDolar}
                 style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 16px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', opacity: fetchingDolar ? 0.7 : 1 }}
               >
-                {fetchingDolar ? 'Actualizando...' : '🔄 Actualizar'}
+                {fetchingDolar ? 'Actualizando...' : <><IconTrendUp size={13} style={{ marginRight: 6 }} />Actualizar</>}
               </button>
             )}
             {tipoDolar === 'manual' && (
@@ -284,15 +285,15 @@ export default function Configuracion() {
         )}
       </div>
 
-      <SeccionLista titulo="Puntos de venta" icono="📍" items={puntosVenta} onAgregar={agregar('puntosVenta')} onEliminar={eliminar('puntosVenta')} campo="nombre" placeholder="Ej: Local Caleta, Instagram..." />
-      <SeccionLista titulo="Vendedores" icono="👤" items={vendedores} onAgregar={agregar('vendedores')} onEliminar={eliminar('vendedores')} campo="nombre" placeholder="Nombre del vendedor..." />
-      <SeccionLista titulo="Proveedores" icono="🏭" items={proveedores} onAgregar={agregar('proveedores')} onEliminar={eliminar('proveedores')} campo="nombre" placeholder="Nombre del proveedor..." />
-      <SeccionLista titulo="Orígenes de venta" icono="📣" items={origenes} onAgregar={agregarEnConfig('origenes')} onEliminar={eliminarDeConfig('origenes', origenes, setOrigenes)} campo="nombre" placeholder="Ej: Instagram, WhatsApp..." />
-      <SeccionLista titulo="Modelos de iPhone" icono="📱" items={modelos} onAgregar={agregarEnConfig('modelos')} onEliminar={eliminarDeConfig('modelos', modelos, setModelos)} campo="nombre" placeholder="Ej: iPhone 18 Pro..." />
+      <SeccionLista titulo="Puntos de venta" Icono={IconPin} items={puntosVenta} onAgregar={agregar('puntosVenta')} onEliminar={eliminar('puntosVenta')} campo="nombre" placeholder="Ej: Local Caleta, Instagram..." />
+      <SeccionLista titulo="Vendedores" Icono={IconUser} items={vendedores} onAgregar={agregar('vendedores')} onEliminar={eliminar('vendedores')} campo="nombre" placeholder="Nombre del vendedor..." />
+      <SeccionLista titulo="Proveedores" Icono={IconTruck} items={proveedores} onAgregar={agregar('proveedores')} onEliminar={eliminar('proveedores')} campo="nombre" placeholder="Nombre del proveedor..." />
+      <SeccionLista titulo="Orígenes de venta" Icono={IconBell} items={origenes} onAgregar={agregarEnConfig('origenes')} onEliminar={eliminarDeConfig('origenes', origenes, setOrigenes)} campo="nombre" placeholder="Ej: Instagram, WhatsApp..." />
+      <SeccionLista titulo="Modelos de iPhone" Icono={IconBox} items={modelos} onAgregar={agregarEnConfig('modelos')} onEliminar={eliminarDeConfig('modelos', modelos, setModelos)} campo="nombre" placeholder="Ej: iPhone 18 Pro..." />
 
       {/* Plan Canje */}
       <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 24, marginBottom: 16 }}>
-        <h3 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700 }}>💱 Plan Canje</h3>
+        <h3 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 9 }}><IconArrowSwap size={15} style={{ color: 'var(--rv-accent)' }} />Plan Canje</h3>
         <p style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginBottom: 16 }}>
           Cuánto tomás cada modelo como parte de pago. Tus clientes lo van a ver en el catálogo público para calcular cuánto les falta pagar.
         </p>
@@ -309,7 +310,7 @@ export default function Configuracion() {
           {listaCanje.map(c => (
             <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px' }}>
               <span style={{ fontSize: 14 }}>{c.modelo} {c.gb ? `${c.gb}GB` : ''} — toma USD {c.valorUsd}</span>
-              <button onClick={() => eliminarCanje(c.id)} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', fontSize: 18, cursor: 'pointer' }}>✕</button>
+              <button onClick={() => eliminarCanje(c.id)} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', display: 'flex' }}><IconX size={15} /></button>
             </div>
           ))}
           {listaCanje.length === 0 && <p style={{ color: 'var(--rv-text-dim)', fontSize: 13 }}>Todavía no cargaste ningún valor de toma</p>}

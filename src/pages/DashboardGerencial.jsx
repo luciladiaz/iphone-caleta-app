@@ -2,6 +2,7 @@
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
+import { IconChart } from '../components/Icons';
 
 const fmt = (n) => new Intl.NumberFormat('es-AR').format(Math.round(n));
 
@@ -70,7 +71,7 @@ export default function DashboardGerencial() {
 
   return (
     <div>
-      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>📈 Dashboard Gerencial</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 10 }}><IconChart size={22} style={{ color: 'var(--rv-accent)' }} />Dashboard Gerencial</h1>
       <p style={{ color: 'var(--rv-text-dim)', fontSize: 14, marginBottom: 28 }}>
         Resumen del mes · {new Date().toLocaleString('es-AR', { month: 'long', year: 'numeric' })}
       </p>

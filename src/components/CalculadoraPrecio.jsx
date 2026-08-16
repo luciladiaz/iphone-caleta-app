@@ -1,4 +1,5 @@
 ﻿import { useState } from 'react';
+import { IconCalculator, IconX } from './Icons';
 
 const inputStyle = { width: '100%', padding: '12px 14px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 10, color: 'var(--rv-text)', fontSize: 15, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6, textTransform: 'uppercase' };
@@ -17,16 +18,16 @@ export default function CalculadoraPrecio({ tipoCambio: tcInicial, onClose }) {
   const margen = pvN > 0 ? (gananciaUSD / pvN) * 100 : 0;
   const pvARS = pvN * tcN;
 
-  const semaforo = margen < 10 ? { color: 'var(--rv-text)', bg: 'var(--rv-surface-alt)', border: 'var(--rv-border)', label: 'Muy ajustado', icon: '🔴' }
-    : margen < 20 ? { color: 'var(--rv-text-mid)', bg: 'var(--rv-surface-alt)', border: 'var(--rv-border)', label: 'Rentable', icon: '🟡' }
-    : { color: 'var(--rv-text)', bg: 'var(--rv-surface-alt)', border: 'var(--rv-border)', label: 'Excelente', icon: '🟢' };
+  const semaforo = margen < 10 ? { color: 'var(--rv-text)', bg: 'var(--rv-surface-alt)', border: 'var(--rv-border)', label: 'Muy ajustado', dot: 'var(--rv-danger)' }
+    : margen < 20 ? { color: 'var(--rv-text-mid)', bg: 'var(--rv-surface-alt)', border: 'var(--rv-border)', label: 'Rentable', dot: '#e6a700' }
+    : { color: 'var(--rv-text)', bg: 'var(--rv-surface-alt)', border: 'var(--rv-border)', label: 'Excelente', dot: '#2fa64d' };
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 400 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>🧮 Calculadora</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', fontSize: 20, cursor: 'pointer' }}>✕</button>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 9 }}><IconCalculator size={16} />Calculadora</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 24 }}>
@@ -47,7 +48,7 @@ export default function CalculadoraPrecio({ tipoCambio: tcInicial, onClose }) {
         {costoN > 0 && pvN > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ background: semaforo.bg, border: `1px solid ${semaforo.border}`, borderRadius: 12, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: semaforo.color, fontWeight: 700, fontSize: 15 }}>{semaforo.icon} {semaforo.label}</span>
+              <span style={{ color: semaforo.color, fontWeight: 700, fontSize: 15, display: 'inline-flex', alignItems: 'center', gap: 7 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: semaforo.dot, flexShrink: 0 }} />{semaforo.label}</span>
               <span style={{ color: semaforo.color, fontWeight: 800, fontSize: 20 }}>{margen.toFixed(1)}%</span>
             </div>
 

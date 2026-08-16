@@ -1,19 +1,20 @@
 ﻿import { useNavigate } from 'react-router-dom';
 import { PLANES } from '../config/planes';
+import { IconBox, IconWallet, IconUser } from './Icons';
 
 const CONFIG = {
   stock: {
-    icono: '📦',
+    Icono: IconBox,
     titulo: 'Límite de stock alcanzado',
     planRequerido: 'pro',
   },
   ventas: {
-    icono: '💰',
+    Icono: IconWallet,
     titulo: 'Límite de ventas alcanzado',
     planRequerido: 'pro',
   },
   usuarios: {
-    icono: '👥',
+    Icono: IconUser,
     titulo: 'Límite de usuarios alcanzado',
     planRequerido: 'promax',
   },
@@ -45,7 +46,7 @@ export default function ModalLimiteAlcanzado({ tipo, planActual, cantidadActual,
         background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16,
         padding: 32, width: '100%', maxWidth: 420, textAlign: 'center',
       }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>{cfg.icono}</div>
+        <cfg.Icono size={36} style={{ marginBottom: 16, color: 'var(--rv-accent)' }} />
         <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 12 }}>{cfg.titulo}</h2>
         <p style={{ color: 'var(--rv-text-dim)', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>{descripcion}</p>
         <button

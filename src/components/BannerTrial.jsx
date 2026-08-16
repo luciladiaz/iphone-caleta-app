@@ -1,24 +1,25 @@
 ﻿import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { IconWarning, IconClock } from './Icons';
 
 export default function BannerTrial() {
   const { plan, planActivo, diasRestantesTrial } = useAuth();
   if (plan !== 'trial' || !planActivo) return null;
 
   const dias = diasRestantesTrial ?? 7;
-  let bg, border, color, icono, texto;
+  let bg, border, color, Icono, texto;
 
   if (dias <= 1) {
     bg = 'var(--rv-danger-soft)'; border = 'var(--rv-danger)'; color = 'var(--rv-danger)';
-    icono = '🚨';
+    Icono = IconWarning;
     texto = `Tu prueba vence hoy — Elegí un plan para no perder tus datos`;
   } else if (dias <= 3) {
     bg = 'var(--rv-accent-soft)'; border = 'var(--rv-accent)'; color = 'var(--rv-accent)';
-    icono = '⏰';
+    Icono = IconClock;
     texto = `Tu prueba vence en ${dias} días — No pierdas el acceso`;
   } else {
     bg = 'var(--rv-accent-soft)'; border = 'var(--rv-accent)'; color = 'var(--rv-accent)';
-    icono = '🧪';
+    Icono = IconClock;
     texto = `Estás en tu período de prueba — ${dias} días restantes`;
   }
 
@@ -29,7 +30,7 @@ export default function BannerTrial() {
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       flexWrap: 'wrap', gap: 8,
     }}>
-      <span style={{ color, fontSize: 13, fontWeight: 600 }}>{icono} {texto}</span>
+      <span style={{ color, fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><Icono size={14} />{texto}</span>
       <Link to="/planes" style={{
         color: '#fff', background: color, padding: '6px 14px',
         borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap',

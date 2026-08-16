@@ -2,6 +2,7 @@
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
+import { IconTruck, IconGear } from '../components/Icons';
 
 export default function Proveedores() {
   const { negocioId } = useAuth();
@@ -39,14 +40,14 @@ export default function Proveedores() {
 
   return (
     <div>
-      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>🏭 Proveedores</h1>
-      <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 28 }}>Cargá los proveedores desde ⚙️ Configuración</p>
+      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}><IconTruck size={22} style={{ color: 'var(--rv-accent)' }} />Proveedores</h1>
+      <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 28, display: 'flex', alignItems: 'center', gap: 5 }}>Cargá los proveedores desde <IconGear size={12} />Configuración</p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
         {proveedores.map(p => {
           const d = detalle[p.id] || {};
           return (
             <div key={p.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 22 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>🏭 {p.nombre}</div>
+              <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 9 }}><IconTruck size={16} style={{ color: 'var(--rv-accent)' }} />{p.nombre}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--rv-text-dim)' }}>Equipos totales</span><span style={{ fontWeight: 700 }}>{d.total || 0}</span></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--rv-text-dim)' }}>Disponibles</span><span style={{ color: 'var(--rv-text)', fontWeight: 700 }}>{d.disponibles || 0}</span></div>
@@ -56,7 +57,7 @@ export default function Proveedores() {
             </div>
           );
         })}
-        {proveedores.length === 0 && <div style={{ color: 'var(--rv-text-dim)', fontSize: 14 }}>No hay proveedores. Agregá desde ⚙️ Configuración.</div>}
+        {proveedores.length === 0 && <div style={{ color: 'var(--rv-text-dim)', fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>No hay proveedores. Agregá desde <IconGear size={12} />Configuración.</div>}
       </div>
     </div>
   );

@@ -27,6 +27,7 @@ async function activarPlan(negocioId, plan, mpId) {
     plan,
     estado: 'activo',
     vencePlan,
+    renovacionAutomatica: true,
     ultimoPago: FieldValue.serverTimestamp(),
   });
 
@@ -59,6 +60,22 @@ async function suspenderPlan(negocioId, mpId) {
   });
 
   console.log(`[Webhook MP] 🔒 Plan suspendido | negocio=${negocioId}`);
+}
+
+// Si el negocio ya canceló voluntariamente desde la app (ver api/cancelar-suscripcion.js,
+// renovacionAutomatica=false), el acceso se corta solo cuando vence vencePlan — no lo
+// cortamos de golpe acá de nuevo ni lo marcamos como "pago fallido", que sería falso.
+async function procesarCancelacion(negocioId, mpId) {
+  const negSnap = await adminDb.doc(`negocios/${negocioId}`).get();
+  const yaCanceladoPorUsuario = negSnap.exists && negSnap.data().renovacionAutomatica === false;
+
+  if (yaCanceladoPorUsuario) {
+    console.log(`[Webhook MP] Cancelación ya procesada por el usuario, no se vuelve a suspender | negocio=${negocioId}`);
+    return;
+  }
+
+  // MP agotó los reintentos de cobro — esto sí es un pago realmente fallido, cortar acceso ahora
+  await suspenderPlan(negocioId, mpId);
 }
 
 async function logPagoRechazado(negocioId, mpId) {
@@ -109,7 +126,7 @@ export default async function handler(req, res) {
     if (status === 'approved' || status === 'authorized') {
       await activarPlan(negocioId, plan || 'pro', 'test');
     } else if (status === 'cancelled') {
-      await suspenderPlan(negocioId, 'test');
+      await procesarCancelacion(negocioId, 'test');
     } else if (status === 'paused' || status === 'rejected') {
       await logPagoRechazado(negocioId, 'test');
     }
@@ -151,8 +168,7 @@ export default async function handler(req, res) {
         // MP reintentando cobro — NO bloquear todavía, solo registrar
         await logPagoRechazado(parsed.negocioId, data.id);
       } else if (sub.status === 'cancelled') {
-        // MP agotó todos los reintentos → suspender acceso
-        await suspenderPlan(parsed.negocioId, data.id);
+        await procesarCancelacion(parsed.negocioId, data.id);
       }
     }
 

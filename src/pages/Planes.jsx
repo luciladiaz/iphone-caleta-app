@@ -36,7 +36,7 @@ const PLAN_INCLUYE = [
 ];
 
 export default function Planes() {
-  const { user, perfil, negocioId, plan, planActivo } = useAuth();
+  const { user, perfil, negocioId, negocio, plan, planActivo } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const motivo = searchParams.get('motivo');
@@ -44,6 +44,9 @@ export default function Planes() {
   const pago   = searchParams.get('pago');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [verificando, setVerificando] = useState(false);
+  const [modalCancelar, setModalCancelar] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
+  const [cancelError, setCancelError] = useState('');
   const proRef = useRef(null);
   const verificacionRef = useRef(null);
 
@@ -134,6 +137,34 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
 
   const handleProMax = () => handleContratar('promax');
 
+  const handleCancelar = async () => {
+    setCancelando(true);
+    setCancelError('');
+    try {
+      const res = await fetch('/api/cancelar-suscripcion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ negocioId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setCancelError(data.error || 'No pudimos cancelar la suscripción. Intentá de nuevo o contactanos por WhatsApp.');
+        setCancelando(false);
+        return;
+      }
+      // Firestore onSnapshot en AuthContext va a reflejar renovacionAutomatica=false solo
+      setModalCancelar(false);
+      setCancelando(false);
+    } catch {
+      setCancelError('Error de conexión. Intentá de nuevo o contactanos por WhatsApp.');
+      setCancelando(false);
+    }
+  };
+
+  const fechaVencePlan = negocio?.vencePlan ? (negocio.vencePlan?.toDate?.() || new Date(negocio.vencePlan)) : null;
+  const canceladoConGracia = negocio?.renovacionAutomatica === false && planActivo && plan !== 'trial';
+  const puedeCancel = plan !== 'trial' && planActivo && negocio?.renovacionAutomatica !== false;
+
   return (
     <div>
       {/* ── Banner: pago exitoso (redirect en curso) ───────────────────────── */}
@@ -199,6 +230,20 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
         </div>
       )}
 
+      {/* ── Banner: cancelado por el usuario, todavía con acceso hasta que venza lo pagado ── */}
+      {canceladoConGracia && (
+        <div style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
+          <div style={{ marginBottom: 6 }}><IconClock size={20} /></div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--rv-text)', marginBottom: 6 }}>
+            Tu plan fue cancelado
+          </div>
+          <div style={{ color: 'var(--rv-text-dim)', fontSize: 14 }}>
+            No se te va a cobrar de nuevo. Vas a seguir teniendo acceso completo
+            {fechaVencePlan ? ` hasta el ${fechaVencePlan.toLocaleDateString('es-AR')}` : ' hasta el final del período ya pagado'}.
+          </div>
+        </div>
+      )}
+
       {/* ── Banner: trial vencido ──────────────────────────────────────────── */}
       {motivo === 'vencido' && !planActivo && (
         <div style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
@@ -244,10 +289,20 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
               </div>
             ))}
           </div>
-          <button onClick={handleProMax}
-            style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
-            Contratar ahora
-          </button>
+          {puedeCancel ? (
+            <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--rv-text-dim)' }}>
+              Ya tenés este plan activo.
+              <button onClick={() => setModalCancelar(true)}
+                style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', textDecoration: 'underline', fontSize: 13, cursor: 'pointer', padding: 0, marginLeft: 6 }}>
+                Cancelar suscripción
+              </button>
+            </div>
+          ) : (
+            <button onClick={handleProMax}
+              style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+              Contratar ahora
+            </button>
+          )}
         </div>
       </div>
 
@@ -255,6 +310,35 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
         <span>Pagá con tarjeta, débito o transferencia via MercadoPago</span>
         <span>Cancelá cuando quieras · 7 días de prueba gratis al registrarte</span>
       </div>
+
+      {/* ── Modal: confirmar cancelación ────────────────────────────────────── */}
+      {modalCancelar && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 420 }}>
+            <h2 style={{ margin: '0 0 12px', fontSize: 18, fontWeight: 700 }}>¿Cancelar tu suscripción?</h2>
+            <p style={{ color: 'var(--rv-text-dim)', fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
+              No se te va a cobrar de nuevo. Vas a seguir teniendo acceso completo
+              {fechaVencePlan ? ` hasta el ${fechaVencePlan.toLocaleDateString('es-AR')}` : ' hasta el final del período que ya pagaste'},
+              y después tu cuenta queda en pausa (tus datos se guardan) hasta que reactives un plan.
+            </p>
+            {cancelError && (
+              <div style={{ background: 'var(--rv-danger-soft)', color: 'var(--rv-danger)', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 }}>
+                {cancelError}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setModalCancelar(false)} disabled={cancelando}
+                style={{ padding: '10px 20px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, cursor: 'pointer' }}>
+                Volver
+              </button>
+              <button onClick={handleCancelar} disabled={cancelando}
+                style={{ padding: '10px 20px', background: 'var(--rv-danger)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                {cancelando ? 'Cancelando...' : 'Sí, cancelar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

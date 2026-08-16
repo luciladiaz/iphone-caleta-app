@@ -71,6 +71,7 @@ export default async function handler(req, res) {
       await adminDb.doc(`negocios/${negocioId}`).update({
         preapprovalId: data.id,
         planSolicitado: plan,
+        renovacionAutomatica: true,
         ultimoCheckout: FieldValue.serverTimestamp(),
       });
     } catch (e) {

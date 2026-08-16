@@ -40,9 +40,9 @@ async function whook(testMode, body) {
   return r.json();
 }
 
-const TEST_IDS = ['TEST_PAGO_OK', 'TEST_CANCELADO', 'TEST_RECHAZADO'];
+const TEST_IDS = ['TEST_PAGO_OK', 'TEST_CANCELADO', 'TEST_RECHAZADO', 'TEST_CANCEL_VOLUNTARIO'];
 
-// ── Definición de los 7 tests ─────────────────────────────────────────────────
+// ── Definición de los 8 tests ─────────────────────────────────────────────────
 async function runTests(setLog) {
   const results = [];
 
@@ -184,6 +184,36 @@ async function runTests(setLog) {
       fail('TEST 7 — Fecha vencida bloquea aunque estado=activo', `activo=${r.activo} motivo=${r.motivo} (esperado activo=false motivo=vencido)`);
     }
   } catch (e) { fail('TEST 7 — Fecha vencida bloquea aunque estado=activo', e.message); }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // TEST 8 — Cancelación voluntaria (desde /api/cancelar-suscripcion) NO se
+  // vuelve a suspender cuando llega el webhook de MP confirmando la baja —
+  // el negocio sigue activo hasta que venza lo ya pagado, sin el mensaje
+  // falso de "tu pago falló"
+  // ──────────────────────────────────────────────────────────────────────────
+  try {
+    // Setup: negocio activo que ya canceló voluntariamente (como haría
+    // api/cancelar-suscripcion.js antes de que llegue el webhook de MP)
+    await whook('setup', {
+      negocioId: 'TEST_CANCEL_VOLUNTARIO',
+      data: {
+        plan: 'pro', estado: 'activo', renovacionAutomatica: false,
+        vencePlan: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        nombre: 'Test Cancel Voluntario',
+      },
+    });
+
+    // Simular que MP notifica la cancelación del preapproval
+    await whook('true', { negocioId: 'TEST_CANCEL_VOLUNTARIO', status: 'cancelled' });
+
+    const res = await whook('read', { negocioId: 'TEST_CANCEL_VOLUNTARIO' });
+
+    if (res.data?.estado === 'activo' && res.data?.motivoSuspension === undefined) {
+      ok('TEST 8 — Cancelación voluntaria no se re-suspende', `estado=${res.data.estado} — sigue con acceso hasta vencePlan ✓`);
+    } else {
+      fail('TEST 8 — Cancelación voluntaria no se re-suspende', `estado=${res.data?.estado} motivoSuspension=${res.data?.motivoSuspension} (esperado estado=activo, sin motivoSuspension)`);
+    }
+  } catch (e) { fail('TEST 8 — Cancelación voluntaria no se re-suspende', e.message); }
 
   // ──────────────────────────────────────────────────────────────────────────
   // LIMPIEZA automática de documentos de test

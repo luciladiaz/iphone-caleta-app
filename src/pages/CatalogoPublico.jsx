@@ -129,7 +129,7 @@ export default function CatalogoPublico() {
               )}
               {numeroWhatsapp(negocio?.telefono) ? (
                 <a
-                  href={`https://wa.me/${numeroWhatsapp(negocio.telefono)}?text=${encodeURIComponent(`Hola! Me interesa el ${eq.modelo} ${eq.gb}GB ${eq.color}. ¿Está disponible?`)}`}
+                  href={`https://wa.me/${numeroWhatsapp(negocio.telefono)}?text=${encodeURIComponent(`Hola! Quiero comprar el ${eq.modelo} ${eq.gb}GB ${eq.color}. ¿Cómo seguimos?`)}`}
                   target="_blank" rel="noreferrer"
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#25D366', color: '#fff', borderRadius: 10, padding: '10px', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}
                 >

@@ -258,6 +258,10 @@ function InteractiveHero() {
       <div style={{ position: 'absolute', top: -180, right: -160, width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(47,95,224,0.14) 0%, rgba(47,95,224,0) 70%)', pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', bottom: -200, left: -140, width: 480, height: 480, borderRadius: '50%', background: 'radial-gradient(circle, rgba(47,95,224,0.10) 0%, rgba(47,95,224,0) 70%)', pointerEvents: 'none' }} />
 
+      <h2 style={{ position: 'relative', margin: '0 0 32px', textAlign: 'center', fontSize: 'clamp(22px, 3.5vw, 30px)', fontWeight: 800, color: '#10162b', letterSpacing: '-0.01em' }}>
+        Así se ve la app por dentro
+      </h2>
+
       <div style={{ position: 'relative', maxWidth: 1040, margin: '0 auto', display: 'flex', justifyContent: 'center' }}>
         <div style={{ position: 'relative', width: '100%' }}>
           <div style={{ position: 'relative', width: '100%', aspectRatio: '1365 / 651', overflow: 'hidden', background: '#fff', borderRadius: 14, boxShadow: '0 24px 60px rgba(16,22,43,0.18)' }}>

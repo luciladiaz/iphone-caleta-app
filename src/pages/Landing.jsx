@@ -258,29 +258,8 @@ function InteractiveHero() {
       <div style={{ position: 'absolute', top: -180, right: -160, width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(47,95,224,0.14) 0%, rgba(47,95,224,0) 70%)', pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', bottom: -200, left: -140, width: 480, height: 480, borderRadius: '50%', background: 'radial-gradient(circle, rgba(47,95,224,0.10) 0%, rgba(47,95,224,0) 70%)', pointerEvents: 'none' }} />
 
-      <div style={{ position: 'relative', maxWidth: 1240, margin: '0 auto', display: 'grid', gridTemplateColumns: 'minmax(260px, 320px) minmax(480px, 800px)', gap: 40, alignItems: 'center' }} className="hero-interactivo-grid">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#e7edfc', color: '#2f5fe0', fontSize: 13, fontWeight: 600, padding: '7px 14px', borderRadius: 999, width: 'fit-content' }}>
-            reventapp.com.ar
-          </div>
-          <h2 style={{ margin: 0, fontSize: 34, lineHeight: 1.15, fontWeight: 800, color: '#10162b', letterSpacing: '-0.01em' }}>
-            Gestioná tu negocio de reventa de iPhones desde un solo lugar
-          </h2>
-          <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#4b5468', maxWidth: 380 }}>
-            Stock, ventas, cobros y proveedores conectados en un panel simple y profesional.
-          </p>
-          <p style={{ margin: 0, fontSize: 13, color: '#8892a8' }}>Probá el panel de acá al lado — las pestañas de arriba son interactivas.</p>
-          <div style={{ display: 'flex', gap: 14, marginTop: 4, flexWrap: 'wrap' }}>
-            <Link to="/registro" style={{ background: '#2f5fe0', color: '#fff', fontSize: 15, fontWeight: 600, padding: '14px 26px', borderRadius: 10, boxShadow: '0 10px 24px rgba(47,95,224,0.28)', textDecoration: 'none' }}>
-              Probar gratis 7 días
-            </Link>
-            <a href="#precios" style={{ background: '#fff', color: '#10162b', fontSize: 15, fontWeight: 600, padding: '14px 26px', borderRadius: 10, border: '1px solid #dde3f2', textDecoration: 'none' }}>
-              Ver planes
-            </a>
-          </div>
-        </div>
-
-        <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', maxWidth: 1040, margin: '0 auto', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ position: 'relative', width: '100%' }}>
           <div style={{ position: 'relative', width: '100%', aspectRatio: '1365 / 651', overflow: 'hidden', background: '#fff', borderRadius: 14, boxShadow: '0 24px 60px rgba(16,22,43,0.18)' }}>
             <img
               src={activeView === 'dashboard' ? '/screenshots/hero/base-dashboard-highlighted.png' : '/screenshots/hero/base-neutral.png'}
@@ -334,7 +313,6 @@ export default function Landing() {
           .landing-grid-3 { grid-template-columns: 1fr !important; }
           .landing-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
           .precio-pro-scale { transform: scale(1) !important; }
-          .hero-interactivo-grid { grid-template-columns: 1fr !important; }
         }
         @media (max-width: 480px) {
           .landing-grid-2 { grid-template-columns: 1fr !important; }

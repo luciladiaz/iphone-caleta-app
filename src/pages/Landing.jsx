@@ -478,7 +478,7 @@ export default function Landing() {
             </div>
           </div>
           <div style={{ color: C.textSecondary, fontSize: 13, display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
-            <span>💳 Pagá con tarjeta, débito o transferencia via MercadoPago</span>
+            <span>💳 Pagá con tarjeta de crédito o débito via MercadoPago</span>
             <span>🔄 Cancelá cuando quieras · ✓ 7 días gratis sin tarjeta, o comprá directo sin trial</span>
           </div>
         </div>

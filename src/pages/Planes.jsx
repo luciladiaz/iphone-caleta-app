@@ -346,7 +346,7 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
       </div>
 
       <div style={{ textAlign: 'center', color: 'var(--rv-text-dim)', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
-        <span>Pagá con tarjeta, débito o transferencia via MercadoPago</span>
+        <span>Pagá con tarjeta de crédito o débito via MercadoPago</span>
         <span>Cancelá cuando quieras · 7 días de prueba gratis al registrarte</span>
       </div>
 

@@ -16,6 +16,21 @@
   --rv-danger-soft: rgba(212, 61, 61, 0.1);
 }
 
+:root[data-theme="dark"] {
+  --rv-bg: #0f1420;
+  --rv-surface: #1a212f;
+  --rv-surface-alt: #212938;
+  --rv-border: #2c3547;
+  --rv-border-soft: rgba(255, 255, 255, 0.08);
+  --rv-text: #f0f3f8;
+  --rv-text-mid: #b8c2d1;
+  --rv-text-dim: #8b96a8;
+  --rv-accent: #4d84ff;
+  --rv-accent-soft: rgba(77, 132, 255, 0.16);
+  --rv-danger: #ef5350;
+  --rv-danger-soft: rgba(239, 83, 80, 0.18);
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 16px; }
 body { font-family: 'Manrope', -apple-system, sans-serif; background: var(--rv-bg); color: var(--rv-text); -webkit-font-smoothing: antialiased; min-width: 320px; }

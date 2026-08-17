@@ -1,8 +1,8 @@
-﻿import { useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import BannerTrial from './BannerTrial';
-import { IconClock, IconCheckCircle, IconLock, IconX, IconMenu } from './Icons';
+import { IconClock, IconCheckCircle, IconLock, IconX, IconMenu, IconSun, IconMoon } from './Icons';
 
 const SZ = { width: 17, height: 17, flexShrink: 0 };
 const SA = { fill: 'none', stroke: 'currentColor', strokeWidth: '1.75', strokeLinecap: 'round', strokeLinejoin: 'round' };
@@ -99,6 +99,14 @@ export default function Layout({ children }) {
   const { perfil, logout, puedeVer, tieneFeature, plan, diasRestantesTrial, negocio } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [tema, setTema] = useState(() => localStorage.getItem('rv-tema') || 'light');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', tema);
+    localStorage.setItem('rv-tema', tema);
+  }, [tema]);
+
+  const toggleTema = () => setTema(t => t === 'light' ? 'dark' : 'light');
 
   const handleLogout = async () => { await logout(); navigate('/login'); };
 
@@ -153,6 +161,15 @@ export default function Layout({ children }) {
       <PlanBadge plan={plan} diasRestantesTrial={diasRestantesTrial} />
 
       <div style={{ padding: '16px 12px', borderTop: '1px solid var(--rv-border-soft)', marginTop: 8 }}>
+        <button onClick={toggleTema} style={{
+          width: '100%', padding: '9px', background: 'var(--rv-surface-alt)',
+          border: '1px solid var(--rv-border)', borderRadius: 8, marginBottom: 8,
+          color: 'var(--rv-text-mid)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        }}>
+          {tema === 'light' ? <IconMoon size={14} /> : <IconSun size={14} />}
+          Modo {tema === 'light' ? 'oscuro' : 'claro'}
+        </button>
         <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginBottom: 8, paddingLeft: 4 }}>
           {perfil?.nombre || perfil?.email}
         </div>

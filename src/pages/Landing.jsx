@@ -145,6 +145,17 @@ const FEATURES = [
       </svg>
     ),
   },
+  {
+    titulo: 'Reparaciones',
+    desc: 'Seguimiento completo: falla, diagnóstico, estado, costo, precio, saldo y garantía por equipo.',
+    gradient: 'linear-gradient(135deg, #be123c, #fb7185)',
+    shadow: 'rgba(190,18,60,0.45)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+        <path d="M14.7 6.3a4 4 0 00-5.6 4.6L3 17l4 4 6.1-6.1a4 4 0 004.6-5.6l-2.8 2.8-2.4-.6-.6-2.4z"/>
+      </svg>
+    ),
+  },
 ];
 
 // Porcentajes medidos sobre las capturas reales (1365x651) del sidebar, sin recortar.
@@ -171,6 +182,12 @@ const PLAN_INCLUYE = [
     'Botón WhatsApp directo a deudores',
     'Resumen de cobros del día',
     'Proveedores y pagos',
+  ]},
+  { categoria: 'Reparaciones', items: [
+    'Seguimiento de reparaciones por estado (ingresado a entregado)',
+    'Falla reportada, diagnóstico técnico y clave del equipo',
+    'Costo de repuesto, precio al cliente y saldo pendiente',
+    'Garantía con fecha de vencimiento automática',
   ]},
   { categoria: 'Ganancias y reportes', items: [
     'Multi-moneda ARS/USD en tiempo real',
@@ -545,7 +562,7 @@ export default function Landing() {
             <strong style={{ color: '#fff' }}>ReventApp</strong> es un <strong style={{ color: '#fff' }}>software de gestión para revendedores de celulares y iPhones</strong> diseñado especialmente para el mercado argentino. Si revendés iPhones — ya sea desde un local, por Instagram o por WhatsApp — necesitás un sistema que entienda cómo funciona tu negocio: ventas en pesos y dólares, cobros en cuotas, parte de pago, y stock que cambia todos los días.
           </p>
           <p style={{ color: C.textSecondary, fontSize: 14, lineHeight: 1.9, marginBottom: 16 }}>
-            Con ReventApp podés <strong style={{ color: '#fff' }}>controlar el stock de iPhones</strong> con todos los detalles (modelo, GB, color, batería, IMEI), <strong style={{ color: '#fff' }}>registrar ventas en ARS y USD</strong> con el tipo de cambio del día, gestionar <strong style={{ color: '#fff' }}>cobros en cuotas y parte de pago</strong>, y compartir un <strong style={{ color: '#fff' }}>catálogo público por WhatsApp</strong> con tu stock disponible en tiempo real. Tu <strong style={{ color: '#fff' }}>catálogo incluye Plan Canje</strong>, para que tus clientes calculen solos cuánto les falta pagar si entregan su iPhone actual, y cada venta puede cerrarse con un <strong style={{ color: '#fff' }}>comprobante con checklist de estado y firma digital del cliente</strong>, tu respaldo ante cualquier reclamo de garantía.
+            Con ReventApp podés <strong style={{ color: '#fff' }}>controlar el stock de iPhones</strong> con todos los detalles (modelo, GB, color, batería, IMEI), <strong style={{ color: '#fff' }}>registrar ventas en ARS y USD</strong> con el tipo de cambio del día, gestionar <strong style={{ color: '#fff' }}>cobros en cuotas y parte de pago</strong>, y compartir un <strong style={{ color: '#fff' }}>catálogo público por WhatsApp</strong> con tu stock disponible en tiempo real. Tu <strong style={{ color: '#fff' }}>catálogo incluye Plan Canje</strong>, para que tus clientes calculen solos cuánto les falta pagar si entregan su iPhone actual, y cada venta puede cerrarse con un <strong style={{ color: '#fff' }}>comprobante con checklist de estado y firma digital del cliente</strong>, tu respaldo ante cualquier reclamo de garantía. Si además hacés <strong style={{ color: '#fff' }}>service técnico</strong>, la solapa de <strong style={{ color: '#fff' }}>Reparaciones</strong> te deja registrar cada equipo que ingresa con su falla reportada, diagnóstico, estado (desde ingresado hasta entregado), costo de repuesto, precio al cliente, saldo pendiente y garantía con vencimiento automático.
           </p>
           <p style={{ color: C.textSecondary, fontSize: 14, lineHeight: 1.9 }}>
             Usada por <strong style={{ color: '#fff' }}>revendedores de iPhone en todo el país</strong> — CABA, Córdoba, Rosario, Mendoza, Tucumán, Santa Fe, Mar del Plata, Salta, Neuquén y más — ReventApp reemplaza las planillas de Excel y los cuadernos de anotaciones por un <strong style={{ color: '#fff' }}>sistema profesional de gestión de reventas</strong>, accesible desde cualquier celular, sin necesidad de instalar nada.

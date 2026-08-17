@@ -50,3 +50,5 @@ export const IconArrowSwap = (p) => <Svg {...p}><path d="M7 4v13m0 0l-3-3m3 3l3-
 export const IconMenu = (p) => <Svg {...p}><path d="M4 6h16M4 12h16M4 18h16" /></Svg>;
 export const IconDownload = (p) => <Svg {...p}><path d="M12 3v12m0 0l-4-4m4 4l4-4" /><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" /></Svg>;
 export const IconSave = (p) => <Svg {...p}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" /><path d="M17 21v-8H7v8M7 3v5h8" /></Svg>;
+export const IconWrench = (p) => <Svg {...p}><path d="M14.7 6.3a4 4 0 00-5.6 4.6L3 17l4 4 6.1-6.1a4 4 0 004.6-5.6l-2.8 2.8-2.4-.6-.6-2.4z" /></Svg>;
+export const IconCamera = (p) => <Svg {...p}><path d="M4 8h3l2-3h6l2 3h3a1 1 0 011 1v11a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z" /><circle cx="12" cy="14" r="4" /></Svg>;

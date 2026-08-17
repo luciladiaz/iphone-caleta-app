@@ -33,6 +33,11 @@ const NAV = [
       <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><path d="M6 14.5h2M11 14.5h3"/>
     </svg>
   )},
+  { to: '/reparaciones', label: 'Reparaciones', modulo: 'reparaciones', siempre: true, icon: (
+    <svg viewBox="0 0 24 24" style={SZ} {...SA}>
+      <path d="M14.7 6.3a4 4 0 00-5.6 4.6L3 17l4 4 6.1-6.1a4 4 0 004.6-5.6l-2.8 2.8-2.4-.6-.6-2.4z"/>
+    </svg>
+  )},
   { to: '/proveedores', label: 'Proveedores', modulo: 'proveedores', siempre: true, icon: (
     <svg viewBox="0 0 24 24" style={SZ} {...SA}>
       <path d="M3 21V9.5L12 3l9 6.5V21H3z"/><path d="M9 21V14h6v7"/>

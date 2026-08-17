@@ -21,6 +21,7 @@ import AppTest from './pages/AppTest';
 import TestPagos from './pages/TestPagos';
 import Studio from './pages/Studio';
 import Accesorios from './pages/Accesorios';
+import Reparaciones from './pages/Reparaciones';
 
 function PrivateRoute({ children, modulo }) {
   const { user, perfil, negocioId, puedeVer, planActivo, motivoBloqueo } = useAuth();
@@ -83,6 +84,7 @@ function AppRoutes() {
       <Route path="/accesorios" element={<PrivateRoute modulo="accesorios"><Layout><Accesorios /></Layout></PrivateRoute>} />
       <Route path="/ventas" element={<PrivateRoute modulo="ventas"><Layout><Ventas /></Layout></PrivateRoute>} />
       <Route path="/cobros" element={<PrivateRoute modulo="cobros"><Layout><Cobros /></Layout></PrivateRoute>} />
+      <Route path="/reparaciones" element={<PrivateRoute modulo="reparaciones"><Layout><Reparaciones /></Layout></PrivateRoute>} />
       <Route path="/proveedores" element={<PrivateRoute modulo="proveedores"><Layout><Proveedores /></Layout></PrivateRoute>} />
       <Route path="/pagos" element={<PrivateRoute modulo="pagos"><Layout><PagosProveedores /></Layout></PrivateRoute>} />
       <Route path="/config" element={<PrivateRoute modulo="config"><Layout><Configuracion /></Layout></PrivateRoute>} />

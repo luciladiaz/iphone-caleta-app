@@ -147,15 +147,15 @@ const FEATURES = [
   },
 ];
 
-// Porcentajes relativos a los 600px del recorte final (no a los 1000px originales sin recortar)
+// Porcentajes medidos sobre las capturas reales (1365x651) del sidebar, sin recortar.
 const HERO_NAV = [
-  { key: 'dashboard', top: 14.5, img: '/screenshots/hero/dashboard-content.png' },
-  { key: 'stock', top: 21.33, img: '/screenshots/hero/stock-content.png' },
-  { key: 'ventas', top: 35, img: '/screenshots/hero/ventas-content.png' },
-  { key: 'cobros', top: 41.83, img: '/screenshots/hero/cobros-content.png' },
+  { key: 'dashboard', top: 14.13, img: '/screenshots/hero/dashboard-content.png' },
+  { key: 'stock', top: 20.40, img: '/screenshots/hero/stock-content.png' },
+  { key: 'ventas', top: 32.92, img: '/screenshots/hero/ventas-content.png' },
+  { key: 'cobros', top: 39.18, img: '/screenshots/hero/cobros-content.png' },
 ];
-const HERO_ROW_H = 6.5;
-const HERO_SIDEBAR_PCT = (220 / 1400) * 100;
+const HERO_ROW_H = 5.99;
+const HERO_SIDEBAR_PCT = 15.60;
 
 const PLAN_INCLUYE = [
   { categoria: 'Ventas y catálogo', items: [
@@ -249,7 +249,9 @@ function CardFeature({ icon, titulo, desc, gradient, shadow }) {
 
 function InteractiveHero() {
   const [activeView, setActiveView] = useState('dashboard');
-  const activeImg = HERO_NAV.find(n => n.key === activeView)?.img;
+  const activeItem = HERO_NAV.find(n => n.key === activeView);
+  const activeImg = activeItem?.img;
+  const activeTop = activeItem?.top;
 
   return (
     <div style={{ position: 'relative', background: 'linear-gradient(180deg, #f4f7fd 0%, #eef2fb 100%)', borderRadius: 24, padding: '56px 32px', overflow: 'hidden' }}>
@@ -279,11 +281,23 @@ function InteractiveHero() {
         </div>
 
         <div style={{ position: 'relative' }}>
-          <div style={{ position: 'relative', width: '100%', aspectRatio: '1400 / 600', overflow: 'hidden', background: '#fff', borderRadius: 14, boxShadow: '0 24px 60px rgba(16,22,43,0.18)' }}>
-            <img src="/screenshots/hero/base-sidebar.png" alt="ReventApp" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'left top', display: 'block' }} />
-            <div style={{ position: 'absolute', left: `${HERO_SIDEBAR_PCT}%`, top: 0, width: `${100 - HERO_SIDEBAR_PCT}%`, height: '100%', overflow: 'hidden' }}>
-              <img src={activeImg} alt={activeView} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'left top', display: 'block' }} />
+          <div style={{ position: 'relative', width: '100%', aspectRatio: '1365 / 651', overflow: 'hidden', background: '#fff', borderRadius: 14, boxShadow: '0 24px 60px rgba(16,22,43,0.18)' }}>
+            <img
+              src={activeView === 'dashboard' ? '/screenshots/hero/base-dashboard-highlighted.png' : '/screenshots/hero/base-neutral.png'}
+              alt="ReventApp"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }}
+            />
+
+            {activeView !== 'dashboard' && (
+              <div style={{ position: 'absolute', left: 0, width: `calc(${HERO_SIDEBAR_PCT}% - 10px)`, height: `${HERO_ROW_H}%`, top: `${activeTop}%`, background: 'rgba(47,95,224,0.14)', borderRadius: '0 10px 10px 0', pointerEvents: 'none' }}>
+                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: '#2f5fe0', borderRadius: '0 3px 3px 0' }} />
+              </div>
+            )}
+
+            <div style={{ position: 'absolute', left: `${HERO_SIDEBAR_PCT}%`, top: 0, width: `${100 - HERO_SIDEBAR_PCT}%`, height: '100%', overflow: 'hidden', background: '#fff' }}>
+              <img src={activeImg} alt={activeView} style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'left top', background: '#fff', display: 'block' }} />
             </div>
+
             {HERO_NAV.map(item => (
               <div
                 key={item.key}
@@ -293,14 +307,14 @@ function InteractiveHero() {
             ))}
           </div>
 
-          <div style={{ position: 'absolute', top: -28, right: -18, background: '#fff', borderRadius: 14, boxShadow: '0 14px 32px rgba(16,22,43,0.16)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ position: 'absolute', top: -56, right: -20, background: '#fff', borderRadius: 14, boxShadow: '0 14px 32px rgba(16,22,43,0.16)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#8892a8', textTransform: 'uppercase' }}>Venta confirmada</div>
               <div style={{ fontSize: 13, fontWeight: 800, color: '#10162b' }}>+ USD 735</div>
             </div>
           </div>
-          <div style={{ position: 'absolute', bottom: -22, right: -18, background: '#fff', borderRadius: 12, boxShadow: '0 14px 32px rgba(16,22,43,0.16)', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ position: 'absolute', bottom: -26, right: -36, background: '#fff', borderRadius: 12, boxShadow: '0 14px 32px rgba(16,22,43,0.16)', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2f5fe0', flexShrink: 0 }} />
             <span style={{ fontSize: 12.5, fontWeight: 600, color: '#10162b' }}>Stock actualizado</span>
           </div>

@@ -1,9 +1,8 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy, doc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { db, storage } from '../firebase/config';
+import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
-import { IconWrench, IconCamera, IconEdit, IconTrash, IconX, IconWarning } from '../components/Icons';
+import { IconWrench, IconEdit, IconTrash, IconX } from '../components/Icons';
 
 const ESTADOS = ['ingresado', 'diagnosticado', 'presupuestado', 'aprobado', 'en_reparacion', 'esperando_repuesto', 'listo', 'entregado', 'no_reparable', 'cancelado'];
 const ESTADO_LABEL = {
@@ -27,22 +26,6 @@ const FORM_VACIO = {
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 
-// Redimensiona a 1600px de ancho máx y comprime a JPEG calidad 0.85 antes de subir.
-// Sigue viéndose nítido para documentar rayones/golpes, pero pesa una fracción de la
-// foto original de cámara (que puede ser de varios MB) — así no genera costo de Storage.
-async function comprimirImagen(file, maxAncho = 1600, calidad = 0.85) {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, maxAncho / bitmap.width);
-  const w = Math.round(bitmap.width * scale);
-  const h = Math.round(bitmap.height * scale);
-  const canvas = document.createElement('canvas');
-  canvas.width = w; canvas.height = h;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(bitmap, 0, 0, w, h);
-  bitmap.close?.();
-  return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', calidad));
-}
-
 export default function Reparaciones() {
   const { perfil, negocioId } = useAuth();
   const esAdmin = perfil?.rol === 'admin';
@@ -55,10 +38,6 @@ export default function Reparaciones() {
   const [guardando, setGuardando] = useState(false);
   const [filtro, setFiltro] = useState('');
   const [form, setForm] = useState(FORM_VACIO);
-  const [fotos, setFotos] = useState([]); // [{ url, path }]
-  const [subiendoFoto, setSubiendoFoto] = useState(false);
-  const carpetaFotos = useRef(null);
-  const fileInputRef = useRef(null);
 
   const cargar = async () => {
     if (!negocioId) return;
@@ -70,15 +49,12 @@ export default function Reparaciones() {
   useEffect(() => { cargar(); }, [negocioId]);
 
   const abrirNueva = () => {
-    carpetaFotos.current = `nueva-${Date.now()}`;
     setForm(FORM_VACIO);
-    setFotos([]);
     setEditandoId(null);
     setModal(true);
   };
 
   const abrirEditar = (rep) => {
-    carpetaFotos.current = rep.id;
     setEditandoId(rep.id);
     setForm({
       cliente: rep.cliente || '', telefono: rep.telefono || '', modelo: rep.modelo || '',
@@ -88,7 +64,6 @@ export default function Reparaciones() {
       precioUsd: rep.precioUsd || '', montoPagado: rep.montoPagado || '',
       garantiaDias: rep.garantiaDias ?? '30', fechaEntregaManual: '', notas: rep.notas || '',
     });
-    setFotos(rep.fotosIngreso || []);
     setModal(true);
   };
 
@@ -96,42 +71,11 @@ export default function Reparaciones() {
     setModal(false);
     setEditandoId(null);
     setForm(FORM_VACIO);
-    setFotos([]);
-  };
-
-  const subirFotos = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length || !negocioId) return;
-    setSubiendoFoto(true);
-    try {
-      for (const file of files) {
-        const blob = await comprimirImagen(file);
-        const path = `negocios/${negocioId}/reparaciones/${carpetaFotos.current}/${Date.now()}-${file.name.replace(/\.[^.]+$/, '')}.jpg`;
-        const storageRef = ref(storage, path);
-        await uploadBytes(storageRef, blob);
-        const url = await getDownloadURL(storageRef);
-        setFotos(f => [...f, { url, path }]);
-      }
-    } catch (err) {
-      console.error('Error subiendo foto:', err);
-      alert('No pudimos subir alguna foto. Intentá de nuevo.');
-    } finally {
-      setSubiendoFoto(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  const quitarFoto = async (foto) => {
-    setFotos(f => f.filter(x => x.url !== foto.url));
-    try { if (foto.path) await deleteObject(ref(storage, foto.path)); } catch { /* ya no existía, no importa */ }
   };
 
   const eliminarReparacion = async (rep) => {
     if (!window.confirm('¿Eliminás esta reparación? Esta acción no se puede deshacer.')) return;
     await deleteDoc(doc(db, ...base, 'reparaciones', rep.id));
-    for (const foto of (rep.fotosIngreso || [])) {
-      try { if (foto.path) await deleteObject(ref(storage, foto.path)); } catch { /* ignorar */ }
-    }
     cargar();
   };
 
@@ -145,7 +89,7 @@ export default function Reparaciones() {
         diagnostico: form.diagnostico, estado: form.estado,
         costoRepuestoUsd: Number(form.costoRepuestoUsd) || 0, precioUsd: Number(form.precioUsd) || 0,
         montoPagado: Number(form.montoPagado) || 0, garantiaDias: Number(form.garantiaDias) || 0,
-        notas: form.notas, fotosIngreso: fotos,
+        notas: form.notas,
       };
       if (form.fechaEntregaManual) datos.fechaEntrega = new Date(form.fechaEntregaManual);
 
@@ -200,14 +144,6 @@ export default function Reparaciones() {
                 <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 99, textTransform: 'uppercase', border: '1px solid var(--rv-border)', color: ESTADO_COLOR[rep.estado] }}>{ESTADO_LABEL[rep.estado] || rep.estado}</span>
               </div>
 
-              {rep.fotosIngreso?.length > 0 && (
-                <div style={{ display: 'flex', gap: 6, marginBottom: 10, overflowX: 'auto' }}>
-                  {rep.fotosIngreso.map((f, i) => (
-                    <img key={i} src={f.url} alt="" style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--rv-border)', flexShrink: 0 }} />
-                  ))}
-                </div>
-              )}
-
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 12, color: 'var(--rv-text-mid)', marginBottom: 12 }}>
                 {rep.fallaReportada && <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>{rep.fallaReportada}</span>}
                 {rep.imei && <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>IMEI {rep.imei}</span>}
@@ -256,26 +192,6 @@ export default function Reparaciones() {
                 <div><label style={labelStyle}>Monto ya cobrado USD</label><input type="number" value={form.montoPagado} onChange={e => setForm({ ...form, montoPagado: e.target.value })} placeholder="0" style={inputStyle} /></div>
                 <div><label style={labelStyle}>Fecha de entrega</label><input type="date" value={form.fechaEntregaManual} onChange={e => setForm({ ...form, fechaEntregaManual: e.target.value })} style={inputStyle} /></div>
                 <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>Notas</label><textarea value={form.notas} onChange={e => setForm({ ...form, notas: e.target.value })} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
-              </div>
-
-              <div>
-                <label style={labelStyle}>Fotos del estado al ingresar</label>
-                <p style={{ fontSize: 11, color: 'var(--rv-text-dim)', margin: '0 0 8px' }}>
-                  <IconWarning size={11} style={{ verticalAlign: -1, marginRight: 4 }} />
-                  Sacale foto a cualquier rayón o golpe antes de empezar — te cubre ante un reclamo de &quot;esto ya estaba roto&quot;.
-                </p>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-                  {fotos.map((f, i) => (
-                    <div key={i} style={{ position: 'relative' }}>
-                      <img src={f.url} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--rv-border)' }} />
-                      <button type="button" onClick={() => quitarFoto(f)} style={{ position: 'absolute', top: -6, right: -6, background: 'var(--rv-danger)', color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><IconX size={11} /></button>
-                    </div>
-                  ))}
-                  <label style={{ width: 64, height: 64, background: 'var(--rv-surface-alt)', border: '1px dashed var(--rv-border)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--rv-text-dim)' }}>
-                    {subiendoFoto ? '...' : <IconCamera size={20} />}
-                    <input ref={fileInputRef} type="file" accept="image/*" multiple capture="environment" onChange={subirFotos} disabled={subiendoFoto} style={{ display: 'none' }} />
-                  </label>
-                </div>
               </div>
 
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>

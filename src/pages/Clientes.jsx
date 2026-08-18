@@ -1,34 +1,62 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
-import { IconUser, IconPhone, IconMail, IconPin, IconHash, IconEdit, IconTrash, IconX, IconPlus, IconSearch } from '../components/Icons';
+import { IconUser, IconPhone, IconMail, IconPin, IconHash, IconEdit, IconTrash, IconX, IconPlus, IconSearch, IconBox, IconArrowSwap, IconWrench, IconClock } from '../components/Icons';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 
 const FORM_VACIO = { nombre: '', telefono: '', email: '', dni: '', direccion: '', notas: '' };
 
+const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
+const fechaMs = (f) => { if (!f) return 0; const d = f.toDate ? f.toDate() : new Date(f); return d.getTime(); };
+const formatFecha = (f) => { if (!f) return 'Sin fecha'; const d = f.toDate ? f.toDate() : new Date(f); return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }); };
+
+const ESTADO_VENTA_LABEL = { pendiente: 'Pendiente', entregado: 'Entregado', cancelado: 'Cancelado' };
+const ESTADO_REP_LABEL = {
+  ingresado: 'Ingresado', diagnosticado: 'Diagnosticado', presupuestado: 'Presupuestado',
+  aprobado: 'Aprobado por cliente', en_reparacion: 'En reparación', esperando_repuesto: 'Esperando repuesto',
+  listo: 'Listo para retirar', entregado: 'Entregado', no_reparable: 'No reparable', cancelado: 'Cancelado',
+};
+
 export default function Clientes() {
   const { negocioId } = useAuth();
   const base = ['negocios', negocioId];
   const [clientes, setClientes] = useState([]);
   const [ventas, setVentas] = useState([]);
+  const [reparaciones, setReparaciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
   const [modal, setModal] = useState(false);
   const [editando, setEditando] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [form, setForm] = useState(FORM_VACIO);
+  const [clienteHistorial, setClienteHistorial] = useState(null);
 
   const cargar = async () => {
     if (!negocioId) return;
-    const [cSnap, vSnap] = await Promise.all([
+    const [cSnap, vSnap, rSnap] = await Promise.all([
       getDocs(query(collection(db, ...base, 'clientes'), orderBy('nombre'))),
       getDocs(collection(db, ...base, 'ventas')),
+      getDocs(collection(db, ...base, 'reparaciones')),
     ]);
-    setClientes(cSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-    setVentas(vSnap.docs.map(d => d.data()));
+    const lista = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    setVentas(vSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    setReparaciones(rSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
+    // Migración: a los clientes cargados antes de que existiera el número de
+    // cliente se les asigna uno acá mismo, una sola vez, y queda guardado.
+    const sinNumero = lista.filter(c => !c.numero).sort((a, b) => a.id.localeCompare(b.id));
+    if (sinNumero.length > 0) {
+      let siguiente = Math.max(0, ...lista.map(c => c.numero || 0)) + 1;
+      for (const c of sinNumero) {
+        await updateDoc(doc(db, ...base, 'clientes', c.id), { numero: siguiente });
+        c.numero = siguiente;
+        siguiente++;
+      }
+    }
+    setClientes(lista);
     setLoading(false);
   };
 
@@ -46,7 +74,8 @@ export default function Clientes() {
       if (editando) {
         await updateDoc(doc(db, ...base, 'clientes', editando), { ...form });
       } else {
-        await addDoc(collection(db, ...base, 'clientes'), { ...form });
+        const siguienteNumero = Math.max(0, ...clientes.map(c => c.numero || 0)) + 1;
+        await addDoc(collection(db, ...base, 'clientes'), { ...form, numero: siguienteNumero, creadoEn: serverTimestamp() });
       }
       cerrarModal();
       cargar();
@@ -63,6 +92,23 @@ export default function Clientes() {
   if (loading) return <div style={{ color: 'var(--rv-text-dim)', padding: 40 }}>Cargando clientes...</div>;
 
   const comprasDe = (clienteId) => ventas.filter(v => v.clienteId === clienteId).length;
+
+  // Arma la línea de tiempo de un cliente: cada venta, cada equipo que entregó
+  // como parte de pago dentro de esa venta, y cada reparación, todo mezclado
+  // y ordenado de más reciente a más antiguo.
+  const historialDe = (clienteId) => {
+    const eventos = [];
+    ventas.filter(v => v.clienteId === clienteId).forEach(v => {
+      eventos.push({ tipo: 'compra', fecha: v.fecha, venta: v });
+      (v.partesDePago || []).forEach(p => {
+        eventos.push({ tipo: 'entrega', fecha: v.fecha, parte: p, venta: v });
+      });
+    });
+    reparaciones.filter(r => r.clienteId === clienteId).forEach(r => {
+      eventos.push({ tipo: 'reparacion', fecha: r.fechaIngreso, reparacion: r });
+    });
+    return eventos.sort((a, b) => fechaMs(b.fecha) - fechaMs(a.fecha));
+  };
 
   const clientesFiltrados = clientes.filter(c => {
     const b = busqueda.trim().toLowerCase();
@@ -91,8 +137,11 @@ export default function Clientes() {
         {clientesFiltrados.map(c => (
           <div key={c.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}>
-                {c.nombre}
+              <div style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <button onClick={() => setClienteHistorial(c)} style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'var(--rv-text)', cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'var(--rv-border)', textUnderlineOffset: 3 }}>
+                  {c.nombre}
+                </button>
+                {c.numero && <span style={{ color: 'var(--rv-text-dim)', fontWeight: 600, fontSize: 12 }}>Cliente #{c.numero}</span>}
                 {comprasDe(c.id) > 0 && <span style={{ background: 'var(--rv-accent-soft)', color: 'var(--rv-accent)', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99 }}>{comprasDe(c.id)} compra{comprasDe(c.id) > 1 ? 's' : ''}</span>}
               </div>
               <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -161,6 +210,91 @@ export default function Clientes() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {clienteHistorial && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
+          <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 620, margin: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{clienteHistorial.nombre}</h2>
+                <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 4, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {clienteHistorial.numero && <span>Cliente #{clienteHistorial.numero}</span>}
+                  {clienteHistorial.telefono && <span>{clienteHistorial.telefono}</span>}
+                  {clienteHistorial.dni && <span>DNI {clienteHistorial.dni}</span>}
+                </div>
+              </div>
+              <button onClick={() => setClienteHistorial(null)} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
+            </div>
+
+            <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {historialDe(clienteHistorial.id).length === 0 && (
+                <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, padding: '20px 0' }}>Todavía no tiene compras, entregas ni reparaciones registradas.</p>
+              )}
+              {historialDe(clienteHistorial.id).map((ev, i) => {
+                const config = {
+                  compra: { Icono: IconBox, color: 'var(--rv-accent)', label: 'Compra' },
+                  entrega: { Icono: IconArrowSwap, color: 'var(--rv-text-mid)', label: 'Entregó como parte de pago' },
+                  reparacion: { Icono: IconWrench, color: 'var(--rv-text-mid)', label: 'Reparación' },
+                }[ev.tipo];
+                return (
+                  <div key={i} style={{ display: 'flex', gap: 12, paddingBottom: 16, borderLeft: i === historialDe(clienteHistorial.id).length - 1 ? 'none' : '2px solid var(--rv-border)', marginLeft: 11, paddingLeft: 20, position: 'relative' }}>
+                    <div style={{
+                      position: 'absolute', left: -12, top: 0, width: 24, height: 24, borderRadius: '50%',
+                      background: 'var(--rv-surface)', border: `2px solid ${config.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <config.Icono size={12} style={{ color: config.color }} />
+                    </div>
+                    <div style={{ flex: 1, paddingTop: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 2 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: config.color, textTransform: 'uppercase' }}>{config.label}</span>
+                        <span style={{ fontSize: 11, color: 'var(--rv-text-dim)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><IconClock size={10} />{formatFecha(ev.fecha)}</span>
+                      </div>
+
+                      {ev.tipo === 'compra' && (
+                        <div style={{ fontSize: 14 }}>
+                          <div style={{ fontWeight: 700 }}>{ev.venta.modelo}{ev.venta.gb ? ` ${formatCapacidad(ev.venta.gb)}` : ''} {ev.venta.color}</div>
+                          <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 2 }}>
+                            {ev.venta.imei && <>IMEI {ev.venta.imei} · </>}
+                            {ev.venta.pvUsd ? `USD ${ev.venta.pvUsd} · ` : ''}
+                            {ESTADO_VENTA_LABEL[ev.venta.estado] || ev.venta.estado}
+                          </div>
+                          {ev.venta.cobros?.length > 0 && (
+                            <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 4 }}>
+                              {ev.venta.cobros.map((c, ci) => `${c.tipo}${c.monto ? `: ${c.moneda === 'USD' ? 'USD' : '$'} ${c.monto}` : ''}`).join(' · ')}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {ev.tipo === 'entrega' && (
+                        <div style={{ fontSize: 14 }}>
+                          <div style={{ fontWeight: 700 }}>{ev.parte.modelo}{ev.parte.gb ? ` ${formatCapacidad(ev.parte.gb)}` : ''} {ev.parte.color}</div>
+                          <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 2 }}>
+                            {ev.parte.imei && <>IMEI {ev.parte.imei} · </>}
+                            Tomado a USD {ev.parte.costoUsd || 0} — parte de pago de {ev.venta.modelo}{ev.venta.gb ? ` ${formatCapacidad(ev.venta.gb)}` : ''}
+                          </div>
+                        </div>
+                      )}
+
+                      {ev.tipo === 'reparacion' && (
+                        <div style={{ fontSize: 14 }}>
+                          <div style={{ fontWeight: 700 }}>{ev.reparacion.modelo || 'Equipo'}</div>
+                          <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 2 }}>
+                            {ev.reparacion.imei && <>IMEI {ev.reparacion.imei} · </>}
+                            {ev.reparacion.precioUsd ? `USD ${ev.reparacion.precioUsd} · ` : ''}
+                            {ESTADO_REP_LABEL[ev.reparacion.estado] || ev.reparacion.estado}
+                            {ev.reparacion.fechaEntrega && <> · Entregado {formatFecha(ev.reparacion.fechaEntrega)}</>}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

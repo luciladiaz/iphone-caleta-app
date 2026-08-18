@@ -1,17 +1,51 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { collection, getDocs, addDoc, deleteDoc, doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
-import { IconGear, IconBox, IconCoin, IconArrowSwap, IconX, IconPin, IconUser, IconTruck, IconBell, IconTrendUp } from '../components/Icons';
+import { IconGear, IconBox, IconCoin, IconArrowSwap, IconX, IconPin, IconUser, IconTruck, IconBell, IconTrendUp, IconTag, IconWallet } from '../components/Icons';
+import { CATEGORIAS_INGRESO as CATEGORIAS_INGRESO_DEFAULT, CATEGORIAS_EGRESO as CATEGORIAS_EGRESO_DEFAULT } from '../lib/caja';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 
-function SeccionLista({ titulo, Icono, items, onAgregar, onEliminar, campo, placeholder }) {
+// Panel modal genérico que envuelve el contenido de cada tile de configuración —
+// el título/ícono/cerrar es siempre igual, solo cambia lo de adentro.
+function ModalSeccion({ titulo, Icono, onClose, children, ancho = 560 }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
+      <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: ancho, margin: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 9 }}><Icono size={17} style={{ color: 'var(--rv-accent)' }} />{titulo}</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// Tile cuadrado del panel principal.
+function Tile({ Icono, label, contador, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16,
+      aspectRatio: '1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      gap: 8, cursor: 'pointer', padding: 12, textAlign: 'center',
+    }}>
+      <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--rv-accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Icono size={20} style={{ color: 'var(--rv-accent)' }} />
+      </div>
+      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--rv-text)', lineHeight: 1.2 }}>{label}</span>
+      {contador != null && <span style={{ fontSize: 10, color: 'var(--rv-text-dim)' }}>{contador}</span>}
+    </button>
+  );
+}
+
+function SeccionLista({ titulo, items, onAgregar, onEliminar, placeholder }) {
   const [nuevo, setNuevo] = useState('');
   return (
-    <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 24, marginBottom: 16 }}>
-      <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 9 }}><Icono size={15} style={{ color: 'var(--rv-accent)' }} />{titulo}</h3>
+    <div>
+      {titulo && <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--rv-text-dim)', textTransform: 'uppercase', marginBottom: 10 }}>{titulo}</div>}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         <input value={nuevo} onChange={e => setNuevo(e.target.value)} placeholder={placeholder} style={{ ...inputStyle, flex: 1 }}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (nuevo.trim()) { onAgregar(nuevo.trim()); setNuevo(''); } } }} />
@@ -20,11 +54,11 @@ function SeccionLista({ titulo, Icono, items, onAgregar, onEliminar, campo, plac
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {items.map(item => (
           <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px' }}>
-            <span style={{ fontSize: 14 }}>{item[campo] || item.nombre}</span>
+            <span style={{ fontSize: 14 }}>{item.nombre}</span>
             <button onClick={() => onEliminar(item.id)} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', display: 'flex' }}><IconX size={15} /></button>
           </div>
         ))}
-        {items.length === 0 && <p style={{ color: 'var(--rv-text-dim)', fontSize: 13 }}>No hay {titulo.toLowerCase()} cargados</p>}
+        {items.length === 0 && <p style={{ color: 'var(--rv-text-dim)', fontSize: 13 }}>Nada cargado todavía</p>}
       </div>
     </div>
   );
@@ -34,12 +68,16 @@ export default function Configuracion() {
   const { negocioId, negocio } = useAuth();
   const base = ['negocios', negocioId];
 
+  const [seccionAbierta, setSeccionAbierta] = useState(null);
+
   const [puntosVenta, setPuntosVenta] = useState([]);
   const [vendedores, setVendedores] = useState([]);
   const [proveedores, setProveedores] = useState([]);
   const [origenes, setOrigenes] = useState([]);
   const [modelos, setModelos] = useState([]);
   const [listaCanje, setListaCanje] = useState([]);
+  const [categoriasIngreso, setCategoriasIngreso] = useState([]);
+  const [categoriasEgreso, setCategoriasEgreso] = useState([]);
   const [nuevoCanje, setNuevoCanje] = useState({ modelo: '', gb: '', valorUsd: '' });
   const [guardandoCanje, setGuardandoCanje] = useState(false);
   const [tipoCambio, setTipoCambio] = useState('');
@@ -78,6 +116,8 @@ export default function Configuracion() {
     const modelosDefault = ['iPhone 12','iPhone 12 Pro','iPhone 12 Pro Max','iPhone 13','iPhone 13 Pro','iPhone 13 Pro Max','iPhone 14','iPhone 14 Pro','iPhone 14 Pro Max','iPhone 15','iPhone 15 Pro','iPhone 15 Pro Max','iPhone 16','iPhone 16 Plus','iPhone 16 Pro','iPhone 16 Pro Max','iPhone 17','iPhone 17 Air','iPhone 17 Pro','iPhone 17 Pro Max'];
     setModelos((cfg.modelos || modelosDefault).map((m, i) => ({ id: i, nombre: m })));
     setListaCanje((cfg.listaCanje || []).map((c, i) => ({ id: i, ...c })));
+    setCategoriasIngreso((cfg.categoriasIngreso || CATEGORIAS_INGRESO_DEFAULT).map((c, i) => ({ id: i, nombre: c })));
+    setCategoriasEgreso((cfg.categoriasEgreso || CATEGORIAS_EGRESO_DEFAULT).map((c, i) => ({ id: i, nombre: c })));
   };
 
   useEffect(() => { cargar(); }, [negocioId]);
@@ -166,7 +206,7 @@ export default function Configuracion() {
     cargar();
   };
 
-  const eliminarDeConfig = (campo, items, setItems) => async (id) => {
+  const eliminarDeConfig = (campo, items) => async (id) => {
     const nuevos = items.filter(o => o.id !== id).map(o => o.nombre);
     await setDoc(doc(db, ...base, 'config', 'general'), { [campo]: nuevos }, { merge: true });
     cargar();
@@ -191,132 +231,148 @@ export default function Configuracion() {
     cargar();
   };
 
+  const TILES = [
+    { key: 'negocio', label: 'Mi Negocio', Icono: IconBox },
+    { key: 'tipoCambio', label: 'Tipo de cambio', Icono: IconCoin, contador: tipoCambio ? `$${tipoCambio}` : null },
+    { key: 'puntosVenta', label: 'Puntos de venta', Icono: IconPin, contador: puntosVenta.length },
+    { key: 'vendedores', label: 'Vendedores', Icono: IconUser, contador: vendedores.length },
+    { key: 'proveedores', label: 'Proveedores', Icono: IconTruck, contador: proveedores.length },
+    { key: 'origenes', label: 'Orígenes de venta', Icono: IconBell, contador: origenes.length },
+    { key: 'modelos', label: 'Modelos de iPhone', Icono: IconTag, contador: modelos.length },
+    { key: 'canje', label: 'Plan Canje', Icono: IconArrowSwap, contador: listaCanje.length },
+    { key: 'categoriasCaja', label: 'Categorías de Caja', Icono: IconWallet, contador: categoriasIngreso.length + categoriasEgreso.length },
+  ];
+
+  const cerrar = () => setSeccionAbierta(null);
+
   return (
     <div>
       <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}><IconGear size={22} style={{ color: 'var(--rv-accent)' }} />Configuración</h1>
 
-      {/* Sección Mi Negocio */}
-      <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 24, marginBottom: 16 }}>
-        <h3 style={{ margin: '0 0 20px', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 9 }}><IconBox size={15} style={{ color: 'var(--rv-accent)' }} />Mi Negocio</h3>
-        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-
-          {/* Nombre y WhatsApp */}
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <label style={labelStyle}>NOMBRE DEL NEGOCIO</label>
-            <input
-              value={nombreNegocio}
-              onChange={e => setNombreNegocio(e.target.value)}
-              placeholder="Ej: iPhone Caleta"
-              style={{ ...inputStyle, marginBottom: 12 }}
-            />
-            <label style={labelStyle}>WHATSAPP DE CONTACTO (para el catálogo público)</label>
-            <input
-              type="tel"
-              value={telefonoNegocio}
-              onChange={e => setTelefonoNegocio(e.target.value)}
-              placeholder="Ej: 11 2345-6789"
-              style={{ ...inputStyle, marginBottom: 12 }}
-            />
-            <button
-              onClick={guardarNegocio}
-              disabled={savingNegocio || !nombreNegocio.trim()}
-              style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', opacity: savingNegocio ? 0.7 : 1 }}
-            >
-              {savingNegocio ? 'Guardando...' : 'Guardar cambios'}
-            </button>
-          </div>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 14 }}>
+        {TILES.map(t => (
+          <Tile key={t.key} Icono={t.Icono} label={t.label} contador={t.contador} onClick={() => setSeccionAbierta(t.key)} />
+        ))}
       </div>
 
-      <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 24, marginBottom: 16 }}>
-        <h3 style={{ margin: '0 0 18px', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 9 }}><IconCoin size={15} style={{ color: 'var(--rv-accent)' }} />Tipo de cambio (ARS por USD)</h3>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end' }}>
+      {seccionAbierta === 'negocio' && (
+        <ModalSeccion titulo="Mi Negocio" Icono={IconBox} onClose={cerrar}>
+          <label style={labelStyle}>NOMBRE DEL NEGOCIO</label>
+          <input value={nombreNegocio} onChange={e => setNombreNegocio(e.target.value)} placeholder="Ej: iPhone Caleta" style={{ ...inputStyle, marginBottom: 12 }} />
+          <label style={labelStyle}>WHATSAPP DE CONTACTO (para el catálogo público)</label>
+          <input type="tel" value={telefonoNegocio} onChange={e => setTelefonoNegocio(e.target.value)} placeholder="Ej: 11 2345-6789" style={{ ...inputStyle, marginBottom: 16 }} />
+          <button onClick={guardarNegocio} disabled={savingNegocio || !nombreNegocio.trim()} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', opacity: savingNegocio ? 0.7 : 1 }}>
+            {savingNegocio ? 'Guardando...' : 'Guardar cambios'}
+          </button>
+        </ModalSeccion>
+      )}
 
-          {/* Selector de tipo de dólar */}
-          <div style={{ minWidth: 180 }}>
-            <label style={labelStyle}>TIPO DE DÓLAR</label>
-            <select
-              value={tipoDolar}
-              onChange={e => { setTipoDolar(e.target.value); if (e.target.value !== 'manual') fetchDolar(e.target.value); }}
-              style={inputStyle}
-            >
-              {TIPOS_DOLAR.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </select>
-          </div>
-
-          {/* Valor actual */}
-          <div style={{ minWidth: 140 }}>
-            <label style={labelStyle}>COTIZACIÓN ACTUAL</label>
-            <input
-              type="number"
-              value={tipoCambio}
-              onChange={e => setTipoCambio(e.target.value)}
-              placeholder="1430"
-              readOnly={tipoDolar !== 'manual'}
-              style={{ ...inputStyle, color: tipoDolar !== 'manual' ? 'var(--rv-accent)' : 'var(--rv-text)', cursor: tipoDolar !== 'manual' ? 'default' : 'text' }}
-            />
-          </div>
-
-          {/* Botones */}
-          <div style={{ display: 'flex', gap: 8 }}>
-            {tipoDolar !== 'manual' && (
-              <button
-                onClick={() => fetchDolar(tipoDolar)}
-                disabled={fetchingDolar}
-                style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 16px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', opacity: fetchingDolar ? 0.7 : 1 }}
-              >
-                {fetchingDolar ? 'Actualizando...' : <><IconTrendUp size={13} style={{ marginRight: 6 }} />Actualizar</>}
-              </button>
-            )}
-            {tipoDolar === 'manual' && (
-              <button onClick={guardarTC} disabled={savingTC} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 16px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                {savingTC ? 'Guardando...' : 'Guardar'}
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Última actualización */}
-        {ultimaActualizacion && tipoDolar !== 'manual' && (
-          <p style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 10, marginBottom: 0 }}>
-            Última actualización: {new Date(ultimaActualizacion).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
-            {tipoCambio && <span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginLeft: 8 }}>${Number(tipoCambio).toLocaleString('es-AR')}</span>}
-          </p>
-        )}
-      </div>
-
-      <SeccionLista titulo="Puntos de venta" Icono={IconPin} items={puntosVenta} onAgregar={agregar('puntosVenta')} onEliminar={eliminar('puntosVenta')} campo="nombre" placeholder="Ej: Local Caleta, Instagram..." />
-      <SeccionLista titulo="Vendedores" Icono={IconUser} items={vendedores} onAgregar={agregar('vendedores')} onEliminar={eliminar('vendedores')} campo="nombre" placeholder="Nombre del vendedor..." />
-      <SeccionLista titulo="Proveedores" Icono={IconTruck} items={proveedores} onAgregar={agregar('proveedores')} onEliminar={eliminar('proveedores')} campo="nombre" placeholder="Nombre del proveedor..." />
-      <SeccionLista titulo="Orígenes de venta" Icono={IconBell} items={origenes} onAgregar={agregarEnConfig('origenes')} onEliminar={eliminarDeConfig('origenes', origenes, setOrigenes)} campo="nombre" placeholder="Ej: Instagram, WhatsApp..." />
-      <SeccionLista titulo="Modelos de iPhone" Icono={IconBox} items={modelos} onAgregar={agregarEnConfig('modelos')} onEliminar={eliminarDeConfig('modelos', modelos, setModelos)} campo="nombre" placeholder="Ej: iPhone 18 Pro..." />
-
-      {/* Plan Canje */}
-      <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 24, marginBottom: 16 }}>
-        <h3 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 9 }}><IconArrowSwap size={15} style={{ color: 'var(--rv-accent)' }} />Plan Canje</h3>
-        <p style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginBottom: 16 }}>
-          Cuánto tomás cada modelo como parte de pago. Tus clientes lo van a ver en el catálogo público para calcular cuánto les falta pagar.
-        </p>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-          <select value={nuevoCanje.modelo} onChange={e => setNuevoCanje({ ...nuevoCanje, modelo: e.target.value })} style={{ ...inputStyle, flex: '2 1 160px' }}>
-            <option value="">Modelo...</option>
-            {modelos.map(m => <option key={m.id} value={m.nombre}>{m.nombre}</option>)}
-          </select>
-          <input value={nuevoCanje.gb} onChange={e => setNuevoCanje({ ...nuevoCanje, gb: e.target.value })} placeholder="GB" style={{ ...inputStyle, flex: '1 1 70px' }} />
-          <input type="number" value={nuevoCanje.valorUsd} onChange={e => setNuevoCanje({ ...nuevoCanje, valorUsd: e.target.value })} placeholder="Toma USD" style={{ ...inputStyle, flex: '1 1 100px' }} />
-          <button onClick={agregarCanje} disabled={guardandoCanje} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 700, cursor: 'pointer' }}>Agregar</button>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {listaCanje.map(c => (
-            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px' }}>
-              <span style={{ fontSize: 14 }}>{c.modelo} {c.gb ? `${c.gb}GB` : ''} — toma USD {c.valorUsd}</span>
-              <button onClick={() => eliminarCanje(c.id)} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', display: 'flex' }}><IconX size={15} /></button>
+      {seccionAbierta === 'tipoCambio' && (
+        <ModalSeccion titulo="Tipo de cambio (ARS por USD)" Icono={IconCoin} onClose={cerrar}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end' }}>
+            <div style={{ minWidth: 180 }}>
+              <label style={labelStyle}>TIPO DE DÓLAR</label>
+              <select value={tipoDolar} onChange={e => { setTipoDolar(e.target.value); if (e.target.value !== 'manual') fetchDolar(e.target.value); }} style={inputStyle}>
+                {TIPOS_DOLAR.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
             </div>
-          ))}
-          {listaCanje.length === 0 && <p style={{ color: 'var(--rv-text-dim)', fontSize: 13 }}>Todavía no cargaste ningún valor de toma</p>}
-        </div>
-      </div>
+            <div style={{ minWidth: 140 }}>
+              <label style={labelStyle}>COTIZACIÓN ACTUAL</label>
+              <input
+                type="number" value={tipoCambio} onChange={e => setTipoCambio(e.target.value)} placeholder="1430"
+                readOnly={tipoDolar !== 'manual'}
+                style={{ ...inputStyle, color: tipoDolar !== 'manual' ? 'var(--rv-accent)' : 'var(--rv-text)', cursor: tipoDolar !== 'manual' ? 'default' : 'text' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {tipoDolar !== 'manual' && (
+                <button onClick={() => fetchDolar(tipoDolar)} disabled={fetchingDolar} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 16px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', opacity: fetchingDolar ? 0.7 : 1 }}>
+                  {fetchingDolar ? 'Actualizando...' : <><IconTrendUp size={13} style={{ marginRight: 6 }} />Actualizar</>}
+                </button>
+              )}
+              {tipoDolar === 'manual' && (
+                <button onClick={guardarTC} disabled={savingTC} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 16px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  {savingTC ? 'Guardando...' : 'Guardar'}
+                </button>
+              )}
+            </div>
+          </div>
+          {ultimaActualizacion && tipoDolar !== 'manual' && (
+            <p style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 10, marginBottom: 0 }}>
+              Última actualización: {new Date(ultimaActualizacion).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
+              {tipoCambio && <span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginLeft: 8 }}>${Number(tipoCambio).toLocaleString('es-AR')}</span>}
+            </p>
+          )}
+        </ModalSeccion>
+      )}
+
+      {seccionAbierta === 'puntosVenta' && (
+        <ModalSeccion titulo="Puntos de venta" Icono={IconPin} onClose={cerrar}>
+          <SeccionLista items={puntosVenta} onAgregar={agregar('puntosVenta')} onEliminar={eliminar('puntosVenta')} placeholder="Ej: Local Caleta, Instagram..." />
+        </ModalSeccion>
+      )}
+
+      {seccionAbierta === 'vendedores' && (
+        <ModalSeccion titulo="Vendedores" Icono={IconUser} onClose={cerrar}>
+          <SeccionLista items={vendedores} onAgregar={agregar('vendedores')} onEliminar={eliminar('vendedores')} placeholder="Nombre del vendedor..." />
+        </ModalSeccion>
+      )}
+
+      {seccionAbierta === 'proveedores' && (
+        <ModalSeccion titulo="Proveedores" Icono={IconTruck} onClose={cerrar}>
+          <SeccionLista items={proveedores} onAgregar={agregar('proveedores')} onEliminar={eliminar('proveedores')} placeholder="Nombre del proveedor..." />
+        </ModalSeccion>
+      )}
+
+      {seccionAbierta === 'origenes' && (
+        <ModalSeccion titulo="Orígenes de venta" Icono={IconBell} onClose={cerrar}>
+          <SeccionLista items={origenes} onAgregar={agregarEnConfig('origenes')} onEliminar={eliminarDeConfig('origenes', origenes)} placeholder="Ej: Instagram, WhatsApp..." />
+        </ModalSeccion>
+      )}
+
+      {seccionAbierta === 'modelos' && (
+        <ModalSeccion titulo="Modelos de iPhone" Icono={IconTag} onClose={cerrar}>
+          <SeccionLista items={modelos} onAgregar={agregarEnConfig('modelos')} onEliminar={eliminarDeConfig('modelos', modelos)} placeholder="Ej: iPhone 18 Pro..." />
+        </ModalSeccion>
+      )}
+
+      {seccionAbierta === 'canje' && (
+        <ModalSeccion titulo="Plan Canje" Icono={IconArrowSwap} onClose={cerrar}>
+          <p style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginBottom: 16 }}>
+            Cuánto tomás cada modelo como parte de pago. Tus clientes lo van a ver en el catálogo público para calcular cuánto les falta pagar.
+          </p>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+            <select value={nuevoCanje.modelo} onChange={e => setNuevoCanje({ ...nuevoCanje, modelo: e.target.value })} style={{ ...inputStyle, flex: '2 1 160px' }}>
+              <option value="">Modelo...</option>
+              {modelos.map(m => <option key={m.id} value={m.nombre}>{m.nombre}</option>)}
+            </select>
+            <input value={nuevoCanje.gb} onChange={e => setNuevoCanje({ ...nuevoCanje, gb: e.target.value })} placeholder="GB" style={{ ...inputStyle, flex: '1 1 70px' }} />
+            <input type="number" value={nuevoCanje.valorUsd} onChange={e => setNuevoCanje({ ...nuevoCanje, valorUsd: e.target.value })} placeholder="Toma USD" style={{ ...inputStyle, flex: '1 1 100px' }} />
+            <button onClick={agregarCanje} disabled={guardandoCanje} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 700, cursor: 'pointer' }}>Agregar</button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {listaCanje.map(c => (
+              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px' }}>
+                <span style={{ fontSize: 14 }}>{c.modelo} {c.gb ? `${c.gb}GB` : ''} — toma USD {c.valorUsd}</span>
+                <button onClick={() => eliminarCanje(c.id)} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', display: 'flex' }}><IconX size={15} /></button>
+              </div>
+            ))}
+            {listaCanje.length === 0 && <p style={{ color: 'var(--rv-text-dim)', fontSize: 13 }}>Todavía no cargaste ningún valor de toma</p>}
+          </div>
+        </ModalSeccion>
+      )}
+
+      {seccionAbierta === 'categoriasCaja' && (
+        <ModalSeccion titulo="Categorías de Caja" Icono={IconWallet} onClose={cerrar} ancho={640}>
+          <p style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginBottom: 20 }}>
+            Estas son las categorías que aparecen para elegir al cargar un movimiento manual en Caja. Los movimientos automáticos (Venta, Cobro de cuota, Reparación, Pago a proveedor) ya tienen la suya asignada sola.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 24 }}>
+            <SeccionLista titulo="Ingresos" items={categoriasIngreso} onAgregar={agregarEnConfig('categoriasIngreso')} onEliminar={eliminarDeConfig('categoriasIngreso', categoriasIngreso)} placeholder="Ej: Alquiler cobrado..." />
+            <SeccionLista titulo="Egresos" items={categoriasEgreso} onAgregar={agregarEnConfig('categoriasEgreso')} onEliminar={eliminarDeConfig('categoriasEgreso', categoriasEgreso)} placeholder="Ej: Insumos..." />
+          </div>
+        </ModalSeccion>
+      )}
     </div>
   );
 }
-

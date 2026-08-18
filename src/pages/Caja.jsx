@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, getDoc, addDoc, deleteDoc, doc, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconWallet, IconCoin, IconPlus, IconTrash, IconX, IconTrendUp, IconTrendDown, IconCalendar, IconRefresh, IconLock, IconCheckCircle, IconWarning, IconChart } from '../components/Icons';
-import { reconciliarCaja, calcularVentasDelDia, obtenerCierre, listarCierres, cerrarCajaDelDia, fechaKey, fechaDeMovimiento, CATEGORIAS_INGRESO, CATEGORIAS_EGRESO } from '../lib/caja';
+import { reconciliarCaja, calcularVentasDelDia, obtenerCierre, listarCierres, cerrarCajaDelDia, fechaKey, fechaDeMovimiento, CATEGORIAS_INGRESO as CATEGORIAS_INGRESO_DEFAULT, CATEGORIAS_EGRESO as CATEGORIAS_EGRESO_DEFAULT } from '../lib/caja';
 import GraficoIngresosEgresos from '../components/GraficoIngresosEgresos';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
@@ -66,16 +66,22 @@ export default function Caja() {
   const [cargandoReconciliacion, setCargandoReconciliacion] = useState(false);
   const [reconciliacionCierre, setReconciliacionCierre] = useState(null);
   const [cerrando, setCerrando] = useState(false);
-  const [form, setForm] = useState({ tipo: 'ingreso', categoria: CATEGORIAS_INGRESO[0], moneda: 'ARS', monto: '', concepto: '', fecha: new Date().toISOString().split('T')[0] });
+  const [categoriasIngreso, setCategoriasIngreso] = useState(CATEGORIAS_INGRESO_DEFAULT);
+  const [categoriasEgreso, setCategoriasEgreso] = useState(CATEGORIAS_EGRESO_DEFAULT);
+  const [form, setForm] = useState({ tipo: 'ingreso', categoria: CATEGORIAS_INGRESO_DEFAULT[0], moneda: 'ARS', monto: '', concepto: '', fecha: new Date().toISOString().split('T')[0] });
 
   const cargar = async () => {
     if (!negocioId) return;
     const hoyStr = fechaKey(new Date());
-    const [snap, cierre, historial] = await Promise.all([
+    const [snap, cierre, historial, cfgSnap] = await Promise.all([
       getDocs(query(collection(db, ...base, 'caja'), orderBy('fecha', 'desc'))),
       obtenerCierre(negocioId, hoyStr),
       listarCierres(negocioId, 8),
+      getDoc(doc(db, ...base, 'config', 'general')),
     ]);
+    const cfg = cfgSnap.data() || {};
+    setCategoriasIngreso(cfg.categoriasIngreso?.length ? cfg.categoriasIngreso : CATEGORIAS_INGRESO_DEFAULT);
+    setCategoriasEgreso(cfg.categoriasEgreso?.length ? cfg.categoriasEgreso : CATEGORIAS_EGRESO_DEFAULT);
     setMovimientos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     setCierreHoy(cierre);
     setHistorialCierres(historial);
@@ -101,13 +107,13 @@ export default function Caja() {
   };
 
   const abrirModal = () => {
-    setForm({ tipo: 'ingreso', categoria: CATEGORIAS_INGRESO[0], moneda: 'ARS', monto: '', concepto: '', fecha: new Date().toISOString().split('T')[0] });
+    setForm({ tipo: 'ingreso', categoria: categoriasIngreso[0] || '', moneda: 'ARS', monto: '', concepto: '', fecha: new Date().toISOString().split('T')[0] });
     setModal(true);
   };
 
   const cambiarTipoManual = (tipo) => {
-    const categorias = tipo === 'ingreso' ? CATEGORIAS_INGRESO : CATEGORIAS_EGRESO;
-    setForm(f => ({ ...f, tipo, categoria: categorias[0] }));
+    const categorias = tipo === 'ingreso' ? categoriasIngreso : categoriasEgreso;
+    setForm(f => ({ ...f, tipo, categoria: categorias[0] || '' }));
   };
 
   const guardarManual = async (e) => {
@@ -473,7 +479,7 @@ export default function Caja() {
               <div>
                 <label style={labelStyle}>Categoría</label>
                 <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })} style={inputStyle}>
-                  {(form.tipo === 'ingreso' ? CATEGORIAS_INGRESO : CATEGORIAS_EGRESO).map(c => <option key={c}>{c}</option>)}
+                  {(form.tipo === 'ingreso' ? categoriasIngreso : categoriasEgreso).map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>
               <div>

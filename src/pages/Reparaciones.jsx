@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { IconWrench, IconEdit, IconTrash, IconX, IconCheckCircle, IconFile } from '../components/Icons';
 import { registrarMovimientoReparacion, registrarEgresoRepuestoReparacion, eliminarMovimientosReparacion } from '../lib/caja';
 import ComprobanteReparacion from '../components/ComprobanteReparacion';
+import SelectorCliente from '../components/SelectorCliente';
 
 const ESTADOS = ['ingresado', 'diagnosticado', 'presupuestado', 'aprobado', 'en_reparacion', 'esperando_repuesto', 'listo', 'entregado', 'no_reparable', 'cancelado'];
 const ESTADO_LABEL = {
@@ -19,7 +20,7 @@ const ESTADO_COLOR = {
 };
 
 const FORM_VACIO = {
-  cliente: '', telefono: '', modelo: '', color: '', imei: '', claveEquipo: '',
+  clienteId: '', cliente: '', telefono: '', modelo: '', color: '', imei: '', claveEquipo: '',
   fallaReportada: '', diagnostico: '', estado: 'ingresado',
   costoRepuestoUsd: '', precioUsd: '', montoPagado: '', garantiaDias: '30',
   fechaEntregaManual: '', notas: '',
@@ -34,6 +35,7 @@ export default function Reparaciones() {
   const base = ['negocios', negocioId];
 
   const [reparaciones, setReparaciones] = useState([]);
+  const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
@@ -44,9 +46,17 @@ export default function Reparaciones() {
 
   const cargar = async () => {
     if (!negocioId) return;
-    const snap = await getDocs(query(collection(db, ...base, 'reparaciones'), orderBy('fechaIngreso', 'desc')));
+    const [snap, cliSnap] = await Promise.all([
+      getDocs(query(collection(db, ...base, 'reparaciones'), orderBy('fechaIngreso', 'desc'))),
+      getDocs(query(collection(db, ...base, 'clientes'), orderBy('nombre'))),
+    ]);
     setReparaciones(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    setClientes(cliSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     setLoading(false);
+  };
+
+  const seleccionarCliente = (c) => {
+    setForm(f => ({ ...f, clienteId: c?.id || '', cliente: c?.nombre || '', telefono: c?.telefono || '' }));
   };
 
   useEffect(() => { cargar(); }, [negocioId]);
@@ -60,7 +70,7 @@ export default function Reparaciones() {
   const abrirEditar = (rep) => {
     setEditandoId(rep.id);
     setForm({
-      cliente: rep.cliente || '', telefono: rep.telefono || '', modelo: rep.modelo || '',
+      clienteId: rep.clienteId || '', cliente: rep.cliente || '', telefono: rep.telefono || '', modelo: rep.modelo || '',
       color: rep.color || '', imei: rep.imei || '', claveEquipo: rep.claveEquipo || '',
       fallaReportada: rep.fallaReportada || '', diagnostico: rep.diagnostico || '',
       estado: rep.estado || 'ingresado', costoRepuestoUsd: rep.costoRepuestoUsd || '',
@@ -88,7 +98,7 @@ export default function Reparaciones() {
     setGuardando(true);
     try {
       const datos = {
-        cliente: form.cliente, telefono: form.telefono, modelo: form.modelo, color: form.color,
+        clienteId: form.clienteId, cliente: form.cliente, telefono: form.telefono, modelo: form.modelo, color: form.color,
         imei: form.imei, claveEquipo: form.claveEquipo, fallaReportada: form.fallaReportada,
         diagnostico: form.diagnostico, estado: form.estado,
         costoRepuestoUsd: Number(form.costoRepuestoUsd) || 0, precioUsd: Number(form.precioUsd) || 0,
@@ -189,7 +199,13 @@ export default function Reparaciones() {
             </div>
             <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div><label style={labelStyle}>Cliente</label><input value={form.cliente} onChange={e => setForm({ ...form, cliente: e.target.value })} placeholder="Nombre del cliente" required style={inputStyle} /></div>
+                <SelectorCliente
+                  negocioId={negocioId}
+                  clientes={clientes}
+                  clienteId={form.clienteId}
+                  onSeleccionar={seleccionarCliente}
+                  onClienteCreado={(c) => setClientes(cs => [...cs, c].sort((a, b) => a.nombre.localeCompare(b.nombre)))}
+                />
                 <div><label style={labelStyle}>Teléfono</label><input value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} placeholder="+54 9 11 1234-5678" style={inputStyle} /></div>
                 <div><label style={labelStyle}>Modelo</label><input value={form.modelo} onChange={e => setForm({ ...form, modelo: e.target.value })} placeholder="iPhone 13" required style={inputStyle} /></div>
                 <div><label style={labelStyle}>Color</label><input value={form.color} onChange={e => setForm({ ...form, color: e.target.value })} placeholder="Negro" style={inputStyle} /></div>

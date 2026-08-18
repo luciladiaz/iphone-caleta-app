@@ -4,6 +4,7 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconBox, IconHash, IconCoin, IconEdit, IconCheck, IconX } from '../components/Icons';
 import { CATEGORIAS_STOCK, MODELOS_DEFAULT_POR_CATEGORIA } from '../lib/categoriasProducto';
+import SelectorModelo from '../components/SelectorModelo';
 
 const CATEGORIAS = ['Fundas', 'Vidrios templados', 'Cables', 'Cargadores', 'Adaptadores', 'Audio / AirPods', 'MagSafe', 'Power banks', 'Soportes', 'Otros'];
 
@@ -144,15 +145,12 @@ export default function Accesorios() {
               </select>
             </div>
             <div>
-              <label style={labelStyle}>MODELO COMPATIBLE</label>
-              <select value={form.modelo} onChange={e => setForm(f => ({ ...f, modelo: e.target.value }))} style={inputStyle}>
-                <option value="">Universal / no aplica</option>
-                {categoriasProducto.map(cat => (
-                  <optgroup key={cat} label={cat}>
-                    {(modelosPorCategoria[cat] || []).map(m => <option key={m} value={m}>{m}</option>)}
-                  </optgroup>
-                ))}
-              </select>
+              <SelectorModelo
+                categorias={categoriasProducto}
+                modelosPorCategoria={modelosPorCategoria}
+                value={form.modelo}
+                onSeleccionar={m => setForm(f => ({ ...f, modelo: m }))}
+              />
             </div>
             <div>
               <label style={labelStyle}>COLOR / VARIANTE</label>

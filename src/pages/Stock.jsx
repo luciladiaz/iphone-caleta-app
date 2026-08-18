@@ -4,7 +4,7 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import CalculadoraPrecio from '../components/CalculadoraPrecio';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
-import { IconCalculator, IconLink, IconShare, IconEdit, IconTrash, IconCheck, IconX, IconBox } from '../components/Icons';
+import { IconCalculator, IconLink, IconShare, IconEdit, IconTrash, IconCheck, IconX, IconBox, IconPin } from '../components/Icons';
 import { CATEGORIAS_STOCK, MODELOS_DEFAULT_POR_CATEGORIA, ETIQUETA_ID_POR_CATEGORIA, SUGERENCIAS_CAPACIDAD_POR_CATEGORIA, EMOJI_POR_CATEGORIA } from '../lib/categoriasProducto';
 
 const COLORES = ['Negro','Blanco','Azul','Natural','Desert','Desert Titanium','Natural Titanium','Naranja','Rosa','Verde','Morado','Rojo','Gris','Plata','Dorado'];
@@ -38,6 +38,7 @@ export default function Stock() {
   const [guardando, setGuardando] = useState(false);
   const [filtro, setFiltro] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('todas');
+  const [filtroPuntoVenta, setFiltroPuntoVenta] = useState('todos');
   const [showCalculadora, setShowCalculadora] = useState(false);
   const [modalCatalogo, setModalCatalogo] = useState(false);
   const [catalogoCategorias, setCatalogoCategorias] = useState([]);
@@ -149,10 +150,17 @@ export default function Stock() {
   const equiposFiltrados = equipos
     .filter(e => e.estado !== 'vendido')
     .filter(e => filtroCategoria === 'todas' || e.categoria === filtroCategoria)
+    .filter(e => {
+      if (filtroPuntoVenta === 'todos') return true;
+      if (filtroPuntoVenta === '__sin__') return !e.puntoVenta;
+      return e.puntoVenta === filtroPuntoVenta;
+    })
     .filter(e =>
       `${e.categoria} ${e.modelo} ${e.color} ${e.gb} ${e.imei} ${e.puntoVenta} ${e.asignadoA}`.toLowerCase().includes(filtro.toLowerCase())
     );
   const categoriasConStock = categoriasProducto.filter(cat => equipos.some(e => e.categoria === cat && e.estado !== 'vendido'));
+  const puntosVentaConStock = puntosVenta.map(p => p.nombre).filter(nombre => equipos.some(e => e.puntoVenta === nombre && e.estado !== 'vendido'));
+  const hayEquiposSinPuntoVenta = equipos.some(e => !e.puntoVenta && e.estado !== 'vendido');
   const maxStock = limitesPlan?.maxStock ?? Infinity;
   const limiteAlcanzado = maxStock !== Infinity && equipos.length >= maxStock;
 
@@ -181,11 +189,24 @@ export default function Stock() {
       </div>
 
       {categoriasConStock.length > 1 && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
           <button onClick={() => setFiltroCategoria('todas')} style={{ background: filtroCategoria === 'todas' ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: filtroCategoria === 'todas' ? '#fff' : 'var(--rv-text-dim)', border: '1px solid var(--rv-border)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Todas las categorías</button>
           {categoriasConStock.map(cat => (
             <button key={cat} onClick={() => setFiltroCategoria(cat)} style={{ background: filtroCategoria === cat ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: filtroCategoria === cat ? '#fff' : 'var(--rv-text-dim)', border: '1px solid var(--rv-border)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{cat}</button>
           ))}
+        </div>
+      )}
+
+      {(puntosVentaConStock.length > 1 || (puntosVentaConStock.length === 1 && hayEquiposSinPuntoVenta)) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+          <IconPin size={13} style={{ color: 'var(--rv-text-dim)' }} />
+          <button onClick={() => setFiltroPuntoVenta('todos')} style={{ background: filtroPuntoVenta === 'todos' ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: filtroPuntoVenta === 'todos' ? '#fff' : 'var(--rv-text-dim)', border: '1px solid var(--rv-border)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Todos los puntos de venta</button>
+          {puntosVentaConStock.map(pv => (
+            <button key={pv} onClick={() => setFiltroPuntoVenta(pv)} style={{ background: filtroPuntoVenta === pv ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: filtroPuntoVenta === pv ? '#fff' : 'var(--rv-text-dim)', border: '1px solid var(--rv-border)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{pv}</button>
+          ))}
+          {hayEquiposSinPuntoVenta && (
+            <button onClick={() => setFiltroPuntoVenta('__sin__')} style={{ background: filtroPuntoVenta === '__sin__' ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: filtroPuntoVenta === '__sin__' ? '#fff' : 'var(--rv-text-dim)', border: '1px solid var(--rv-border)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Sin punto de venta</button>
+          )}
         </div>
       )}
 

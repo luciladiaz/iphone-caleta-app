@@ -27,6 +27,7 @@ export default function Ventas() {
   const [vendedores, setVendedores] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [origenes, setOrigenes] = useState(ORIGENES);
+  const [categoriasProducto, setCategoriasProducto] = useState(CATEGORIAS_STOCK);
   const [tipoCambioGlobal, setTipoCambioGlobal] = useState('');
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
@@ -57,6 +58,7 @@ export default function Ventas() {
     setClientes(cliSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const cfg = cfgSnap.data() || {};
     if (cfg.origenes) setOrigenes(cfg.origenes);
+    if (cfg.categoriasProducto?.length) setCategoriasProducto(cfg.categoriasProducto);
     if (cfg.tipoCambio) setTipoCambioGlobal(String(cfg.tipoCambio));
     setLoading(false);
   };
@@ -483,7 +485,7 @@ export default function Ventas() {
                   ))}
                   <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: 14 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-                      <div><label style={labelStyle}>Categoría</label><select value={nuevaParte.categoria} onChange={e => setNuevaParte({ ...nuevaParte, categoria: e.target.value })} style={inputStyle}>{CATEGORIAS_STOCK.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                      <div><label style={labelStyle}>Categoría</label><select value={nuevaParte.categoria} onChange={e => setNuevaParte({ ...nuevaParte, categoria: e.target.value })} style={inputStyle}>{categoriasProducto.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                       <div><label style={labelStyle}>Modelo</label><input value={nuevaParte.modelo} onChange={e => setNuevaParte({ ...nuevaParte, modelo: e.target.value })} placeholder="iPhone 13" style={inputStyle} /></div>
                       <div><label style={labelStyle}>Capacidad / specs</label><input value={nuevaParte.gb} onChange={e => setNuevaParte({ ...nuevaParte, gb: e.target.value })} placeholder="128" style={inputStyle} /></div>
                       <div><label style={labelStyle}>Color</label><input value={nuevaParte.color} onChange={e => setNuevaParte({ ...nuevaParte, color: e.target.value })} placeholder="Negro" style={inputStyle} /></div>

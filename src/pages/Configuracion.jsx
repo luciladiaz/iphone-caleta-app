@@ -75,6 +75,8 @@ export default function Configuracion() {
   const [vendedores, setVendedores] = useState([]);
   const [proveedores, setProveedores] = useState([]);
   const [origenes, setOrigenes] = useState([]);
+  const [categoriasProducto, setCategoriasProducto] = useState(CATEGORIAS_STOCK);
+  const [nuevaCategoria, setNuevaCategoria] = useState('');
   const [modelosPorCategoria, setModelosPorCategoria] = useState({});
   const [categoriaModelos, setCategoriaModelos] = useState('iPhone');
   const [listaCanje, setListaCanje] = useState([]);
@@ -115,11 +117,16 @@ export default function Configuracion() {
     setTipoDolar(cfg.tipoDolar || 'blue');
     setUltimaActualizacion(cfg.ultimaActualizacionTC || null);
     setOrigenes((cfg.origenes || []).map((o, i) => ({ id: i, nombre: o })));
+    // Las categorías de producto (iPhone/iPad/Mac/... ) también son configurables:
+    // si el negocio nunca las tocó, arranca con el set por defecto.
+    const catsProducto = cfg.categoriasProducto?.length ? cfg.categoriasProducto : CATEGORIAS_STOCK;
+    setCategoriasProducto(catsProducto);
+    setCategoriaModelos(prev => catsProducto.includes(prev) ? prev : (catsProducto[0] || ''));
     // Legacy: antes había una sola lista plana `modelos` (todos iPhone). Si ya existe
     // la nueva `modelosPorCategoria` se usa esa; si no, se migra la vieja a iPhone.
     const porCategoria = cfg.modelosPorCategoria || {};
     const nuevoEstado = {};
-    CATEGORIAS_STOCK.forEach(cat => {
+    catsProducto.forEach(cat => {
       const lista = porCategoria[cat] || (cat === 'iPhone' ? cfg.modelos : null) || MODELOS_DEFAULT_POR_CATEGORIA[cat] || [];
       nuevoEstado[cat] = lista.map((m, i) => ({ id: i, nombre: m }));
     });
@@ -221,6 +228,27 @@ export default function Configuracion() {
     cargar();
   };
 
+  const agregarCategoriaProducto = async () => {
+    const nombre = nuevaCategoria.trim();
+    if (!nombre) return;
+    const snap = await getDoc(doc(db, ...base, 'config', 'general'));
+    const actuales = snap.data()?.categoriasProducto?.length ? snap.data().categoriasProducto : CATEGORIAS_STOCK;
+    if (actuales.some(c => c.toLowerCase() === nombre.toLowerCase())) { setNuevaCategoria(''); return; }
+    await setDoc(doc(db, ...base, 'config', 'general'), { categoriasProducto: [...actuales, nombre] }, { merge: true });
+    setNuevaCategoria('');
+    setCategoriaModelos(nombre);
+    cargar();
+  };
+
+  const eliminarCategoriaProducto = async (cat) => {
+    if (!window.confirm(`¿Eliminar la categoría "${cat}"? Los equipos que ya la tengan cargada no se van a borrar, pero dejará de estar disponible para elegir en equipos nuevos.`)) return;
+    const snap = await getDoc(doc(db, ...base, 'config', 'general'));
+    const actuales = snap.data()?.categoriasProducto?.length ? snap.data().categoriasProducto : CATEGORIAS_STOCK;
+    const nuevas = actuales.filter(c => c !== cat);
+    await setDoc(doc(db, ...base, 'config', 'general'), { categoriasProducto: nuevas }, { merge: true });
+    cargar();
+  };
+
   const agregarModelo = (categoria) => async (nombre) => {
     const snap = await getDoc(doc(db, ...base, 'config', 'general'));
     const actuales = snap.data()?.modelosPorCategoria || {};
@@ -267,7 +295,7 @@ export default function Configuracion() {
     { key: 'vendedores', label: 'Vendedores', Icono: IconUser, contador: vendedores.length },
     { key: 'proveedores', label: 'Proveedores', Icono: IconTruck, contador: proveedores.length },
     { key: 'origenes', label: 'Orígenes de venta', Icono: IconBell, contador: origenes.length },
-    { key: 'modelos', label: 'Modelos', Icono: IconTag, contador: Object.values(modelosPorCategoria).reduce((s, l) => s + l.length, 0) },
+    { key: 'modelos', label: 'Categorías y modelos', Icono: IconTag, contador: Object.values(modelosPorCategoria).reduce((s, l) => s + l.length, 0) },
     { key: 'canje', label: 'Plan Canje', Icono: IconArrowSwap, contador: listaCanje.length },
     { key: 'categoriasCaja', label: 'Categorías de Caja', Icono: IconWallet, contador: categoriasIngreso.length + categoriasEgreso.length },
   ];
@@ -360,22 +388,37 @@ export default function Configuracion() {
       )}
 
       {seccionAbierta === 'modelos' && (
-        <ModalSeccion titulo="Modelos" Icono={IconTag} onClose={cerrar}>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
-            {CATEGORIAS_STOCK.map(cat => (
-              <button key={cat} onClick={() => setCategoriaModelos(cat)} style={{
+        <ModalSeccion titulo="Categorías y modelos" Icono={IconTag} onClose={cerrar}>
+          <p style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginBottom: 12 }}>
+            Las categorías de producto que maneja el negocio (iPhone, Mac, Drones, lo que vendas). Agregá las que necesites y elegí una para cargarle sus modelos.
+          </p>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+            {categoriasProducto.map(cat => (
+              <div key={cat} style={{
+                display: 'flex', alignItems: 'center', gap: 6, borderRadius: 8, padding: '7px 8px 7px 14px', fontSize: 12, fontWeight: 600,
                 background: categoriaModelos === cat ? 'var(--rv-accent)' : 'var(--rv-surface-alt)',
                 color: categoriaModelos === cat ? '#fff' : 'var(--rv-text-mid)',
-                border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              }}>{cat}</button>
+              }}>
+                <button type="button" onClick={() => setCategoriaModelos(cat)} style={{ background: 'none', border: 'none', color: 'inherit', font: 'inherit', cursor: 'pointer', padding: 0 }}>{cat}</button>
+                <button type="button" onClick={() => eliminarCategoriaProducto(cat)} title="Eliminar categoría" style={{ background: 'none', border: 'none', color: 'inherit', opacity: 0.7, cursor: 'pointer', display: 'flex', padding: 0 }}><IconX size={12} /></button>
+              </div>
             ))}
           </div>
-          <SeccionLista
-            items={modelosPorCategoria[categoriaModelos] || []}
-            onAgregar={agregarModelo(categoriaModelos)}
-            onEliminar={eliminarModelo(categoriaModelos, modelosPorCategoria[categoriaModelos] || [])}
-            placeholder={`Ej: ${categoriaModelos === 'iPhone' ? 'iPhone 18 Pro' : categoriaModelos === 'Mac' ? 'MacBook Pro 14" M5' : categoriaModelos === 'iPad' ? 'iPad Pro 13" M5' : categoriaModelos === 'Android' ? 'Samsung Galaxy S26' : 'DJI Mini 5'}...`}
-          />
+          <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+            <input value={nuevaCategoria} onChange={e => setNuevaCategoria(e.target.value)} placeholder="Nueva categoría, ej: Notebooks, Accesorios premium..."
+              style={{ ...inputStyle, flex: 1 }}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); agregarCategoriaProducto(); } }} />
+            <button type="button" onClick={agregarCategoriaProducto} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text)', borderRadius: 8, padding: '10px 16px', fontWeight: 700, cursor: 'pointer' }}>+ Categoría</button>
+          </div>
+          <div style={{ borderTop: '1px solid var(--rv-border)', paddingTop: 18 }}>
+            <SeccionLista
+              titulo={`Modelos de ${categoriaModelos || '...'}`}
+              items={modelosPorCategoria[categoriaModelos] || []}
+              onAgregar={agregarModelo(categoriaModelos)}
+              onEliminar={eliminarModelo(categoriaModelos, modelosPorCategoria[categoriaModelos] || [])}
+              placeholder="Ej: DJI Mini 5..."
+            />
+          </div>
         </ModalSeccion>
       )}
 
@@ -387,7 +430,7 @@ export default function Configuracion() {
           <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
             <select value={nuevoCanje.modelo} onChange={e => setNuevoCanje({ ...nuevoCanje, modelo: e.target.value })} style={{ ...inputStyle, flex: '2 1 160px' }}>
               <option value="">Modelo...</option>
-              {CATEGORIAS_STOCK.map(cat => (
+              {categoriasProducto.map(cat => (
                 <optgroup key={cat} label={cat}>
                   {(modelosPorCategoria[cat] || []).map(m => <option key={m.id} value={m.nombre}>{m.nombre}</option>)}
                 </optgroup>

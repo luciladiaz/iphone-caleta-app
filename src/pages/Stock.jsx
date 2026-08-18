@@ -29,6 +29,7 @@ export default function Stock() {
   const [proveedores, setProveedores] = useState([]);
   const [puntosVenta, setPuntosVenta] = useState([]);
   const [vendedores, setVendedores] = useState([]);
+  const [categoriasProducto, setCategoriasProducto] = useState(CATEGORIAS_STOCK);
   const [modelosPorCategoria, setModelosPorCategoria] = useState(MODELOS_DEFAULT_POR_CATEGORIA);
   const [tipoCambio, setTipoCambio] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -43,7 +44,7 @@ export default function Stock() {
   const [copiado, setCopiado] = useState(false);
   const [modalLimite, setModalLimite] = useState(false);
   const FORM_VACIO = {
-    categoria: 'iPhone', modelo: '', color: '', gb: '', bateria: '', imei: '',
+    categoria: categoriasProducto[0] || 'iPhone', modelo: '', color: '', gb: '', bateria: '', imei: '',
     tipo: 'compra', proveedor: '', costoUsd: '', pvUsd: '',
     estado: 'disponible', puntoVenta: '', asignadoA: '', notas: '', fechaManual: ''
   };
@@ -63,9 +64,11 @@ export default function Stock() {
     setPuntosVenta(pvSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     setVendedores(vSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const cfg = cfgSnap.data() || {};
+    const catsProducto = cfg.categoriasProducto?.length ? cfg.categoriasProducto : CATEGORIAS_STOCK;
+    setCategoriasProducto(catsProducto);
     if (cfg.modelosPorCategoria) {
       const combinado = {};
-      CATEGORIAS_STOCK.forEach(cat => { combinado[cat] = cfg.modelosPorCategoria[cat]?.length ? cfg.modelosPorCategoria[cat] : MODELOS_DEFAULT_POR_CATEGORIA[cat]; });
+      catsProducto.forEach(cat => { combinado[cat] = cfg.modelosPorCategoria[cat]?.length ? cfg.modelosPorCategoria[cat] : (MODELOS_DEFAULT_POR_CATEGORIA[cat] || []); });
       setModelosPorCategoria(combinado);
     } else if (cfg.modelos?.length) {
       setModelosPorCategoria({ ...MODELOS_DEFAULT_POR_CATEGORIA, iPhone: cfg.modelos });
@@ -146,7 +149,7 @@ export default function Stock() {
     .filter(e =>
       `${e.categoria} ${e.modelo} ${e.color} ${e.gb} ${e.imei} ${e.puntoVenta} ${e.asignadoA}`.toLowerCase().includes(filtro.toLowerCase())
     );
-  const categoriasConStock = CATEGORIAS_STOCK.filter(cat => equipos.some(e => e.categoria === cat));
+  const categoriasConStock = categoriasProducto.filter(cat => equipos.some(e => e.categoria === cat));
   const maxStock = limitesPlan?.maxStock ?? Infinity;
   const limiteAlcanzado = maxStock !== Infinity && equipos.length >= maxStock;
 
@@ -243,7 +246,7 @@ export default function Stock() {
             </div>
             <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div><label style={labelStyle}>Categoría</label><select value={form.categoria} onChange={e => setForm({...form, categoria: e.target.value, modelo: ''})} style={inputStyle}>{CATEGORIAS_STOCK.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                <div><label style={labelStyle}>Categoría</label><select value={form.categoria} onChange={e => setForm({...form, categoria: e.target.value, modelo: ''})} style={inputStyle}>{categoriasProducto.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                 <div><label style={labelStyle}>Modelo</label><select value={form.modelo} onChange={e => setForm({...form, modelo: e.target.value})} required style={inputStyle}><option value="">Elegir...</option>{(modelosPorCategoria[form.categoria] || []).map(m => <option key={m}>{m}</option>)}</select></div>
                 <div><label style={labelStyle}>Color</label><select value={form.color} onChange={e => setForm({...form, color: e.target.value})} style={inputStyle}><option value="">Elegir...</option>{COLORES.map(c => <option key={c}>{c}</option>)}</select></div>
                 <div>

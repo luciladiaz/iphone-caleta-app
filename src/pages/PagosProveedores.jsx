@@ -3,6 +3,7 @@ import { collection, getDocs, doc, updateDoc, query, orderBy } from 'firebase/fi
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconWallet, IconTruck, IconUser, IconClock, IconCheck, IconCheckCircle, IconCalendar, IconCoin, IconFile, IconX, IconBox } from '../components/Icons';
+import { registrarMovimientoPagoProveedor, eliminarMovimientoPagoProveedor } from '../lib/caja';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -43,6 +44,7 @@ export default function PagosProveedores() {
     if (!modalPago) return;
     setGuardando(true);
     await updateDoc(doc(db, ...base, 'ventas', modalPago.id), { pagadoProveedor: true, fechaPagoProveedor: formPago.fecha, montoPagadoProveedor: Number(formPago.monto), detallePagoProveedor: formPago.detalle });
+    await registrarMovimientoPagoProveedor(negocioId, modalPago, formPago.monto, formPago.detalle);
     setModalPago(null);
     setGuardando(false);
     cargar();
@@ -50,6 +52,7 @@ export default function PagosProveedores() {
 
   const desmarcarPago = async (v) => {
     await updateDoc(doc(db, ...base, 'ventas', v.id), { pagadoProveedor: false, fechaPagoProveedor: null, montoPagadoProveedor: null, detallePagoProveedor: null });
+    await eliminarMovimientoPagoProveedor(negocioId, v.id);
     cargar();
   };
 

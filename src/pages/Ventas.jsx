@@ -4,7 +4,8 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
 import ComprobanteVenta from '../components/ComprobanteVenta';
-import { IconUser, IconPhone, IconX, IconEdit, IconTrash, IconFile, IconWallet, IconBox, IconArrowSwap, IconCheckCircle } from '../components/Icons';
+import { IconUser, IconPhone, IconX, IconEdit, IconTrash, IconFile, IconWallet, IconBox, IconArrowSwap, IconCheckCircle, IconPlus } from '../components/Icons';
+import { registrarMovimientosVenta, eliminarMovimientosVenta } from '../lib/caja';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -20,6 +21,7 @@ export default function Ventas() {
   const [ventas, setVentas] = useState([]);
   const [stock, setStock] = useState([]);
   const [vendedores, setVendedores] = useState([]);
+  const [clientes, setClientes] = useState([]);
   const [origenes, setOrigenes] = useState(ORIGENES);
   const [tipoCambioGlobal, setTipoCambioGlobal] = useState('');
   const [loading, setLoading] = useState(true);
@@ -27,8 +29,10 @@ export default function Ventas() {
   const [editando, setEditando] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [modalLimite, setModalLimite] = useState(false);
+  const [nuevoClienteModo, setNuevoClienteModo] = useState(false);
+  const [nuevoCliente, setNuevoCliente] = useState({ nombre: '', telefono: '', email: '', dni: '', direccion: '' });
   const [form, setForm] = useState({
-    equipoId: '', cliente: '', telefono: '', vendedor: '', origen: '',
+    equipoId: '', clienteId: '', cliente: '', telefono: '', vendedor: '', origen: '',
     estado: 'pendiente', notas: '', tipoCambio: '',
     cobros: [{ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS', cuotas: '', montoCuota: '', fechaInicio: '' }],
     partesDePago: []
@@ -38,15 +42,17 @@ export default function Ventas() {
   const cargar = async () => {
     if (!negocioId) return;
     const base = ['negocios', negocioId];
-    const [vSnap, sSnap, vendSnap, cfgSnap] = await Promise.all([
+    const [vSnap, sSnap, vendSnap, cliSnap, cfgSnap] = await Promise.all([
       getDocs(query(collection(db, ...base, 'ventas'), orderBy('fecha', 'desc'))),
       getDocs(collection(db, ...base, 'stock')),
       getDocs(collection(db, ...base, 'vendedores')),
+      getDocs(query(collection(db, ...base, 'clientes'), orderBy('nombre'))),
       getDoc(doc(db, ...base, 'config', 'general')),
     ]);
     setVentas(vSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     setStock(sSnap.docs.filter(d => d.data().estado === 'disponible').map(d => ({ id: d.id, ...d.data() })));
     setVendedores(vendSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    setClientes(cliSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const cfg = cfgSnap.data() || {};
     if (cfg.origenes) setOrigenes(cfg.origenes);
     if (cfg.tipoCambio) setTipoCambioGlobal(String(cfg.tipoCambio));
@@ -59,6 +65,22 @@ export default function Ventas() {
   }, [negocioId]);
 
   const equipoSeleccionado = stock.find(s => s.id === form.equipoId);
+
+  const seleccionarCliente = (clienteId) => {
+    const c = clientes.find(cl => cl.id === clienteId);
+    setForm(f => ({ ...f, clienteId, cliente: c?.nombre || '', telefono: c?.telefono || '' }));
+  };
+
+  const abrirNuevoCliente = () => {
+    setNuevoCliente({ nombre: form.cliente || '', telefono: form.telefono || '', email: '', dni: '', direccion: '' });
+    setNuevoClienteModo(true);
+    setForm(f => ({ ...f, clienteId: '' }));
+  };
+
+  const cancelarNuevoCliente = () => {
+    setNuevoClienteModo(false);
+    setNuevoCliente({ nombre: '', telefono: '', email: '', dni: '', direccion: '' });
+  };
 
   const agregarCobro = () => setForm(f => ({ ...f, cobros: [...f.cobros, { tipo: 'Efectivo ARS', monto: '', moneda: 'ARS', cuotas: '', montoCuota: '', fechaInicio: '' }] }));
   const quitarCobro = (i) => setForm(f => ({ ...f, cobros: f.cobros.filter((_, idx) => idx !== i) }));
@@ -92,13 +114,16 @@ export default function Ventas() {
     if (v.equipoId) {
       try { await updateDoc(doc(db, ...base, 'stock', v.equipoId), { estado: 'disponible' }); } catch {}
     }
+    try { await eliminarMovimientosVenta(negocioId, v.id); } catch {}
     cargar();
   };
 
   const abrirEditar = (v) => {
     setEditando(v.id);
+    setNuevoClienteModo(false);
     setForm({
       equipoId: v.equipoId || '',
+      clienteId: v.clienteId || '',
       cliente: v.cliente || '',
       telefono: v.telefono || '',
       vendedor: v.vendedor || '',
@@ -115,8 +140,10 @@ export default function Ventas() {
   const cerrarModal = () => {
     setModal(false);
     setEditando(null);
+    setNuevoClienteModo(false);
+    setNuevoCliente({ nombre: '', telefono: '', email: '', dni: '', direccion: '' });
     setForm({
-      equipoId: '', cliente: '', telefono: '', vendedor: '', origen: '',
+      equipoId: '', clienteId: '', cliente: '', telefono: '', vendedor: '', origen: '',
       estado: 'pendiente', notas: '', tipoCambio: '',
       cobros: [{ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS', cuotas: '', montoCuota: '', fechaInicio: '' }],
       partesDePago: []
@@ -128,20 +155,46 @@ export default function Ventas() {
     setGuardando(true);
     const base = ['negocios', negocioId];
     try {
+      // Si se cargó un cliente nuevo desde el propio formulario de venta, se crea
+      // primero en la agenda de clientes y se usa su id para vincular la venta.
+      let clienteId = form.clienteId;
+      let clienteNombre = form.cliente;
+      let clienteTelefono = form.telefono;
+      if (nuevoClienteModo && nuevoCliente.nombre.trim()) {
+        const clienteRef = await addDoc(collection(db, ...base, 'clientes'), { ...nuevoCliente });
+        clienteId = clienteRef.id;
+        clienteNombre = nuevoCliente.nombre;
+        clienteTelefono = nuevoCliente.telefono;
+      }
+
       if (editando) {
         await updateDoc(doc(db, ...base, 'ventas', editando), {
-          cliente: form.cliente,
-          telefono: form.telefono,
+          clienteId,
+          cliente: clienteNombre,
+          telefono: clienteTelefono,
           vendedor: form.vendedor,
           origen: form.origen,
           estado: form.estado,
           notas: form.notas,
           cobros: form.cobros,
         });
+        // Los cobros pudieron cambiar (monto, moneda, forma de pago): se regeneran
+        // los ingresos de caja de esta venta para que la caja quede al día.
+        const ventaOriginal = ventas.find(v => v.id === editando);
+        await eliminarMovimientosVenta(negocioId, editando, 'venta');
+        await registrarMovimientosVenta(negocioId, editando, {
+          modelo: ventaOriginal?.modelo,
+          gb: ventaOriginal?.gb,
+          cliente: clienteNombre,
+          cobros: form.cobros,
+        });
       } else {
         const equipo = stock.find(s => s.id === form.equipoId);
         const ventaData = {
           ...form,
+          clienteId,
+          cliente: clienteNombre,
+          telefono: clienteTelefono,
           fecha: serverTimestamp(),
           modelo: equipo?.modelo || '',
           gb: equipo?.gb || '',
@@ -152,9 +205,9 @@ export default function Ventas() {
           costoUsd: equipo?.costoUsd || '',
           pvUsd: equipo?.pvUsd || '',
           equipoId: form.equipoId,
-          telefono: form.telefono,
         };
-        await addDoc(collection(db, ...base, 'ventas'), ventaData);
+        const ventaRef = await addDoc(collection(db, ...base, 'ventas'), ventaData);
+        await registrarMovimientosVenta(negocioId, ventaRef.id, ventaData);
         if (form.equipoId) await updateDoc(doc(db, ...base, 'stock', form.equipoId), { estado: 'vendido' });
         for (const parte of form.partesDePago) {
           await addDoc(collection(db, ...base, 'stock'), {
@@ -268,22 +321,34 @@ export default function Ventas() {
                 </div>
               )}
 
-              {/* Cliente y Teléfono */}
+              {/* Cliente */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <label style={{ ...labelStyle, margin: 0 }}>Cliente</label>
+                  <button type="button" onClick={nuevoClienteModo ? cancelarNuevoCliente : abrirNuevoCliente} style={{ background: 'none', border: 'none', color: 'var(--rv-accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {nuevoClienteModo ? <><IconUser size={12} />Elegir cliente existente</> : <><IconPlus size={12} />Nuevo cliente</>}
+                  </button>
+                </div>
+                {!nuevoClienteModo ? (
+                  <select value={form.clienteId} onChange={e => seleccionarCliente(e.target.value)} style={inputStyle}>
+                    <option value="">Sin cliente vinculado...</option>
+                    {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}{c.telefono ? ` · ${c.telefono}` : ''}</option>)}
+                  </select>
+                ) : (
+                  <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <input value={nuevoCliente.nombre} onChange={e => setNuevoCliente({ ...nuevoCliente, nombre: e.target.value })} placeholder="Nombre del comprador *" style={inputStyle} />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      <input value={nuevoCliente.telefono} onChange={e => setNuevoCliente({ ...nuevoCliente, telefono: e.target.value })} placeholder="Teléfono" type="tel" style={inputStyle} />
+                      <input value={nuevoCliente.dni} onChange={e => setNuevoCliente({ ...nuevoCliente, dni: e.target.value })} placeholder="DNI / CUIT" style={inputStyle} />
+                    </div>
+                    <input value={nuevoCliente.email} onChange={e => setNuevoCliente({ ...nuevoCliente, email: e.target.value })} placeholder="Email" type="email" style={inputStyle} />
+                    <input value={nuevoCliente.direccion} onChange={e => setNuevoCliente({ ...nuevoCliente, direccion: e.target.value })} placeholder="Dirección" style={inputStyle} />
+                    <div style={{ fontSize: 11, color: 'var(--rv-text-dim)' }}>Se guarda en Clientes al confirmar la venta.</div>
+                  </div>
+                )}
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={labelStyle}>Cliente</label>
-                  <input value={form.cliente} onChange={e => setForm({ ...form, cliente: e.target.value })} placeholder="Nombre del comprador" style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Teléfono</label>
-                  <input
-                    value={form.telefono}
-                    onChange={e => setForm({ ...form, telefono: e.target.value })}
-                    placeholder="+54 9 11 1234-5678"
-                    type="tel"
-                    style={inputStyle}
-                  />
-                </div>
                 <div>
                   <label style={labelStyle}>Vendedor</label>
                   <select value={form.vendedor} onChange={e => setForm({ ...form, vendedor: e.target.value })} style={inputStyle}>

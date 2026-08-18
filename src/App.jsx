@@ -8,6 +8,8 @@ import Dashboard from './pages/Dashboard';
 import Stock from './pages/Stock';
 import Ventas from './pages/Ventas';
 import Cobros from './pages/Cobros';
+import Caja from './pages/Caja';
+import Clientes from './pages/Clientes';
 import Proveedores from './pages/Proveedores';
 import PagosProveedores from './pages/PagosProveedores';
 import Configuracion from './pages/Configuracion';
@@ -83,7 +85,9 @@ function AppRoutes() {
       <Route path="/stock" element={<PrivateRoute modulo="stock"><Layout><Stock /></Layout></PrivateRoute>} />
       <Route path="/accesorios" element={<PrivateRoute modulo="accesorios"><Layout><Accesorios /></Layout></PrivateRoute>} />
       <Route path="/ventas" element={<PrivateRoute modulo="ventas"><Layout><Ventas /></Layout></PrivateRoute>} />
+      <Route path="/clientes" element={<PrivateRoute modulo="clientes"><Layout><Clientes /></Layout></PrivateRoute>} />
       <Route path="/cobros" element={<PrivateRoute modulo="cobros"><Layout><Cobros /></Layout></PrivateRoute>} />
+      <Route path="/caja" element={<PrivateRoute modulo="caja"><Layout><Caja /></Layout></PrivateRoute>} />
       <Route path="/reparaciones" element={<PrivateRoute modulo="reparaciones"><Layout><Reparaciones /></Layout></PrivateRoute>} />
       <Route path="/proveedores" element={<PrivateRoute modulo="proveedores"><Layout><Proveedores /></Layout></PrivateRoute>} />
       <Route path="/pagos" element={<PrivateRoute modulo="pagos"><Layout><PagosProveedores /></Layout></PrivateRoute>} />

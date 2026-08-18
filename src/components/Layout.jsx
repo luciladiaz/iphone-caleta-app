@@ -28,9 +28,19 @@ const NAV = [
       <rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/>
     </svg>
   )},
+  { to: '/clientes', label: 'Clientes', modulo: 'clientes', siempre: true, icon: (
+    <svg viewBox="0 0 24 24" style={SZ} {...SA}>
+      <circle cx="12" cy="8" r="3.5"/><path d="M4.5 20c0-3.6 3.4-6.5 7.5-6.5s7.5 2.9 7.5 6.5"/>
+    </svg>
+  )},
   { to: '/cobros', label: 'Cobros', modulo: 'cobros', siempre: true, icon: (
     <svg viewBox="0 0 24 24" style={SZ} {...SA}>
       <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><path d="M6 14.5h2M11 14.5h3"/>
+    </svg>
+  )},
+  { to: '/caja', label: 'Caja', modulo: 'caja', siempre: true, icon: (
+    <svg viewBox="0 0 24 24" style={SZ} {...SA}>
+      <circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5c0-1.1 1.3-2 3-2s3 .9 3 2-1.3 1.5-3 1.5-3 .4-3 1.5 1.3 2 3 2 3-.9 3-2"/>
     </svg>
   )},
   { to: '/reparaciones', label: 'Reparaciones', modulo: 'reparaciones', siempre: true, icon: (

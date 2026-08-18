@@ -3,6 +3,7 @@ import { collection, getDocs, query, orderBy, doc, updateDoc, getDoc } from 'fir
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconWallet, IconBell, IconCheck, IconCheckCircle, IconWarning, IconPhone, IconArrowSwap } from '../components/Icons';
+import { registrarMovimientoCuota, eliminarMovimientoCuota } from '../lib/caja';
 
 function diasDesde(fecha) {
   const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -75,8 +76,13 @@ export default function Cobros() {
     const venta = ventas.find(v => v.id === ventaId);
     const cobros = [...(venta.cobros || [])];
     const cuotasPagadas = [...(cobros[cobroIdx].cuotasPagadas || [])];
-    if (pagada) { const i = cuotasPagadas.indexOf(cuotaIdx); if (i > -1) cuotasPagadas.splice(i, 1); }
-    else cuotasPagadas.push(cuotaIdx);
+    if (pagada) {
+      const i = cuotasPagadas.indexOf(cuotaIdx); if (i > -1) cuotasPagadas.splice(i, 1);
+      await eliminarMovimientoCuota(negocioId, ventaId, cobroIdx, cuotaIdx);
+    } else {
+      cuotasPagadas.push(cuotaIdx);
+      await registrarMovimientoCuota(negocioId, ventaId, venta, cobroIdx, cuotaIdx, cobros[cobroIdx]);
+    }
     cobros[cobroIdx] = { ...cobros[cobroIdx], cuotasPagadas };
     await updateDoc(doc(db, ...base, 'ventas', ventaId), { cobros });
     setVentas(vs => vs.map(v => v.id === ventaId ? { ...v, cobros } : v));

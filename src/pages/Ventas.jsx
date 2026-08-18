@@ -188,6 +188,7 @@ export default function Ventas() {
         const ventaRef = await addDoc(collection(db, ...base, 'ventas'), ventaData);
         await registrarMovimientosVenta(negocioId, ventaRef.id, ventaData);
         if (form.equipoId) await updateDoc(doc(db, ...base, 'stock', form.equipoId), { estado: 'vendido' });
+        const clienteQueEntrega = clientes.find(c => c.id === form.clienteId);
         for (const parte of form.partesDePago) {
           await addDoc(collection(db, ...base, 'stock'), {
             ...parte,
@@ -196,6 +197,14 @@ export default function Ventas() {
             fechaIngreso: serverTimestamp(),
             costoUsd: parte.costoUsd || '',
             pvUsd: parte.pvUsd || '',
+            origen: {
+              tipo: 'parte_de_pago',
+              clienteId: form.clienteId || null,
+              clienteNombre: form.cliente || clienteQueEntrega?.nombre || '',
+              clienteNumero: clienteQueEntrega?.numero || null,
+              ventaOrigenId: ventaRef.id,
+              ventaOrigenModelo: `${ventaData.modelo}${ventaData.gb ? ' ' + ventaData.gb : ''}`.trim(),
+            },
           });
         }
       }

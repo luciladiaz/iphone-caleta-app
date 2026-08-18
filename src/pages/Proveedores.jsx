@@ -101,7 +101,14 @@ export default function Proveedores() {
     const items = stock
       .filter(s => s.proveedor === p.nombre && Number(s.costoUsd) > 0)
       .map(item => ({ ...item, pagado: estaPagadoLegacy(item, ventas.find(v => v.equipoId === item.id)) }));
-    const totalDebido = items.reduce((s, i) => s + (Number(i.costoUsd) || 0), 0);
+    // La consignación recién genera deuda con el proveedor cuando el equipo se
+    // vende (antes de eso el equipo ni es tuyo, solo está en tu local). La compra
+    // directa sigue generando deuda apenas se carga al stock, como siempre.
+    const totalDebido = items.reduce((s, i) => {
+      if (i.tipo === 'consignacion' && i.estado !== 'vendido') return s;
+      return s + (Number(i.costoUsd) || 0);
+    }, 0);
+    const consignacionSinVender = items.filter(i => i.tipo === 'consignacion' && i.estado !== 'vendido').length;
     const pagadoLegacy = items.reduce((s, i) => s + (i.pagado ? Number(i.costoUsd) || 0 : 0), 0);
     const pagosDelProveedor = pagos.filter(pg => pg.proveedor === p.nombre);
     const pagadoCC = pagosDelProveedor.reduce((s, pg) => s + (Number(pg.montoUsd) || 0), 0);
@@ -116,6 +123,7 @@ export default function Proveedores() {
       disponibles: items.filter(i => i.estado === 'disponible').length,
       vendidos: items.filter(i => i.estado === 'vendido').length,
       consignacion: items.filter(i => i.tipo === 'consignacion').length,
+      consignacionSinVender,
     };
   }).sort((a, b) => b.pendiente - a.pendiente);
 
@@ -132,7 +140,7 @@ export default function Proveedores() {
     <div>
       <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}><IconTruck size={22} style={{ color: 'var(--rv-accent)' }} />Proveedores</h1>
       <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-        Cargá los proveedores desde <IconGear size={12} />Configuración. El costo que cargás al agregar un equipo al Stock se atribuye acá solo, como cuenta corriente.
+        Cargá los proveedores desde <IconGear size={12} />Configuración. El costo que cargás al agregar un equipo al Stock se atribuye acá solo, como cuenta corriente. Los equipos de "Compra directa" generan deuda apenas se cargan; los de "Consignación" recién generan deuda cuando se venden.
       </p>
       {totalPendienteGeneral > 0 && (
         <div style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', borderRadius: 10, padding: '10px 16px', marginBottom: 24, display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
@@ -150,6 +158,7 @@ export default function Proveedores() {
                 <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 4 }}>
                   {p.items.length} equipo{p.items.length === 1 ? '' : 's'} · {p.disponibles} disponible{p.disponibles === 1 ? '' : 's'} · {p.vendidos} vendido{p.vendidos === 1 ? '' : 's'}
                   {p.consignacion > 0 && ` · ${p.consignacion} en consignación`}
+                  {p.consignacionSinVender > 0 && ` (${p.consignacionSinVender} sin vender, todavía no genera deuda)`}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -191,9 +200,9 @@ export default function Proveedores() {
                         <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '9px 14px', flexWrap: 'wrap', gap: 8 }}>
                           <div style={{ fontSize: 13 }}>
                             <span style={{ fontWeight: 600 }}>{item.modelo}{item.gb ? ` ${formatCapacidad(item.gb)}` : ''} {item.color}</span>
-                            <span style={{ color: 'var(--rv-text-dim)', marginLeft: 8 }}>{item.estado === 'vendido' ? 'Vendido' : item.estado === 'asignado' ? 'Asignado' : 'Disponible'}{item.tipo === 'consignacion' ? ' · Consignación' : ''}</span>
+                            <span style={{ color: 'var(--rv-text-dim)', marginLeft: 8 }}>{item.estado === 'vendido' ? 'Vendido' : item.estado === 'asignado' ? 'Asignado' : 'Disponible'}{item.tipo === 'consignacion' ? ' · Consignación' : ''}{item.tipo === 'consignacion' && item.estado !== 'vendido' ? ' (no genera deuda todavía)' : ''}</span>
                           </div>
-                          <span style={{ fontWeight: 700, fontSize: 13 }}>USD {item.costoUsd}</span>
+                          <span style={{ fontWeight: 700, fontSize: 13, color: (item.tipo === 'consignacion' && item.estado !== 'vendido') ? 'var(--rv-text-dim)' : 'var(--rv-text)' }}>USD {item.costoUsd}</span>
                         </div>
                       ))}
                     </div>

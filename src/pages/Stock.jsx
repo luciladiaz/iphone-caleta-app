@@ -111,15 +111,37 @@ export default function Stock() {
       if (editandoId) {
         const { fechaManual, ...datos } = form;
         if (fechaManual) datos.fechaIngreso = new Date(fechaManual);
+        // Un equipo recibido como parte de pago ya trae su origen (cliente + venta)
+        // desde Ventas — no se pisa acá al editar otros campos del equipo.
+        if (form.tipo !== 'parte_de_pago') {
+          datos.origen = form.proveedor ? { tipo: form.tipo, proveedorNombre: form.proveedor } : null;
+        }
         await updateDoc(doc(db, ...base, 'stock', editandoId), datos);
       } else {
         const fechaIngreso = form.fechaManual ? new Date(form.fechaManual) : serverTimestamp();
-        await addDoc(collection(db, ...base, 'stock'), { ...form, fechaIngreso });
+        const origen = form.proveedor ? { tipo: form.tipo, proveedorNombre: form.proveedor } : null;
+        await addDoc(collection(db, ...base, 'stock'), { ...form, fechaIngreso, origen });
       }
       cerrarModal();
       cargar();
     } catch (err) { console.error(err); }
     finally { setGuardando(false); }
+  };
+
+  // Arma la línea de "de dónde salió" un equipo, con fallback a los campos
+  // sueltos legado (proveedor/tipo) para equipos cargados antes de que
+  // existiera el objeto `origen` unificado.
+  const origenDe = (eq) => {
+    if (eq.origen?.tipo === 'parte_de_pago') {
+      const cliente = eq.origen.clienteNombre ? `${eq.origen.clienteNombre}${eq.origen.clienteNumero ? ` (Cliente #${eq.origen.clienteNumero})` : ''}` : 'un cliente';
+      return `Entregado por ${cliente}${eq.origen.ventaOrigenModelo ? ` — parte de pago de ${eq.origen.ventaOrigenModelo}` : ' — parte de pago'}`;
+    }
+    if (eq.origen?.proveedorNombre) {
+      return `${eq.origen.tipo === 'consignacion' ? 'Consignación' : 'Proveedor'}: ${eq.origen.proveedorNombre}`;
+    }
+    if (eq.proveedor) return `${eq.tipo === 'consignacion' ? 'Consignación' : 'Proveedor'}: ${eq.proveedor}`;
+    if (eq.tipo === 'parte_de_pago') return 'Recibido como parte de pago (origen no registrado)';
+    return null;
   };
 
   const generarFichaWA = (eq) => {
@@ -156,7 +178,7 @@ export default function Stock() {
       return e.puntoVenta === filtroPuntoVenta;
     })
     .filter(e =>
-      `${e.categoria} ${e.modelo} ${e.color} ${e.gb} ${e.imei} ${e.puntoVenta} ${e.asignadoA}`.toLowerCase().includes(filtro.toLowerCase())
+      `${e.categoria} ${e.modelo} ${e.color} ${e.gb} ${e.imei} ${e.puntoVenta} ${e.asignadoA} ${e.proveedor || ''} ${e.origen?.proveedorNombre || ''} ${e.origen?.clienteNombre || ''}`.toLowerCase().includes(filtro.toLowerCase())
     );
   const categoriasConStock = categoriasProducto.filter(cat => equipos.some(e => e.categoria === cat && e.estado !== 'vendido'));
   const puntosVentaConStock = puntosVenta.map(p => p.nombre).filter(nombre => equipos.some(e => e.puntoVenta === nombre && e.estado !== 'vendido'));
@@ -210,7 +232,7 @@ export default function Stock() {
         </div>
       )}
 
-      <input placeholder="Buscar por modelo, color, IMEI/serie, vendedor..." value={filtro} onChange={e => setFiltro(e.target.value)} style={{ ...inputStyle, marginBottom: 20, maxWidth: 420 }} />
+      <input placeholder="Buscar por modelo, color, IMEI/serie, vendedor, proveedor o cliente..." value={filtro} onChange={e => setFiltro(e.target.value)} style={{ ...inputStyle, marginBottom: 20, maxWidth: 420 }} />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
         {equiposFiltrados.map(eq => (
@@ -227,12 +249,16 @@ export default function Stock() {
               {eq.color && <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>{eq.color}</span>}
               {eq.bateria && <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>Batería {eq.bateria}%</span>}
               {eq.imei && <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>{ETIQUETA_ID_POR_CATEGORIA[eq.categoria] || 'IMEI'} {eq.imei}</span>}
-              <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>{eq.tipo === 'consignacion' ? 'Consignación' : 'Compra directa'}</span>
               {eq.puntoVenta && <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>{eq.puntoVenta}</span>}
               {eq.asignadoA && <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>{eq.asignadoA}</span>}
               {esAdmin && eq.costoUsd && <span style={{ color: 'var(--rv-text-dim)', marginTop: 4 }}>Costo: USD {eq.costoUsd}</span>}
               {eq.pvUsd && <span style={{ color: 'var(--rv-accent)', fontWeight: 600 }}>Venta: USD {eq.pvUsd}</span>}
               {eq.fechaIngreso && <span style={{ color: 'var(--rv-text-dim)' }}>{eq.fechaIngreso.toDate ? eq.fechaIngreso.toDate().toLocaleDateString('es-AR') : new Date(eq.fechaIngreso).toLocaleDateString('es-AR')}</span>}
+              {origenDe(eq) && (
+                <div style={{ marginTop: 6, paddingTop: 8, borderTop: '1px solid var(--rv-border)', color: 'var(--rv-text-dim)', fontSize: 11, lineHeight: 1.4 }}>
+                  {origenDe(eq)}
+                </div>
+              )}
             </div>
             {eq.estado === 'disponible' && (
               <button onClick={() => copiarFicha(eq)} style={{ width: '100%', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: copiado === eq.id ? 'var(--rv-text)' : 'var(--rv-accent)', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>

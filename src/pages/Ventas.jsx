@@ -7,6 +7,7 @@ import ComprobanteVenta from '../components/ComprobanteVenta';
 import { IconUser, IconPhone, IconX, IconEdit, IconTrash, IconFile, IconWallet, IconBox, IconArrowSwap, IconCheckCircle } from '../components/Icons';
 import { registrarMovimientosVenta, eliminarMovimientosVenta } from '../lib/caja';
 import SelectorCliente from '../components/SelectorCliente';
+import SelectorEquipoStock from '../components/SelectorEquipoStock';
 import { CATEGORIAS_STOCK } from '../lib/categoriasProducto';
 
 const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
@@ -145,6 +146,7 @@ export default function Ventas() {
 
   const guardar = async (e) => {
     e.preventDefault();
+    if (!editando && !form.equipoId) { alert('Elegí un equipo antes de guardar la venta.'); return; }
     setGuardando(true);
     const base = ['negocios', negocioId];
     try {
@@ -295,13 +297,7 @@ export default function Ventas() {
             <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Equipo */}
               {!editando && (
-                <div>
-                  <label style={labelStyle}>Equipo</label>
-                  <select value={form.equipoId} onChange={e => setForm({ ...form, equipoId: e.target.value })} required style={inputStyle}>
-                    <option value="">Elegir equipo...</option>
-                    {stock.map(s => <option key={s.id} value={s.id}>{s.categoria ? `[${s.categoria}] ` : ''}{s.modelo} {s.gb ? `· ${formatCapacidad(s.gb)} ` : ''}{s.color}{s.bateria ? ` · Bat ${s.bateria}%` : ''}</option>)}
-                  </select>
-                </div>
+                <SelectorEquipoStock stock={stock} equipoId={form.equipoId} onSeleccionar={id => setForm({ ...form, equipoId: id })} />
               )}
               {equipoSeleccionado && (
                 <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--rv-accent)', display: 'flex', alignItems: 'center', gap: 7 }}>

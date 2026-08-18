@@ -104,10 +104,11 @@ export default function Proveedores() {
     // La consignación recién genera deuda con el proveedor cuando el equipo se
     // vende (antes de eso el equipo ni es tuyo, solo está en tu local). La compra
     // directa sigue generando deuda apenas se carga al stock, como siempre.
-    const totalDebido = items.reduce((s, i) => {
-      if (i.tipo === 'consignacion' && i.estado !== 'vendido') return s;
-      return s + (Number(i.costoUsd) || 0);
-    }, 0);
+    // Se separan en dos fichas para poder distinguir de un vistazo qué se le debe
+    // por compras directas y qué por consignaciones ya vendidas.
+    const debidoCompra = items.reduce((s, i) => i.tipo === 'consignacion' ? s : s + (Number(i.costoUsd) || 0), 0);
+    const debidoConsignacion = items.reduce((s, i) => (i.tipo === 'consignacion' && i.estado === 'vendido') ? s + (Number(i.costoUsd) || 0) : s, 0);
+    const totalDebido = debidoCompra + debidoConsignacion;
     const consignacionSinVender = items.filter(i => i.tipo === 'consignacion' && i.estado !== 'vendido').length;
     const pagadoLegacy = items.reduce((s, i) => s + (i.pagado ? Number(i.costoUsd) || 0 : 0), 0);
     const pagosDelProveedor = pagos.filter(pg => pg.proveedor === p.nombre);
@@ -117,6 +118,8 @@ export default function Proveedores() {
       ...p,
       items,
       pagosDelProveedor,
+      debidoCompra,
+      debidoConsignacion,
       totalDebido,
       totalPagado,
       pendiente: totalDebido - totalPagado,
@@ -175,8 +178,13 @@ export default function Proveedores() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10, marginTop: 16 }}>
               <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '8px 12px' }}>
-                <div style={{ color: 'var(--rv-text-dim)', fontSize: 10, marginBottom: 2 }}>TOTAL DEBIDO</div>
-                <div style={{ fontWeight: 700 }}>USD {p.totalDebido.toFixed(0)}</div>
+                <div style={{ color: 'var(--rv-text-dim)', fontSize: 10, marginBottom: 2 }}>DEBIDO POR COMPRAS</div>
+                <div style={{ fontWeight: 700 }}>USD {p.debidoCompra.toFixed(0)}</div>
+              </div>
+              <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '8px 12px' }}>
+                <div style={{ color: 'var(--rv-text-dim)', fontSize: 10, marginBottom: 2 }}>DEBIDO POR CONSIGNACIÓN</div>
+                <div style={{ fontWeight: 700 }}>USD {p.debidoConsignacion.toFixed(0)}</div>
+                {p.consignacionSinVender > 0 && <div style={{ color: 'var(--rv-text-dim)', fontSize: 9, marginTop: 2 }}>+{p.consignacionSinVender} sin vender todavía</div>}
               </div>
               <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '8px 12px' }}>
                 <div style={{ color: 'var(--rv-text-dim)', fontSize: 10, marginBottom: 2 }}>PAGADO</div>

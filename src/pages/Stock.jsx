@@ -184,7 +184,7 @@ export default function Stock() {
         <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
           <button onClick={() => setFiltroCategoria('todas')} style={{ background: filtroCategoria === 'todas' ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: filtroCategoria === 'todas' ? '#fff' : 'var(--rv-text-dim)', border: '1px solid var(--rv-border)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Todas las categorías</button>
           {categoriasConStock.map(cat => (
-            <button key={cat} onClick={() => setFiltroCategoria(cat)} style={{ background: filtroCategoria === cat ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: filtroCategoria === cat ? '#fff' : 'var(--rv-text-dim)', border: '1px solid var(--rv-border)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{EMOJI_POR_CATEGORIA[cat]} {cat}</button>
+            <button key={cat} onClick={() => setFiltroCategoria(cat)} style={{ background: filtroCategoria === cat ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: filtroCategoria === cat ? '#fff' : 'var(--rv-text-dim)', border: '1px solid var(--rv-border)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{cat}</button>
           ))}
         </div>
       )}
@@ -196,7 +196,7 @@ export default function Stock() {
           <div key={eq.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 20, borderTop: `3px solid ${estadoColor[eq.estado] || 'var(--rv-accent)'}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
               <div>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--rv-text-dim)' }}>{EMOJI_POR_CATEGORIA[eq.categoria] || '📱'} {eq.categoria || 'iPhone'}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--rv-text-dim)', letterSpacing: 0.4, textTransform: 'uppercase' }}>{eq.categoria || 'iPhone'}</span>
                 <div style={{ fontWeight: 700, fontSize: 15 }}>{eq.modelo}</div>
               </div>
               <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 99, textTransform: 'uppercase', border: '1px solid var(--rv-border)', color: estadoColor[eq.estado] }}>{eq.estado}</span>
@@ -243,7 +243,7 @@ export default function Stock() {
             </div>
             <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div><label style={labelStyle}>Categoría</label><select value={form.categoria} onChange={e => setForm({...form, categoria: e.target.value, modelo: ''})} style={inputStyle}>{CATEGORIAS_STOCK.map(c => <option key={c} value={c}>{EMOJI_POR_CATEGORIA[c]} {c}</option>)}</select></div>
+                <div><label style={labelStyle}>Categoría</label><select value={form.categoria} onChange={e => setForm({...form, categoria: e.target.value, modelo: ''})} style={inputStyle}>{CATEGORIAS_STOCK.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                 <div><label style={labelStyle}>Modelo</label><select value={form.modelo} onChange={e => setForm({...form, modelo: e.target.value})} required style={inputStyle}><option value="">Elegir...</option>{(modelosPorCategoria[form.categoria] || []).map(m => <option key={m}>{m}</option>)}</select></div>
                 <div><label style={labelStyle}>Color</label><select value={form.color} onChange={e => setForm({...form, color: e.target.value})} style={inputStyle}><option value="">Elegir...</option>{COLORES.map(c => <option key={c}>{c}</option>)}</select></div>
                 <div>

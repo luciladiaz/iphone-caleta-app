@@ -7,7 +7,7 @@ import ComprobanteVenta from '../components/ComprobanteVenta';
 import { IconUser, IconPhone, IconX, IconEdit, IconTrash, IconFile, IconWallet, IconBox, IconArrowSwap, IconCheckCircle } from '../components/Icons';
 import { registrarMovimientosVenta, eliminarMovimientosVenta } from '../lib/caja';
 import SelectorCliente from '../components/SelectorCliente';
-import { CATEGORIAS_STOCK, EMOJI_POR_CATEGORIA } from '../lib/categoriasProducto';
+import { CATEGORIAS_STOCK } from '../lib/categoriasProducto';
 
 const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
 
@@ -236,7 +236,7 @@ export default function Ventas() {
         {ventas.map(v => (
           <div key={v.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>{v.categoria ? `${EMOJI_POR_CATEGORIA[v.categoria] || ''} ` : ''}{v.modelo}{v.gb ? ` ${formatCapacidad(v.gb)}` : ''} {v.color}</div>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>{v.modelo}{v.gb ? ` ${formatCapacidad(v.gb)}` : ''} {v.color}</div>
               <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                 <IconUser size={11} />{v.cliente || 'Sin cliente'}
                 {v.telefono ? (
@@ -473,7 +473,7 @@ export default function Ventas() {
                   {form.partesDePago.map((p, i) => (
                     <div key={i} style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px', marginBottom: 8, fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <span style={{ color: 'var(--rv-accent)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}><IconArrowSwap size={13} />{EMOJI_POR_CATEGORIA[p.categoria] || '📱'} {p.modelo} {p.gb ? formatCapacidad(p.gb) : ''} {p.color}</span>
+                        <span style={{ color: 'var(--rv-accent)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}><IconArrowSwap size={13} />{p.modelo} {p.gb ? formatCapacidad(p.gb) : ''} {p.color}</span>
                         <div style={{ color: 'var(--rv-text-dim)', fontSize: 11, marginTop: 3 }}>
                           Toma: USD {p.costoUsd} · Venta: USD {p.pvUsd}
                         </div>
@@ -483,7 +483,7 @@ export default function Ventas() {
                   ))}
                   <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: 14 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-                      <div><label style={labelStyle}>Categoría</label><select value={nuevaParte.categoria} onChange={e => setNuevaParte({ ...nuevaParte, categoria: e.target.value })} style={inputStyle}>{CATEGORIAS_STOCK.map(c => <option key={c} value={c}>{EMOJI_POR_CATEGORIA[c]} {c}</option>)}</select></div>
+                      <div><label style={labelStyle}>Categoría</label><select value={nuevaParte.categoria} onChange={e => setNuevaParte({ ...nuevaParte, categoria: e.target.value })} style={inputStyle}>{CATEGORIAS_STOCK.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                       <div><label style={labelStyle}>Modelo</label><input value={nuevaParte.modelo} onChange={e => setNuevaParte({ ...nuevaParte, modelo: e.target.value })} placeholder="iPhone 13" style={inputStyle} /></div>
                       <div><label style={labelStyle}>Capacidad / specs</label><input value={nuevaParte.gb} onChange={e => setNuevaParte({ ...nuevaParte, gb: e.target.value })} placeholder="128" style={inputStyle} /></div>
                       <div><label style={labelStyle}>Color</label><input value={nuevaParte.color} onChange={e => setNuevaParte({ ...nuevaParte, color: e.target.value })} placeholder="Negro" style={inputStyle} /></div>

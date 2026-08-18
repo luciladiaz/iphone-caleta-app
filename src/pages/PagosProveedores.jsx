@@ -65,6 +65,9 @@ export default function PagosProveedores() {
   return (
     <div>
       <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}><IconWallet size={22} style={{ color: 'var(--rv-accent)' }} />Pagos a Proveedores</h1>
+      <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 20 }}>
+        Acá se liquida costo + ganancia de equipos ya <strong>vendidos</strong>. Para ver la deuda total con cada proveedor (vendido o todavía en stock), andá a <strong>Proveedores</strong>.
+      </p>
       <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 28 }}>
         <div style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '14px 20px' }}>
           <div style={{ color: 'var(--rv-text-dim)', fontSize: 12 }}>Total pendiente</div>

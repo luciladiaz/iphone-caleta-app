@@ -3,13 +3,19 @@ import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy, serverTime
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconWallet, IconCoin, IconPlus, IconTrash, IconX, IconTrendUp, IconTrendDown, IconCalendar, IconRefresh, IconLock, IconCheckCircle, IconWarning, IconChart } from '../components/Icons';
-import { reconciliarCaja, calcularVentasDelDia, obtenerCierre, listarCierres, cerrarCajaDelDia, fechaKey, fechaDeMovimiento } from '../lib/caja';
+import { reconciliarCaja, calcularVentasDelDia, obtenerCierre, listarCierres, cerrarCajaDelDia, fechaKey, fechaDeMovimiento, CATEGORIAS_INGRESO, CATEGORIAS_EGRESO } from '../lib/caja';
 import GraficoIngresosEgresos from '../components/GraficoIngresosEgresos';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 
-const ORIGEN_LABEL = { venta: 'Venta', cuota: 'Cuota', pago_proveedor: 'Pago a proveedor', manual: 'Manual' };
+const ORIGEN_LABEL = { venta: 'Venta', cuota: 'Cuota', pago_proveedor: 'Pago a proveedor', reparacion: 'Reparación', reparacion_costo: 'Repuesto reparación', manual: 'Otro' };
+
+// Los movimientos automáticos ya vienen con `categoria` asignada sola; para los pocos
+// movimientos manuales viejos que no la tenían todavía, se cae al label de su origen.
+function categoriaDe(m) {
+  return m.categoria || ORIGEN_LABEL[m.origen] || 'Otro';
+}
 
 const FILTROS_MONEDA = [
   { key: 'todas', label: 'Todas' },
@@ -51,6 +57,7 @@ export default function Caja() {
   const [loading, setLoading] = useState(true);
   const [filtroMoneda, setFiltroMoneda] = useState('todas');
   const [filtroTipo, setFiltroTipo] = useState('todos');
+  const [filtroCategoria, setFiltroCategoria] = useState('todas');
   const [periodoReporte, setPeriodoReporte] = useState(14);
   const [modal, setModal] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -59,7 +66,7 @@ export default function Caja() {
   const [cargandoReconciliacion, setCargandoReconciliacion] = useState(false);
   const [reconciliacionCierre, setReconciliacionCierre] = useState(null);
   const [cerrando, setCerrando] = useState(false);
-  const [form, setForm] = useState({ tipo: 'ingreso', moneda: 'ARS', monto: '', concepto: '', fecha: new Date().toISOString().split('T')[0] });
+  const [form, setForm] = useState({ tipo: 'ingreso', categoria: CATEGORIAS_INGRESO[0], moneda: 'ARS', monto: '', concepto: '', fecha: new Date().toISOString().split('T')[0] });
 
   const cargar = async () => {
     if (!negocioId) return;
@@ -94,8 +101,13 @@ export default function Caja() {
   };
 
   const abrirModal = () => {
-    setForm({ tipo: 'ingreso', moneda: 'ARS', monto: '', concepto: '', fecha: new Date().toISOString().split('T')[0] });
+    setForm({ tipo: 'ingreso', categoria: CATEGORIAS_INGRESO[0], moneda: 'ARS', monto: '', concepto: '', fecha: new Date().toISOString().split('T')[0] });
     setModal(true);
+  };
+
+  const cambiarTipoManual = (tipo) => {
+    const categorias = tipo === 'ingreso' ? CATEGORIAS_INGRESO : CATEGORIAS_EGRESO;
+    setForm(f => ({ ...f, tipo, categoria: categorias[0] }));
   };
 
   const guardarManual = async (e) => {
@@ -106,9 +118,10 @@ export default function Caja() {
       await addDoc(collection(db, ...base, 'caja'), {
         fecha: form.fecha ? new Date(form.fecha) : serverTimestamp(),
         tipo: form.tipo,
+        categoria: form.categoria,
         moneda: form.moneda,
         monto: Number(form.monto),
-        concepto: form.concepto || (form.tipo === 'ingreso' ? 'Ingreso manual' : 'Egreso manual'),
+        concepto: form.concepto || form.categoria,
         origen: 'manual',
         ventaId: null, cobroIdx: null, cuotaIdx: null,
         automatico: false,
@@ -182,9 +195,27 @@ export default function Caja() {
     } finally { setCerrando(false); }
   };
 
-  const movimientosFiltrados = movimientos.filter(m => {
+  const movimientosPorMonedaYTipo = movimientos.filter(m => {
     if (filtroMoneda !== 'todas' && m.moneda !== filtroMoneda) return false;
     if (filtroTipo !== 'todos' && m.tipo !== filtroTipo) return false;
+    return true;
+  });
+
+  // Un total por categoría nunca puede mezclar ARS y USD, así que se arma separado
+  // por moneda y se muestra uno o los dos paneles según el filtro de moneda activo.
+  const totalesPorCategoria = { ARS: {}, USD: {} };
+  for (const m of movimientosPorMonedaYTipo) {
+    const mnd = m.moneda === 'USD' ? 'USD' : 'ARS';
+    const cat = categoriaDe(m);
+    totalesPorCategoria[mnd][cat] = (totalesPorCategoria[mnd][cat] || 0) + (Number(m.monto) || 0);
+  }
+  const desgloseArr = (mnd) => Object.entries(totalesPorCategoria[mnd]).map(([categoria, monto]) => ({ categoria, monto })).sort((a, b) => b.monto - a.monto);
+  const desgloseARS = desgloseArr('ARS');
+  const desgloseUSD = desgloseArr('USD');
+  const categoriasDisponibles = Array.from(new Set(movimientosPorMonedaYTipo.map(categoriaDe))).sort();
+
+  const movimientosFiltrados = movimientosPorMonedaYTipo.filter(m => {
+    if (filtroCategoria !== 'todas' && categoriaDe(m) !== filtroCategoria) return false;
     return true;
   });
 
@@ -317,10 +348,61 @@ export default function Caja() {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {FILTROS_TIPO.map(f => (
-            <button key={f.key} onClick={() => setFiltroTipo(f.key)} style={{ background: filtroTipo === f.key ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: filtroTipo === f.key ? '#fff' : 'var(--rv-text-mid)', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{f.label}</button>
+            <button key={f.key} onClick={() => { setFiltroTipo(f.key); setFiltroCategoria('todas'); }} style={{ background: filtroTipo === f.key ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: filtroTipo === f.key ? '#fff' : 'var(--rv-text-mid)', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{f.label}</button>
           ))}
         </div>
       </div>
+
+      {categoriasDisponibles.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+          <button onClick={() => setFiltroCategoria('todas')} style={{ background: filtroCategoria === 'todas' ? 'var(--rv-text)' : 'var(--rv-surface-alt)', color: filtroCategoria === 'todas' ? 'var(--rv-bg)' : 'var(--rv-text-mid)', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Todas las categorías</button>
+          {categoriasDisponibles.map(cat => (
+            <button key={cat} onClick={() => setFiltroCategoria(cat)} style={{ background: filtroCategoria === cat ? 'var(--rv-text)' : 'var(--rv-surface-alt)', color: filtroCategoria === cat ? 'var(--rv-bg)' : 'var(--rv-text-mid)', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{cat}</button>
+          ))}
+        </div>
+      )}
+
+      {/* Desglose por categoría */}
+      {(desgloseARS.length > 0 || desgloseUSD.length > 0) && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 28 }}>
+          {desgloseARS.length > 0 && (
+            <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 18 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Por categoría · Pesos (ARS)</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {desgloseARS.map(d => (
+                  <div key={d.categoria}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                      <span style={{ color: 'var(--rv-text-mid)' }}>{d.categoria}</span>
+                      <span style={{ fontWeight: 700 }}>${d.monto.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span>
+                    </div>
+                    <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 4, height: 6, overflow: 'hidden' }}>
+                      <div style={{ width: `${(d.monto / Math.max(1, desgloseARS[0].monto)) * 100}%`, height: '100%', background: filtroTipo === 'egreso' ? 'var(--rv-danger)' : 'var(--rv-accent)', borderRadius: 4 }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {desgloseUSD.length > 0 && (
+            <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 18 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Por categoría · Dólares (USD)</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {desgloseUSD.map(d => (
+                  <div key={d.categoria}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                      <span style={{ color: 'var(--rv-text-mid)' }}>{d.categoria}</span>
+                      <span style={{ fontWeight: 700 }}>USD {d.monto.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span>
+                    </div>
+                    <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 4, height: 6, overflow: 'hidden' }}>
+                      <div style={{ width: `${(d.monto / Math.max(1, desgloseUSD[0].monto)) * 100}%`, height: '100%', background: filtroTipo === 'egreso' ? 'var(--rv-danger)' : 'var(--rv-accent)', borderRadius: 4 }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Listado */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -339,7 +421,7 @@ export default function Caja() {
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{m.concepto}</div>
                   <div style={{ color: 'var(--rv-text-dim)', fontSize: 11, marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <IconCalendar size={10} />{fechaMov.toLocaleDateString('es-AR')} · {ORIGEN_LABEL[m.origen] || 'Movimiento'}
+                    <IconCalendar size={10} />{fechaMov.toLocaleDateString('es-AR')} · {categoriaDe(m)}
                   </div>
                 </div>
               </div>
@@ -375,7 +457,7 @@ export default function Caja() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div>
                   <label style={labelStyle}>Tipo</label>
-                  <select value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })} style={inputStyle}>
+                  <select value={form.tipo} onChange={e => cambiarTipoManual(e.target.value)} style={inputStyle}>
                     <option value="ingreso">Ingreso</option>
                     <option value="egreso">Egreso</option>
                   </select>
@@ -389,12 +471,18 @@ export default function Caja() {
                 </div>
               </div>
               <div>
+                <label style={labelStyle}>Categoría</label>
+                <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })} style={inputStyle}>
+                  {(form.tipo === 'ingreso' ? CATEGORIAS_INGRESO : CATEGORIAS_EGRESO).map(c => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
                 <label style={labelStyle}>Monto</label>
                 <input type="number" value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })} placeholder="0" required style={inputStyle} />
               </div>
               <div>
-                <label style={labelStyle}>Concepto</label>
-                <input value={form.concepto} onChange={e => setForm({ ...form, concepto: e.target.value })} placeholder={form.tipo === 'ingreso' ? 'Ej: Aporte de capital' : 'Ej: Retiro, alquiler, insumos'} style={inputStyle} />
+                <label style={labelStyle}>Concepto (opcional)</label>
+                <input value={form.concepto} onChange={e => setForm({ ...form, concepto: e.target.value })} placeholder="Detalle adicional" style={inputStyle} />
               </div>
               <div>
                 <label style={labelStyle}>Fecha</label>

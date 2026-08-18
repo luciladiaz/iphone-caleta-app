@@ -5,6 +5,20 @@ import { db } from '../firebase/config';
 // (una cuota se cobra a futuro, un iPhone de parte de pago no es dinero).
 const TIPOS_SIN_CAJA = ['Cuotas personales', 'iPhone como parte de pago'];
 
+// Categorías elegibles a mano en un movimiento manual (ingreso o egreso). Los
+// movimientos automáticos (venta, cuota, reparación, pago a proveedor) llevan su
+// categoría fija asignada solos, sin que el usuario tenga que elegir nada.
+export const CATEGORIAS_INGRESO = ['Venta', 'Cobro de cuota', 'Reparación', 'Aporte de capital', 'Otro ingreso'];
+export const CATEGORIAS_EGRESO = ['Pago a proveedor', 'Repuesto de reparación', 'Alquiler', 'Sueldos', 'Servicios', 'Impuestos', 'Retiro', 'Otro gasto'];
+
+const CATEGORIA_POR_ORIGEN = {
+  venta: 'Venta',
+  cuota: 'Cobro de cuota',
+  reparacion: 'Reparación',
+  pago_proveedor: 'Pago a proveedor',
+  reparacion_costo: 'Repuesto de reparación',
+};
+
 function labelVenta(venta) {
   return `${venta.modelo || ''} ${venta.gb || ''}GB`.trim();
 }
@@ -41,6 +55,7 @@ export async function registrarMovimientosVenta(negocioId, ventaId, venta) {
       monto,
       concepto: `${cobro.tipo} · ${labelVenta(venta)}${venta.cliente ? ' · ' + venta.cliente : ''}`,
       origen: 'venta',
+      categoria: CATEGORIA_POR_ORIGEN.venta,
       ventaId,
       cobroIdx: i,
       cuotaIdx: null,
@@ -68,6 +83,7 @@ export async function registrarMovimientoCuota(negocioId, ventaId, venta, cobroI
     monto,
     concepto: `Cuota ${cuotaIdx + 1}/${cobro.cuotas} · ${labelVenta(venta)}${venta.cliente ? ' · ' + venta.cliente : ''}`,
     origen: 'cuota',
+    categoria: CATEGORIA_POR_ORIGEN.cuota,
     ventaId,
     cobroIdx,
     cuotaIdx,
@@ -93,6 +109,7 @@ export async function registrarMovimientoPagoProveedor(negocioId, venta, monto, 
     monto: montoNum,
     concepto: `Pago a ${venta.proveedor || 'proveedor'} · ${labelVenta(venta)}${detalle ? ' · ' + detalle : ''}`,
     origen: 'pago_proveedor',
+    categoria: CATEGORIA_POR_ORIGEN.pago_proveedor,
     ventaId: venta.id,
     cobroIdx: null,
     cuotaIdx: null,
@@ -104,15 +121,66 @@ export async function eliminarMovimientoPagoProveedor(negocioId, ventaId) {
   await eliminarMovimientosVenta(negocioId, ventaId, 'pago_proveedor');
 }
 
+// El monto que el cliente ya pagó por una reparación entra a caja como ingreso en USD
+// (las reparaciones se presupuestan solo en dólares). Se reusa el campo `ventaId` como
+// id genérico del documento de origen para poder reutilizar eliminarMovimientosVenta.
+export async function registrarMovimientoReparacion(negocioId, reparacionId, reparacion) {
+  const base = ['negocios', negocioId];
+  const monto = Number(reparacion.montoPagado) || 0;
+  if (monto <= 0) return;
+  await addDoc(collection(db, ...base, 'caja'), {
+    fecha: serverTimestamp(),
+    tipo: 'ingreso',
+    moneda: 'USD',
+    monto,
+    concepto: `Reparación${reparacion.modelo ? ' · ' + reparacion.modelo : ''}${reparacion.cliente ? ' · ' + reparacion.cliente : ''}`,
+    origen: 'reparacion',
+    categoria: CATEGORIA_POR_ORIGEN.reparacion,
+    ventaId: reparacionId,
+    cobroIdx: null,
+    cuotaIdx: null,
+    automatico: true,
+  });
+}
+
+// Egreso por el costo del repuesto/insumo usado en la reparación (solo si se cargó
+// el campo, que es admin-only en el form). Origen distinto del ingreso para poder
+// borrar y regenerar cada uno de forma independiente.
+export async function registrarEgresoRepuestoReparacion(negocioId, reparacionId, reparacion) {
+  const base = ['negocios', negocioId];
+  const monto = Number(reparacion.costoRepuestoUsd) || 0;
+  if (monto <= 0) return;
+  await addDoc(collection(db, ...base, 'caja'), {
+    fecha: serverTimestamp(),
+    tipo: 'egreso',
+    moneda: 'USD',
+    monto,
+    concepto: `Repuesto reparación${reparacion.modelo ? ' · ' + reparacion.modelo : ''}${reparacion.cliente ? ' · ' + reparacion.cliente : ''}`,
+    origen: 'reparacion_costo',
+    categoria: CATEGORIA_POR_ORIGEN.reparacion_costo,
+    ventaId: reparacionId,
+    cobroIdx: null,
+    cuotaIdx: null,
+    automatico: true,
+  });
+}
+
+// Borra TODOS los movimientos de caja ligados a una reparación (el ingreso del cobro
+// y el egreso del repuesto), sin filtrar por origen — se usa antes de regenerarlos.
+export async function eliminarMovimientosReparacion(negocioId, reparacionId) {
+  await eliminarMovimientosVenta(negocioId, reparacionId);
+}
+
 // Reconstruye los movimientos de caja faltantes a partir de las ventas ya cargadas:
 // ventas registradas antes de tener Caja, cuotas ya marcadas como pagadas y pagos a
 // proveedores ya confirmados. No duplica: cada movimiento automático se identifica por
 // ventaId + origen + cobroIdx + cuotaIdx y solo se crea si todavía no existe.
 export async function reconciliarCaja(negocioId) {
   const base = ['negocios', negocioId];
-  const [cajaSnap, ventasSnap] = await Promise.all([
+  const [cajaSnap, ventasSnap, reparacionesSnap] = await Promise.all([
     getDocs(collection(db, ...base, 'caja')),
     getDocs(collection(db, ...base, 'ventas')),
+    getDocs(collection(db, ...base, 'reparaciones')),
   ]);
 
   const existentes = new Set(
@@ -152,6 +220,7 @@ export async function reconciliarCaja(negocioId) {
         monto,
         concepto: `${cobro.tipo} · ${labelVenta(venta)}${venta.cliente ? ' · ' + venta.cliente : ''}`,
         origen: 'venta',
+        categoria: CATEGORIA_POR_ORIGEN.venta,
         ventaId: venta.id,
         cobroIdx: i,
         cuotaIdx: null,
@@ -168,6 +237,24 @@ export async function reconciliarCaja(negocioId) {
         existentes.add(key);
         creados++;
       }
+    }
+  }
+
+  for (const repDoc of reparacionesSnap.docs) {
+    const reparacion = { id: repDoc.id, ...repDoc.data() };
+
+    const keyIngreso = `reparacion:${reparacion.id}::`;
+    if (!existentes.has(keyIngreso) && Number(reparacion.montoPagado) > 0) {
+      await registrarMovimientoReparacion(negocioId, reparacion.id, reparacion);
+      existentes.add(keyIngreso);
+      creados++;
+    }
+
+    const keyEgreso = `reparacion_costo:${reparacion.id}::`;
+    if (!existentes.has(keyEgreso) && Number(reparacion.costoRepuestoUsd) > 0) {
+      await registrarEgresoRepuestoReparacion(negocioId, reparacion.id, reparacion);
+      existentes.add(keyEgreso);
+      creados++;
     }
   }
 

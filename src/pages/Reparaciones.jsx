@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy, doc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
-import { IconWrench, IconEdit, IconTrash, IconX } from '../components/Icons';
+import { IconWrench, IconEdit, IconTrash, IconX, IconCheckCircle, IconFile } from '../components/Icons';
+import { registrarMovimientoReparacion, registrarEgresoRepuestoReparacion, eliminarMovimientosReparacion } from '../lib/caja';
+import ComprobanteReparacion from '../components/ComprobanteReparacion';
 
 const ESTADOS = ['ingresado', 'diagnosticado', 'presupuestado', 'aprobado', 'en_reparacion', 'esperando_repuesto', 'listo', 'entregado', 'no_reparable', 'cancelado'];
 const ESTADO_LABEL = {
@@ -27,7 +29,7 @@ const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 
 export default function Reparaciones() {
-  const { perfil, negocioId } = useAuth();
+  const { perfil, negocioId, negocio } = useAuth();
   const esAdmin = perfil?.rol === 'admin';
   const base = ['negocios', negocioId];
 
@@ -38,6 +40,7 @@ export default function Reparaciones() {
   const [guardando, setGuardando] = useState(false);
   const [filtro, setFiltro] = useState('');
   const [form, setForm] = useState(FORM_VACIO);
+  const [comprobanteDe, setComprobanteDe] = useState(null);
 
   const cargar = async () => {
     if (!negocioId) return;
@@ -76,6 +79,7 @@ export default function Reparaciones() {
   const eliminarReparacion = async (rep) => {
     if (!window.confirm('¿Eliminás esta reparación? Esta acción no se puede deshacer.')) return;
     await deleteDoc(doc(db, ...base, 'reparaciones', rep.id));
+    try { await eliminarMovimientosReparacion(negocioId, rep.id); } catch {}
     cargar();
   };
 
@@ -93,11 +97,18 @@ export default function Reparaciones() {
       };
       if (form.fechaEntregaManual) datos.fechaEntrega = new Date(form.fechaEntregaManual);
 
+      let idReparacion = editandoId;
       if (editandoId) {
         await updateDoc(doc(db, ...base, 'reparaciones', editandoId), datos);
       } else {
-        await addDoc(collection(db, ...base, 'reparaciones'), { ...datos, fechaIngreso: serverTimestamp() });
+        const repRef = await addDoc(collection(db, ...base, 'reparaciones'), { ...datos, fechaIngreso: serverTimestamp() });
+        idReparacion = repRef.id;
       }
+      // El monto cobrado y/o el costo del repuesto pudieron cambiar (o recién cargarse):
+      // se regeneran los movimientos de caja de esta reparación, tanto en alta como en edición.
+      await eliminarMovimientosReparacion(negocioId, idReparacion);
+      await registrarMovimientoReparacion(negocioId, idReparacion, datos);
+      await registrarEgresoRepuestoReparacion(negocioId, idReparacion, datos);
       cerrarModal();
       cargar();
     } catch (err) { console.error(err); }
@@ -153,6 +164,7 @@ export default function Reparaciones() {
               </div>
 
               <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setComprobanteDe(rep)} style={{ flex: 1, background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: rep.comprobante ? 'var(--rv-text)' : 'var(--rv-text-mid)', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}><IconFile size={13} />{rep.comprobante ? 'Ver comprobante' : 'Comprobante'}</button>
                 <button onClick={() => abrirEditar(rep)} style={{ flex: 1, background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-accent)', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}><IconEdit size={13} />Editar</button>
                 {esAdmin && <button onClick={() => eliminarReparacion(rep)} style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', color: 'var(--rv-danger)', borderRadius: 8, padding: '8px 12px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center' }}><IconTrash size={14} /></button>}
               </div>
@@ -189,10 +201,41 @@ export default function Reparaciones() {
                 <div><label style={labelStyle}>Garantía (días)</label><input type="number" min="0" value={form.garantiaDias} onChange={e => setForm({ ...form, garantiaDias: e.target.value })} placeholder="30" style={inputStyle} /></div>
                 {esAdmin && <div><label style={labelStyle}>Costo repuesto USD</label><input type="number" value={form.costoRepuestoUsd} onChange={e => setForm({ ...form, costoRepuestoUsd: e.target.value })} placeholder="60" style={inputStyle} /></div>}
                 <div><label style={labelStyle}>Precio al cliente USD</label><input type="number" value={form.precioUsd} onChange={e => setForm({ ...form, precioUsd: e.target.value })} placeholder="90" style={inputStyle} /></div>
-                <div><label style={labelStyle}>Monto ya cobrado USD</label><input type="number" value={form.montoPagado} onChange={e => setForm({ ...form, montoPagado: e.target.value })} placeholder="0" style={inputStyle} /></div>
+                <div>
+                  <label style={labelStyle}>Monto ya cobrado USD</label>
+                  <input type="number" value={form.montoPagado} onChange={e => setForm({ ...form, montoPagado: e.target.value })} placeholder="0" style={inputStyle} />
+                  <div style={{ fontSize: 11, color: 'var(--rv-text-dim)', marginTop: 3 }}>Se carga solo a Caja al guardar.</div>
+                </div>
                 <div><label style={labelStyle}>Fecha de entrega</label><input type="date" value={form.fechaEntregaManual} onChange={e => setForm({ ...form, fechaEntregaManual: e.target.value })} style={inputStyle} /></div>
                 <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>Notas</label><textarea value={form.notas} onChange={e => setForm({ ...form, notas: e.target.value })} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
               </div>
+
+              {Number(form.precioUsd) > 0 && (() => {
+                const precio = Number(form.precioUsd) || 0;
+                const pagado = Number(form.montoPagado) || 0;
+                const saldo = precio - pagado;
+                return (
+                  <div style={{ borderRadius: 10, border: '1px solid rgba(47,111,237,0.3)', background: 'var(--rv-accent-soft)', padding: 14 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--rv-text-dim)', marginBottom: 8, textTransform: 'uppercase' }}>Resumen de pago</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                        <span style={{ color: 'var(--rv-text-dim)' }}>Precio al cliente</span>
+                        <span style={{ fontWeight: 700 }}>USD {precio}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                        <span style={{ color: 'var(--rv-text-dim)' }}>Cobrado</span>
+                        <span style={{ fontWeight: 700 }}>USD {pagado}</span>
+                      </div>
+                      <div style={{ borderTop: '1px solid var(--rv-border)', paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                        <span style={{ fontWeight: 700 }}>Saldo restante</span>
+                        <span style={{ fontWeight: 800, color: saldo <= 0 ? 'var(--rv-text)' : 'var(--rv-text-mid)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          {saldo <= 0 ? <><IconCheckCircle size={14} style={{ color: 'var(--rv-accent)' }} />Saldado</> : `USD ${saldo}`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
                 <button type="button" onClick={cerrarModal} style={{ padding: '10px 20px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
@@ -201,6 +244,20 @@ export default function Reparaciones() {
             </form>
           </div>
         </div>
+      )}
+
+      {comprobanteDe && (
+        <ComprobanteReparacion
+          reparacion={comprobanteDe}
+          negocioId={negocioId}
+          negocioNombre={negocio?.nombre}
+          entregadoPor={perfil?.nombre}
+          onClose={() => setComprobanteDe(null)}
+          onGuardado={(comprobante) => {
+            setReparaciones(rs => rs.map(r => r.id === comprobanteDe.id ? { ...r, comprobante } : r));
+            setComprobanteDe(null);
+          }}
+        />
       )}
     </div>
   );

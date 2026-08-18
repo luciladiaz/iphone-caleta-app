@@ -37,10 +37,10 @@ export default function Stock() {
   const [editandoId, setEditandoId] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [filtro, setFiltro] = useState('');
-  const [filtroEstado, setFiltroEstado] = useState('activos');
   const [filtroCategoria, setFiltroCategoria] = useState('todas');
   const [showCalculadora, setShowCalculadora] = useState(false);
   const [modalCatalogo, setModalCatalogo] = useState(false);
+  const [catalogoCategorias, setCatalogoCategorias] = useState([]);
   const [copiado, setCopiado] = useState(false);
   const [modalLimite, setModalLimite] = useState(false);
   const FORM_VACIO = {
@@ -135,21 +135,24 @@ export default function Stock() {
     setTimeout(() => setCopiado(false), 2000);
   };
 
-  const urlCatalogo = `${window.location.origin}/catalogo/${negocioId}`;
+  const catalogoEsParcial = catalogoCategorias.length > 0 && catalogoCategorias.length < categoriasConStock.length;
+  const urlCatalogo = catalogoEsParcial
+    ? `${window.location.origin}/catalogo/${negocioId}?cat=${encodeURIComponent(catalogoCategorias.join(','))}`
+    : `${window.location.origin}/catalogo/${negocioId}`;
+  const toggleCatalogoCategoria = (cat) => {
+    setCatalogoCategorias(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
+  };
+  const abrirModalCatalogo = () => { setCatalogoCategorias([]); setModalCatalogo(true); };
   const stockDisponible = equipos.filter(e => e.estado === 'disponible');
-  const stockVendido = equipos.filter(e => e.estado === 'vendido');
+  const stockAsignado = equipos.filter(e => e.estado === 'asignado');
   const totalValorUSD = stockDisponible.reduce((acc, e) => acc + Number(e.pvUsd || 0), 0);
   const equiposFiltrados = equipos
-    .filter(e => {
-      if (filtroEstado === 'activos') return e.estado !== 'vendido';
-      if (filtroEstado === 'vendido') return e.estado === 'vendido';
-      return true;
-    })
+    .filter(e => e.estado !== 'vendido')
     .filter(e => filtroCategoria === 'todas' || e.categoria === filtroCategoria)
     .filter(e =>
       `${e.categoria} ${e.modelo} ${e.color} ${e.gb} ${e.imei} ${e.puntoVenta} ${e.asignadoA}`.toLowerCase().includes(filtro.toLowerCase())
     );
-  const categoriasConStock = categoriasProducto.filter(cat => equipos.some(e => e.categoria === cat));
+  const categoriasConStock = categoriasProducto.filter(cat => equipos.some(e => e.categoria === cat && e.estado !== 'vendido'));
   const maxStock = limitesPlan?.maxStock ?? Infinity;
   const limiteAlcanzado = maxStock !== Infinity && equipos.length >= maxStock;
 
@@ -166,21 +169,15 @@ export default function Stock() {
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Stock</h1>
           <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, margin: '4px 0 0' }}>
-            {stockDisponible.length} disponibles · {stockVendido.length} vendidos · {equipos.length} total
+            {stockDisponible.length} disponibles{stockAsignado.length > 0 ? ` · ${stockAsignado.length} asignados` : ''}
             {esAdmin && totalValorUSD > 0 && <span style={{ color: 'var(--rv-accent)', marginLeft: 8 }}>· USD {totalValorUSD.toFixed(0)} en stock</span>}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button onClick={() => setShowCalculadora(true)} style={{ background: 'var(--rv-surface-alt)', color: 'var(--rv-accent)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}><IconCalculator size={15} />Calculadora</button>
-          <button onClick={() => setModalCatalogo(true)} style={{ background: 'var(--rv-surface-alt)', color: 'var(--rv-text)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}><IconLink size={15} />Catálogo</button>
+          <button onClick={abrirModalCatalogo} style={{ background: 'var(--rv-surface-alt)', color: 'var(--rv-text)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}><IconLink size={15} />Catálogo</button>
           {esAdmin && <button onClick={handleAgregarEquipo} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>+ Agregar equipo</button>}
         </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-        {[{ key: 'activos', label: 'En stock' }, { key: 'vendido', label: 'Vendidos' }, { key: 'todos', label: 'Todos' }].map(f => (
-          <button key={f.key} onClick={() => setFiltroEstado(f.key)} style={{ background: filtroEstado === f.key ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: filtroEstado === f.key ? '#fff' : 'var(--rv-text-mid)', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{f.label}</button>
-        ))}
       </div>
 
       {categoriasConStock.length > 1 && (
@@ -232,7 +229,7 @@ export default function Stock() {
       {equiposFiltrados.length === 0 && (
         <div style={{ textAlign: 'center', padding: 60, color: 'var(--rv-text-dim)' }}>
           <IconBox size={36} style={{ marginBottom: 12 }} />
-          <p>{filtroEstado === 'vendido' ? 'Todavía no vendiste ningún equipo' : filtro ? 'No hay equipos que coincidan con la búsqueda' : 'No hay equipos en stock'}</p>
+          <p>{filtro ? 'No hay equipos que coincidan con la búsqueda' : 'No hay equipos en stock'}</p>
         </div>
       )}
 
@@ -284,6 +281,28 @@ export default function Stock() {
               <button onClick={() => setModalCatalogo(false)} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
             </div>
             <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 16 }}>Compartí este link con tus clientes. Solo muestra los equipos disponibles, sin precios de costo.</p>
+
+            {categoriasConStock.length > 1 && (
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>Qué categorías incluir</label>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
+                  {categoriasConStock.map(cat => {
+                    const activa = catalogoCategorias.includes(cat);
+                    return (
+                      <button key={cat} type="button" onClick={() => toggleCatalogoCategoria(cat)} style={{
+                        background: activa ? 'var(--rv-accent)' : 'var(--rv-surface-alt)',
+                        color: activa ? '#fff' : 'var(--rv-text-mid)',
+                        border: '1px solid var(--rv-border)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      }}>{cat}</button>
+                    );
+                  })}
+                </div>
+                <p style={{ color: 'var(--rv-text-dim)', fontSize: 11, marginTop: 6, marginBottom: 0 }}>
+                  {catalogoEsParcial ? `Este link solo muestra: ${catalogoCategorias.join(', ')}` : 'Sin nada seleccionado, el link muestra todas las categorías.'}
+                </p>
+              </div>
+            )}
+
             <div style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: 'var(--rv-accent)', wordBreak: 'break-all', marginBottom: 16 }}>{urlCatalogo}</div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => { navigator.clipboard.writeText(urlCatalogo); }} style={{ flex: 1, background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Copiar link</button>

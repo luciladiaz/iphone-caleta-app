@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { PLANES } from '../config/planes';
@@ -24,6 +24,8 @@ function numeroWhatsapp(telefono) {
 
 export default function CatalogoPublico() {
   const { negocioId } = useParams();
+  const [searchParams] = useSearchParams();
+  const categoriasFiltro = (searchParams.get('cat') || '').split(',').map(c => c.trim()).filter(Boolean);
   const [negocio, setNegocio] = useState(null);
   const [equipos, setEquipos] = useState([]);
   const [tipoCambio, setTipoCambio] = useState(0);
@@ -47,7 +49,9 @@ export default function CatalogoPublico() {
         const plan = negData?.plan === 'agencia' ? 'promax' : (negData?.plan || 'trial');
         const planConfig = PLANES[plan];
         setCatalogoHabilitado(planConfig?.features?.catalogoPublico === true);
-        setEquipos(stockSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(e => e.estado === 'disponible'));
+        setEquipos(stockSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+          .filter(e => e.estado === 'disponible')
+          .filter(e => categoriasFiltro.length === 0 || categoriasFiltro.includes(e.categoria)));
         setTipoCambio(cfgSnap.data()?.tipoCambio || 0);
         setListaCanje(cfgSnap.data()?.listaCanje || []);
       } catch (e) { console.error(e); }
@@ -89,7 +93,9 @@ export default function CatalogoPublico() {
         }
         <div>
           <div style={{ fontWeight: 800, fontSize: 17 }}>{negocio?.nombre || 'Catálogo'}</div>
-          <div style={{ color: '#86868b', fontSize: 12 }}>{equipos.length} equipos disponibles</div>
+          <div style={{ color: '#86868b', fontSize: 12 }}>
+            {equipos.length} equipos disponibles{categoriasFiltro.length > 0 ? ` · ${categoriasFiltro.join(', ')}` : ''}
+          </div>
         </div>
       </div>
 

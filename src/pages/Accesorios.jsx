@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconBox, IconHash, IconCoin, IconEdit, IconCheck, IconX } from '../components/Icons';
+import { CATEGORIAS_STOCK, MODELOS_DEFAULT_POR_CATEGORIA } from '../lib/categoriasProducto';
 
 const CATEGORIAS = ['Fundas', 'Vidrios templados', 'Cables', 'Cargadores', 'Adaptadores', 'Audio / AirPods', 'MagSafe', 'Power banks', 'Soportes', 'Otros'];
 
@@ -16,11 +17,13 @@ const labelStyle = {
   display: 'block', marginBottom: 4, textTransform: 'uppercase',
 };
 
-const FORM_VACIO = { nombre: '', categoria: 'Fundas', color: '', cantidad: '', precioCosto: '', precioVenta: '' };
+const FORM_VACIO = { nombre: '', categoria: 'Fundas', modelo: '', color: '', cantidad: '', precioCosto: '', precioVenta: '' };
 
 export default function Accesorios() {
   const { negocioId } = useAuth();
   const [accesorios, setAccesorios] = useState([]);
+  const [modelosPorCategoria, setModelosPorCategoria] = useState(MODELOS_DEFAULT_POR_CATEGORIA);
+  const [categoriasProducto, setCategoriasProducto] = useState(CATEGORIAS_STOCK);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(FORM_VACIO);
   const [saving, setSaving] = useState(false);
@@ -32,8 +35,18 @@ export default function Accesorios() {
 
   const cargar = async () => {
     if (!negocioId) return;
-    const snap = await getDocs(collection(db, 'negocios', negocioId, 'accesorios'));
+    const [snap, cfgSnap] = await Promise.all([
+      getDocs(collection(db, 'negocios', negocioId, 'accesorios')),
+      getDoc(doc(db, 'negocios', negocioId, 'config', 'general')),
+    ]);
     setAccesorios(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    const cfg = cfgSnap.data() || {};
+    const catsProducto = cfg.categoriasProducto?.length ? cfg.categoriasProducto : CATEGORIAS_STOCK;
+    setCategoriasProducto(catsProducto);
+    const porCategoria = cfg.modelosPorCategoria || {};
+    const combinado = {};
+    catsProducto.forEach(cat => { combinado[cat] = porCategoria[cat]?.length ? porCategoria[cat] : (MODELOS_DEFAULT_POR_CATEGORIA[cat] || []); });
+    setModelosPorCategoria(combinado);
     setLoading(false);
   };
 
@@ -45,6 +58,7 @@ export default function Accesorios() {
     await addDoc(collection(db, 'negocios', negocioId, 'accesorios'), {
       nombre: form.nombre.trim(),
       categoria: form.categoria,
+      modelo: form.modelo,
       color: form.color.trim(),
       cantidad: Number(form.cantidad),
       precioCosto: Number(form.precioCosto) || 0,
@@ -72,9 +86,12 @@ export default function Accesorios() {
   };
 
   const filtrados = accesorios.filter(a => {
-    const texto = `${a.nombre} ${a.color || ''}`.toLowerCase().includes(filtro.toLowerCase());
+    // Búsqueda por palabras sueltas en cualquier orden ("fundas iphone 15" o "iphone 15 funda" matchean igual).
+    const texto = `${a.nombre} ${a.categoria} ${a.modelo || ''} ${a.color || ''}`.toLowerCase();
+    const terminos = filtro.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    const coincideTexto = terminos.every(t => texto.includes(t));
     const cat = categoriaFiltro === 'Todas' || a.categoria === categoriaFiltro;
-    return texto && cat;
+    return coincideTexto && cat;
   });
 
   const totalUnidades = accesorios.reduce((s, a) => s + (a.cantidad || 0), 0);
@@ -117,13 +134,24 @@ export default function Accesorios() {
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={labelStyle}>NOMBRE *</label>
               <input value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-                placeholder="Ej: Funda silicona iPhone 15" style={inputStyle} />
+                placeholder="Ej: Funda silicona" style={inputStyle} />
             </div>
             <div>
               <label style={labelStyle}>CATEGORÍA</label>
               <select value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}
                 style={{ ...inputStyle }}>
                 {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>MODELO COMPATIBLE</label>
+              <select value={form.modelo} onChange={e => setForm(f => ({ ...f, modelo: e.target.value }))} style={inputStyle}>
+                <option value="">Universal / no aplica</option>
+                {categoriasProducto.map(cat => (
+                  <optgroup key={cat} label={cat}>
+                    {(modelosPorCategoria[cat] || []).map(m => <option key={m} value={m}>{m}</option>)}
+                  </optgroup>
+                ))}
               </select>
             </div>
             <div>
@@ -201,7 +229,11 @@ export default function Accesorios() {
             }}>
               <div>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{a.nombre}</div>
-                {a.color && <div style={{ color: 'var(--rv-text-dim)', fontSize: 12 }}>{a.color}</div>}
+                {(a.modelo || a.color) && (
+                  <div style={{ color: 'var(--rv-text-dim)', fontSize: 12 }}>
+                    {a.modelo}{a.modelo && a.color ? ' · ' : ''}{a.color}
+                  </div>
+                )}
               </div>
               <div>
                 <span style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 6, padding: '3px 8px', fontSize: 12, color: 'var(--rv-text-mid)' }}>

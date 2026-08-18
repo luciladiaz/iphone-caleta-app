@@ -33,7 +33,7 @@ export default function Ventas() {
   const [nuevoCliente, setNuevoCliente] = useState({ nombre: '', telefono: '', email: '', dni: '', direccion: '' });
   const [form, setForm] = useState({
     equipoId: '', clienteId: '', cliente: '', telefono: '', vendedor: '', origen: '',
-    estado: 'pendiente', notas: '', tipoCambio: '',
+    estado: 'pendiente', notas: '', tipoCambio: '', pvUsdVenta: '',
     cobros: [{ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS', cuotas: '', montoCuota: '', fechaInicio: '' }],
     partesDePago: []
   });
@@ -131,6 +131,10 @@ export default function Ventas() {
       estado: v.estado || 'pendiente',
       notas: v.notas || '',
       tipoCambio: v.tipoCambio || '',
+      // El equipo de una venta ya hecha sale del stock "disponible" (queda vendido),
+      // así que no aparece en `stock` para resolver el precio: se guarda acá aparte
+      // para que el resumen de pago (cobrado/saldo) siga funcionando al editar.
+      pvUsdVenta: v.pvUsd || '',
       cobros: v.cobros || [{ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS', cuotas: '', montoCuota: '', fechaInicio: '' }],
       partesDePago: v.partesDePago || [],
     });
@@ -144,7 +148,7 @@ export default function Ventas() {
     setNuevoCliente({ nombre: '', telefono: '', email: '', dni: '', direccion: '' });
     setForm({
       equipoId: '', clienteId: '', cliente: '', telefono: '', vendedor: '', origen: '',
-      estado: 'pendiente', notas: '', tipoCambio: '',
+      estado: 'pendiente', notas: '', tipoCambio: '', pvUsdVenta: '',
       cobros: [{ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS', cuotas: '', montoCuota: '', fechaInicio: '' }],
       partesDePago: []
     });
@@ -399,7 +403,7 @@ export default function Ventas() {
                 </div>
                 {(() => {
                   const tc = Number(form.tipoCambio || tipoCambioGlobal) || 0;
-                  const pvUsd = Number(equipoSeleccionado?.pvUsd) || 0;
+                  const pvUsd = Number(equipoSeleccionado?.pvUsd || form.pvUsdVenta) || 0;
 
                   const cobradoUsd = form.cobros.reduce((sum, c) => {
                     if (c.tipo === 'iPhone como parte de pago') return sum;

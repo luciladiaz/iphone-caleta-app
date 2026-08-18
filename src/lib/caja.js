@@ -93,3 +93,73 @@ export async function registrarMovimientoPagoProveedor(negocioId, venta, monto, 
 export async function eliminarMovimientoPagoProveedor(negocioId, ventaId) {
   await eliminarMovimientosVenta(negocioId, ventaId, 'pago_proveedor');
 }
+
+// Reconstruye los movimientos de caja faltantes a partir de las ventas ya cargadas:
+// ventas registradas antes de tener Caja, cuotas ya marcadas como pagadas y pagos a
+// proveedores ya confirmados. No duplica: cada movimiento automático se identifica por
+// ventaId + origen + cobroIdx + cuotaIdx y solo se crea si todavía no existe.
+export async function reconciliarCaja(negocioId) {
+  const base = ['negocios', negocioId];
+  const [cajaSnap, ventasSnap] = await Promise.all([
+    getDocs(collection(db, ...base, 'caja')),
+    getDocs(collection(db, ...base, 'ventas')),
+  ]);
+
+  const existentes = new Set(
+    cajaSnap.docs
+      .map(d => d.data())
+      .filter(m => m.automatico)
+      .map(m => `${m.origen}:${m.ventaId}:${m.cobroIdx ?? ''}:${m.cuotaIdx ?? ''}`)
+  );
+
+  let creados = 0;
+  for (const ventaDoc of ventasSnap.docs) {
+    const venta = { id: ventaDoc.id, ...ventaDoc.data() };
+    const cobros = venta.cobros || [];
+
+    for (let i = 0; i < cobros.length; i++) {
+      const cobro = cobros[i];
+      if (TIPOS_SIN_CAJA.includes(cobro.tipo)) {
+        if (cobro.tipo === 'Cuotas personales') {
+          for (const cuotaIdx of cobro.cuotasPagadas || []) {
+            const key = `cuota:${venta.id}:${i}:${cuotaIdx}`;
+            if (existentes.has(key)) continue;
+            await registrarMovimientoCuota(negocioId, venta.id, venta, i, cuotaIdx, cobro);
+            existentes.add(key);
+            creados++;
+          }
+        }
+        continue;
+      }
+      const key = `venta:${venta.id}:${i}:`;
+      if (existentes.has(key)) continue;
+      const monto = Number(cobro.monto) || 0;
+      if (monto <= 0) continue;
+      await addDoc(collection(db, ...base, 'caja'), {
+        fecha: venta.fecha || serverTimestamp(),
+        tipo: 'ingreso',
+        moneda: cobro.moneda === 'USD' ? 'USD' : 'ARS',
+        monto,
+        concepto: `${cobro.tipo} · ${labelVenta(venta)}${venta.cliente ? ' · ' + venta.cliente : ''}`,
+        origen: 'venta',
+        ventaId: venta.id,
+        cobroIdx: i,
+        cuotaIdx: null,
+        automatico: true,
+      });
+      existentes.add(key);
+      creados++;
+    }
+
+    if (venta.pagadoProveedor && venta.montoPagadoProveedor > 0) {
+      const key = `pago_proveedor:${venta.id}::`;
+      if (!existentes.has(key)) {
+        await registrarMovimientoPagoProveedor(negocioId, venta, venta.montoPagadoProveedor, venta.detallePagoProveedor);
+        existentes.add(key);
+        creados++;
+      }
+    }
+  }
+
+  return creados;
+}

@@ -54,3 +54,4 @@ export const IconWrench = (p) => <Svg {...p}><path d="M14.7 6.3a4 4 0 00-5.6 4.6
 export const IconCamera = (p) => <Svg {...p}><path d="M4 8h3l2-3h6l2 3h3a1 1 0 011 1v11a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z" /><circle cx="12" cy="14" r="4" /></Svg>;
 export const IconSun = (p) => <Svg {...p}><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" /></Svg>;
 export const IconMoon = (p) => <Svg {...p}><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" /></Svg>;
+export const IconRefresh = (p) => <Svg {...p}><path d="M21 12a9 9 0 01-15.3 6.4L3 15.5M3 12a9 9 0 0115.3-6.4L21 8.5" /><path d="M3 4v5h5M21 20v-5h-5" /></Svg>;

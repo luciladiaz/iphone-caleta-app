@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
-import { IconWallet, IconCoin, IconPlus, IconTrash, IconX, IconTrendUp, IconTrendDown, IconCalendar } from '../components/Icons';
+import { IconWallet, IconCoin, IconPlus, IconTrash, IconX, IconTrendUp, IconTrendDown, IconCalendar, IconRefresh } from '../components/Icons';
+import { reconciliarCaja } from '../lib/caja';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -29,6 +30,7 @@ export default function Caja() {
   const [filtroTipo, setFiltroTipo] = useState('todos');
   const [modal, setModal] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [reconciliando, setReconciliando] = useState(false);
   const [form, setForm] = useState({ tipo: 'ingreso', moneda: 'ARS', monto: '', concepto: '', fecha: new Date().toISOString().split('T')[0] });
 
   const cargar = async () => {
@@ -39,6 +41,22 @@ export default function Caja() {
   };
 
   useEffect(() => { cargar(); }, [negocioId]);
+
+  const recalcular = async () => {
+    setReconciliando(true);
+    try {
+      const creados = await reconciliarCaja(negocioId);
+      await cargar();
+      alert(creados > 0
+        ? `Se agregaron ${creados} movimiento${creados > 1 ? 's' : ''} que faltaban en la caja.`
+        : 'La caja ya estaba al día, no faltaba ningún movimiento.');
+    } catch (err) {
+      console.error(err);
+      alert('No se pudo recalcular la caja. Revisá la consola para más detalle.');
+    } finally {
+      setReconciliando(false);
+    }
+  };
 
   const abrirModal = () => {
     setForm({ tipo: 'ingreso', moneda: 'ARS', monto: '', concepto: '', fecha: new Date().toISOString().split('T')[0] });
@@ -103,9 +121,14 @@ export default function Caja() {
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}><IconWallet size={22} style={{ color: 'var(--rv-accent)' }} />Caja</h1>
           <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, margin: '4px 0 0' }}>Se completa sola con los pagos que cargás en Ventas, Cobros y Pagos a Proveedores.</p>
         </div>
-        <button onClick={abrirModal} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>
-          <IconPlus size={14} />Movimiento manual
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={recalcular} disabled={reconciliando} title="Busca ventas, cuotas cobradas y pagos a proveedores que todavía no tengan su movimiento de caja y lo crea" style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text)', borderRadius: 10, padding: '10px 16px', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>
+            <IconRefresh size={14} />{reconciliando ? 'Recalculando...' : 'Recalcular desde ventas'}
+          </button>
+          <button onClick={abrirModal} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>
+            <IconPlus size={14} />Movimiento manual
+          </button>
+        </div>
       </div>
 
       {/* Saldos */}

@@ -4,8 +4,9 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
 import ComprobanteVenta from '../components/ComprobanteVenta';
-import { IconUser, IconPhone, IconX, IconEdit, IconTrash, IconFile, IconWallet, IconBox, IconArrowSwap, IconCheckCircle, IconPlus } from '../components/Icons';
+import { IconUser, IconPhone, IconX, IconEdit, IconTrash, IconFile, IconWallet, IconBox, IconArrowSwap, IconCheckCircle } from '../components/Icons';
 import { registrarMovimientosVenta, eliminarMovimientosVenta } from '../lib/caja';
+import SelectorCliente from '../components/SelectorCliente';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -29,8 +30,6 @@ export default function Ventas() {
   const [editando, setEditando] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [modalLimite, setModalLimite] = useState(false);
-  const [nuevoClienteModo, setNuevoClienteModo] = useState(false);
-  const [nuevoCliente, setNuevoCliente] = useState({ nombre: '', telefono: '', email: '', dni: '', direccion: '' });
   const [form, setForm] = useState({
     equipoId: '', clienteId: '', cliente: '', telefono: '', vendedor: '', origen: '',
     estado: 'pendiente', notas: '', tipoCambio: '', pvUsdVenta: '',
@@ -66,20 +65,8 @@ export default function Ventas() {
 
   const equipoSeleccionado = stock.find(s => s.id === form.equipoId);
 
-  const seleccionarCliente = (clienteId) => {
-    const c = clientes.find(cl => cl.id === clienteId);
-    setForm(f => ({ ...f, clienteId, cliente: c?.nombre || '', telefono: c?.telefono || '' }));
-  };
-
-  const abrirNuevoCliente = () => {
-    setNuevoCliente({ nombre: form.cliente || '', telefono: form.telefono || '', email: '', dni: '', direccion: '' });
-    setNuevoClienteModo(true);
-    setForm(f => ({ ...f, clienteId: '' }));
-  };
-
-  const cancelarNuevoCliente = () => {
-    setNuevoClienteModo(false);
-    setNuevoCliente({ nombre: '', telefono: '', email: '', dni: '', direccion: '' });
+  const seleccionarCliente = (c) => {
+    setForm(f => ({ ...f, clienteId: c?.id || '', cliente: c?.nombre || '', telefono: c?.telefono || '' }));
   };
 
   const agregarCobro = () => setForm(f => ({ ...f, cobros: [...f.cobros, { tipo: 'Efectivo ARS', monto: '', moneda: 'ARS', cuotas: '', montoCuota: '', fechaInicio: '' }] }));
@@ -120,7 +107,6 @@ export default function Ventas() {
 
   const abrirEditar = (v) => {
     setEditando(v.id);
-    setNuevoClienteModo(false);
     setForm({
       equipoId: v.equipoId || '',
       clienteId: v.clienteId || '',
@@ -144,8 +130,6 @@ export default function Ventas() {
   const cerrarModal = () => {
     setModal(false);
     setEditando(null);
-    setNuevoClienteModo(false);
-    setNuevoCliente({ nombre: '', telefono: '', email: '', dni: '', direccion: '' });
     setForm({
       equipoId: '', clienteId: '', cliente: '', telefono: '', vendedor: '', origen: '',
       estado: 'pendiente', notas: '', tipoCambio: '', pvUsdVenta: '',
@@ -159,23 +143,11 @@ export default function Ventas() {
     setGuardando(true);
     const base = ['negocios', negocioId];
     try {
-      // Si se cargó un cliente nuevo desde el propio formulario de venta, se crea
-      // primero en la agenda de clientes y se usa su id para vincular la venta.
-      let clienteId = form.clienteId;
-      let clienteNombre = form.cliente;
-      let clienteTelefono = form.telefono;
-      if (nuevoClienteModo && nuevoCliente.nombre.trim()) {
-        const clienteRef = await addDoc(collection(db, ...base, 'clientes'), { ...nuevoCliente });
-        clienteId = clienteRef.id;
-        clienteNombre = nuevoCliente.nombre;
-        clienteTelefono = nuevoCliente.telefono;
-      }
-
       if (editando) {
         await updateDoc(doc(db, ...base, 'ventas', editando), {
-          clienteId,
-          cliente: clienteNombre,
-          telefono: clienteTelefono,
+          clienteId: form.clienteId,
+          cliente: form.cliente,
+          telefono: form.telefono,
           vendedor: form.vendedor,
           origen: form.origen,
           estado: form.estado,
@@ -189,16 +161,13 @@ export default function Ventas() {
         await registrarMovimientosVenta(negocioId, editando, {
           modelo: ventaOriginal?.modelo,
           gb: ventaOriginal?.gb,
-          cliente: clienteNombre,
+          cliente: form.cliente,
           cobros: form.cobros,
         });
       } else {
         const equipo = stock.find(s => s.id === form.equipoId);
         const ventaData = {
           ...form,
-          clienteId,
-          cliente: clienteNombre,
-          telefono: clienteTelefono,
           fecha: serverTimestamp(),
           modelo: equipo?.modelo || '',
           gb: equipo?.gb || '',
@@ -326,31 +295,13 @@ export default function Ventas() {
               )}
 
               {/* Cliente */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <label style={{ ...labelStyle, margin: 0 }}>Cliente</label>
-                  <button type="button" onClick={nuevoClienteModo ? cancelarNuevoCliente : abrirNuevoCliente} style={{ background: 'none', border: 'none', color: 'var(--rv-accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {nuevoClienteModo ? <><IconUser size={12} />Elegir cliente existente</> : <><IconPlus size={12} />Nuevo cliente</>}
-                  </button>
-                </div>
-                {!nuevoClienteModo ? (
-                  <select value={form.clienteId} onChange={e => seleccionarCliente(e.target.value)} style={inputStyle}>
-                    <option value="">Sin cliente vinculado...</option>
-                    {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}{c.telefono ? ` · ${c.telefono}` : ''}</option>)}
-                  </select>
-                ) : (
-                  <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <input value={nuevoCliente.nombre} onChange={e => setNuevoCliente({ ...nuevoCliente, nombre: e.target.value })} placeholder="Nombre del comprador *" style={inputStyle} />
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                      <input value={nuevoCliente.telefono} onChange={e => setNuevoCliente({ ...nuevoCliente, telefono: e.target.value })} placeholder="Teléfono" type="tel" style={inputStyle} />
-                      <input value={nuevoCliente.dni} onChange={e => setNuevoCliente({ ...nuevoCliente, dni: e.target.value })} placeholder="DNI / CUIT" style={inputStyle} />
-                    </div>
-                    <input value={nuevoCliente.email} onChange={e => setNuevoCliente({ ...nuevoCliente, email: e.target.value })} placeholder="Email" type="email" style={inputStyle} />
-                    <input value={nuevoCliente.direccion} onChange={e => setNuevoCliente({ ...nuevoCliente, direccion: e.target.value })} placeholder="Dirección" style={inputStyle} />
-                    <div style={{ fontSize: 11, color: 'var(--rv-text-dim)' }}>Se guarda en Clientes al confirmar la venta.</div>
-                  </div>
-                )}
-              </div>
+              <SelectorCliente
+                negocioId={negocioId}
+                clientes={clientes}
+                clienteId={form.clienteId}
+                onSeleccionar={seleccionarCliente}
+                onClienteCreado={(c) => setClientes(cs => [...cs, c].sort((a, b) => a.nombre.localeCompare(b.nombre)))}
+              />
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>

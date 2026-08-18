@@ -23,6 +23,8 @@ const MODULOS = [
   { key: 'usuarios', label: 'Usuarios' },
 ];
 
+const FORM_VACIO = { nombre: '', email: '', password: '', puntoVenta: '', activo: true, permisos: {} };
+
 export default function Usuarios() {
   const { negocioId, plan, limitesPlan } = useAuth();
   const base = ['negocios', negocioId];
@@ -33,7 +35,7 @@ export default function Usuarios() {
   const [modalLimite, setModalLimite] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ nombre: '', email: '', password: '', rol: 'vendedor', puntoVenta: '', activo: true, permisos: {} });
+  const [form, setForm] = useState(FORM_VACIO);
 
   const cargar = async () => {
     if (!negocioId) return;
@@ -60,13 +62,16 @@ export default function Usuarios() {
       const cred = await createUserWithEmailAndPassword(tempAuth, form.email, form.password);
       await deleteApp(tempApp);
 
-      const userData = { nombre: form.nombre, email: form.email, rol: form.rol, puntoVenta: form.puntoVenta, activo: form.activo, permisos: form.permisos, negocioId };
+      // Los usuarios que se crean desde acá siempre quedan como "vendedor": su acceso
+      // se define 100% por los permisos de módulo elegidos abajo, nunca por un rol
+      // que les de acceso total sin pasar por esos checkboxes.
+      const userData = { nombre: form.nombre, email: form.email, rol: 'vendedor', puntoVenta: form.puntoVenta, activo: form.activo, permisos: form.permisos, negocioId };
       // Guardar en colección global de usuarios (para auth lookup al iniciar sesión)
       await setDoc(doc(db, 'usuarios', cred.user.uid), userData);
       // Guardar también en el negocio
       await setDoc(doc(db, ...base, 'usuarios', cred.user.uid), userData);
       setModal(false);
-      setForm({ nombre: '', email: '', password: '', rol: 'vendedor', puntoVenta: '', activo: true, permisos: {} });
+      setForm(FORM_VACIO);
       cargar();
     } catch (err) {
       setError(err.code === 'auth/email-already-in-use' ? 'Ese email ya está registrado' : err.message);
@@ -97,7 +102,7 @@ export default function Usuarios() {
           <div key={u.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             <div>
               <div style={{ fontWeight: 700, fontSize: 15 }}>{u.nombre}</div>
-              <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3 }}>{u.email} · {u.rol} {u.puntoVenta ? `· ${u.puntoVenta}` : ''}</div>
+              <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3 }}>{u.email}{u.puntoVenta ? ` · ${u.puntoVenta}` : ''}</div>
               <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {u.rol === 'admin' ? (
                   <span style={{ fontSize: 10, background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text-mid)', padding: '2px 8px', borderRadius: 99, fontWeight: 600 }}>Todos los módulos</span>
@@ -132,23 +137,18 @@ export default function Usuarios() {
               <div><label style={labelStyle}>Nombre</label><input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} required style={inputStyle} /></div>
               <div><label style={labelStyle}>Email</label><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required style={inputStyle} /></div>
               <div><label style={labelStyle}>Contraseña</label><input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required minLength={6} style={inputStyle} /></div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div><label style={labelStyle}>Rol</label><select value={form.rol} onChange={e => setForm({ ...form, rol: e.target.value })} style={inputStyle}><option value="vendedor">Vendedor</option><option value="admin">Admin</option></select></div>
-                <div><label style={labelStyle}>Punto de venta</label><select value={form.puntoVenta} onChange={e => setForm({ ...form, puntoVenta: e.target.value })} style={inputStyle}><option value="">Ninguno</option>{puntosVenta.map(p => <option key={p.id}>{p.nombre}</option>)}</select></div>
-              </div>
-              {form.rol === 'vendedor' && (
-                <div>
-                  <label style={{ ...labelStyle, marginBottom: 10 }}>Permisos de módulos</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    {MODULOS.map(m => (
-                      <label key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--rv-text-mid)' }}>
-                        <input type="checkbox" checked={!!form.permisos[m.key]} onChange={() => togglePermiso(m.key)} style={{ accentColor: 'var(--rv-accent)' }} />
-                        {m.label}
-                      </label>
-                    ))}
-                  </div>
+              <div><label style={labelStyle}>Punto de venta</label><select value={form.puntoVenta} onChange={e => setForm({ ...form, puntoVenta: e.target.value })} style={inputStyle}><option value="">Ninguno</option>{puntosVenta.map(p => <option key={p.id}>{p.nombre}</option>)}</select></div>
+              <div>
+                <label style={{ ...labelStyle, marginBottom: 10 }}>¿Qué pantallas puede ver?</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {MODULOS.map(m => (
+                    <label key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--rv-text-mid)' }}>
+                      <input type="checkbox" checked={!!form.permisos[m.key]} onChange={() => togglePermiso(m.key)} style={{ accentColor: 'var(--rv-accent)' }} />
+                      {m.label}
+                    </label>
+                  ))}
                 </div>
-              )}
+              </div>
               {error && <div style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', borderRadius: 8, padding: '10px 14px', color: 'var(--rv-danger)', fontSize: 13 }}>{error}</div>}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
                 <button type="button" onClick={() => setModal(false)} style={{ padding: '10px 20px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>

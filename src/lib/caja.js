@@ -1,4 +1,4 @@
-import { collection, addDoc, serverTimestamp, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, orderBy, limit, getDocs, getDoc, setDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
 // Formas de pago que no representan efectivo/transferencia recibida en el momento
@@ -7,6 +7,16 @@ const TIPOS_SIN_CAJA = ['Cuotas personales', 'iPhone como parte de pago'];
 
 function labelVenta(venta) {
   return `${venta.modelo || ''} ${venta.gb || ''}GB`.trim();
+}
+
+// Clave de día en horario local (no UTC), usada como id de cierre y para agrupar
+// movimientos por fecha en los gráficos.
+export function fechaKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+export function fechaDeMovimiento(m) {
+  return m.fecha?.toDate ? m.fecha.toDate() : new Date(m.fecha);
 }
 
 async function movimientosDeVenta(negocioId, ventaId) {
@@ -162,4 +172,49 @@ export async function reconciliarCaja(negocioId) {
   }
 
   return creados;
+}
+
+// Lo que "deberían" sumar los ingresos en efectivo/transferencia de las ventas
+// registradas en un día puntual, calculado directo desde `ventas` (no desde `caja`).
+// Se usa para chequear que el cierre del día calce perfecto con las ventas cargadas.
+export async function calcularVentasDelDia(negocioId, fechaStr) {
+  const base = ['negocios', negocioId];
+  const snap = await getDocs(collection(db, ...base, 'ventas'));
+  let cantidad = 0, ingresosARS = 0, ingresosUSD = 0;
+  for (const d of snap.docs) {
+    const venta = d.data();
+    if (!venta.fecha) continue;
+    const f = venta.fecha.toDate ? venta.fecha.toDate() : new Date(venta.fecha);
+    if (fechaKey(f) !== fechaStr) continue;
+    cantidad++;
+    for (const cobro of venta.cobros || []) {
+      if (TIPOS_SIN_CAJA.includes(cobro.tipo)) continue;
+      const monto = Number(cobro.monto) || 0;
+      if (monto <= 0) continue;
+      if (cobro.moneda === 'USD') ingresosUSD += monto; else ingresosARS += monto;
+    }
+  }
+  return { cantidad, ingresosARS, ingresosUSD };
+}
+
+export async function obtenerCierre(negocioId, fechaStr) {
+  const base = ['negocios', negocioId];
+  const snap = await getDoc(doc(db, ...base, 'cierresCaja', fechaStr));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+
+export async function listarCierres(negocioId, cantidad = 30) {
+  const base = ['negocios', negocioId];
+  const snap = await getDocs(query(collection(db, ...base, 'cierresCaja'), orderBy('fecha', 'desc'), limit(cantidad)));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// Cierra la caja de un día puntual dejando una foto fija de los totales. No se puede
+// cerrar dos veces el mismo día (el id del doc es la fecha, y se chequea antes de crear).
+export async function cerrarCajaDelDia(negocioId, fechaStr, resumen) {
+  const base = ['negocios', negocioId];
+  const ref = doc(db, ...base, 'cierresCaja', fechaStr);
+  const existente = await getDoc(ref);
+  if (existente.exists()) throw new Error('La caja de ese día ya está cerrada.');
+  await setDoc(ref, { ...resumen, fecha: fechaStr, cerradoEn: serverTimestamp() });
 }

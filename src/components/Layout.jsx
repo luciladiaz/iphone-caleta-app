@@ -8,52 +8,52 @@ const SZ = { width: 17, height: 17, flexShrink: 0 };
 const SA = { fill: 'none', stroke: 'currentColor', strokeWidth: '1.75', strokeLinecap: 'round', strokeLinejoin: 'round' };
 
 const NAV = [
-  { to: '/', label: 'Dashboard', modulo: 'dashboard', siempre: true, icon: (
+  { to: '/', label: 'Dashboard', modulo: 'dashboard', icon: (
     <svg viewBox="0 0 24 24" style={SZ} {...SA}>
       <rect x="3" y="10" width="4" height="11" rx="1"/><rect x="10" y="5" width="4" height="16" rx="1"/><rect x="17" y="1" width="4" height="20" rx="1"/>
     </svg>
   )},
-  { to: '/stock', label: 'Stock', modulo: 'stock', siempre: true, icon: (
+  { to: '/stock', label: 'Stock', modulo: 'stock', icon: (
     <svg viewBox="0 0 24 24" style={SZ} {...SA}>
       <path d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
     </svg>
   )},
-  { to: '/accesorios', label: 'Accesorios', modulo: 'accesorios', siempre: true, icon: (
+  { to: '/accesorios', label: 'Accesorios', modulo: 'accesorios', icon: (
     <svg viewBox="0 0 24 24" style={SZ} {...SA}>
       <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
     </svg>
   )},
-  { to: '/ventas', label: 'Ventas', modulo: 'ventas', siempre: true, icon: (
+  { to: '/ventas', label: 'Ventas', modulo: 'ventas', icon: (
     <svg viewBox="0 0 24 24" style={SZ} {...SA}>
       <rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/>
     </svg>
   )},
-  { to: '/clientes', label: 'Clientes', modulo: 'clientes', siempre: true, icon: (
+  { to: '/clientes', label: 'Clientes', modulo: 'clientes', icon: (
     <svg viewBox="0 0 24 24" style={SZ} {...SA}>
       <circle cx="12" cy="8" r="3.5"/><path d="M4.5 20c0-3.6 3.4-6.5 7.5-6.5s7.5 2.9 7.5 6.5"/>
     </svg>
   )},
-  { to: '/cobros', label: 'Cobros', modulo: 'cobros', siempre: true, icon: (
+  { to: '/cobros', label: 'Cobros', modulo: 'cobros', icon: (
     <svg viewBox="0 0 24 24" style={SZ} {...SA}>
       <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><path d="M6 14.5h2M11 14.5h3"/>
     </svg>
   )},
-  { to: '/caja', label: 'Caja', modulo: 'caja', siempre: true, icon: (
+  { to: '/caja', label: 'Caja', modulo: 'caja', icon: (
     <svg viewBox="0 0 24 24" style={SZ} {...SA}>
       <circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5c0-1.1 1.3-2 3-2s3 .9 3 2-1.3 1.5-3 1.5-3 .4-3 1.5 1.3 2 3 2 3-.9 3-2"/>
     </svg>
   )},
-  { to: '/reparaciones', label: 'Reparaciones', modulo: 'reparaciones', siempre: true, icon: (
+  { to: '/reparaciones', label: 'Reparaciones', modulo: 'reparaciones', icon: (
     <svg viewBox="0 0 24 24" style={SZ} {...SA}>
       <path d="M14.7 6.3a4 4 0 00-5.6 4.6L3 17l4 4 6.1-6.1a4 4 0 004.6-5.6l-2.8 2.8-2.4-.6-.6-2.4z"/>
     </svg>
   )},
-  { to: '/proveedores', label: 'Proveedores', modulo: 'proveedores', siempre: true, icon: (
+  { to: '/proveedores', label: 'Proveedores', modulo: 'proveedores', icon: (
     <svg viewBox="0 0 24 24" style={SZ} {...SA}>
       <path d="M3 21V9.5L12 3l9 6.5V21H3z"/><path d="M9 21V14h6v7"/>
     </svg>
   )},
-  { to: '/pagos', label: 'Pagos Prov.', modulo: 'pagos', siempre: true, icon: (
+  { to: '/pagos', label: 'Pagos Prov.', modulo: 'pagos', icon: (
     <svg viewBox="0 0 24 24" style={SZ} {...SA}>
       <path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 7.5m0 0L7.5 12M12 7.5V18"/>
     </svg>
@@ -68,12 +68,12 @@ const NAV = [
       <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
     </svg>
   )},
-  { to: '/config', label: 'Configuración', modulo: 'config', siempre: true, icon: (
+  { to: '/config', label: 'Configuración', modulo: 'config', icon: (
     <svg viewBox="0 0 24 24" style={SZ} {...SA}>
       <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
     </svg>
   )},
-  { to: '/usuarios', label: 'Usuarios', modulo: 'usuarios', siempre: true, icon: (
+  { to: '/usuarios', label: 'Usuarios', modulo: 'usuarios', icon: (
     <svg viewBox="0 0 24 24" style={SZ} {...SA}>
       <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
     </svg>

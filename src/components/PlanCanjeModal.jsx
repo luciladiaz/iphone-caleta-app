@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { IconArrowSwap, IconX } from './Icons';
 
+const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
+
 export default function PlanCanjeModal({ equipo, listaCanje, tipoCambio, numeroWhatsapp, telefono, onClose }) {
   const [seleccion, setSeleccion] = useState('');
 
@@ -10,9 +12,10 @@ export default function PlanCanjeModal({ equipo, listaCanje, tipoCambio, numeroW
   const diferencia = valorToma !== null ? precioEquipo - valorToma : null;
 
   const wa = numeroWhatsapp(telefono);
+  const equipoTexto = `${equipo.modelo}${equipo.gb ? ' ' + formatCapacidad(equipo.gb) : ''} ${equipo.color || ''}`.trim();
   const mensajeWA = canjeElegido
-    ? `Hola! Me interesa el ${equipo.modelo} ${equipo.gb}GB ${equipo.color} (USD ${precioEquipo}). Tengo un ${canjeElegido.modelo}${canjeElegido.gb ? ` ${canjeElegido.gb}GB` : ''} para entregar como parte de pago. ¿Confirmamos la diferencia?`
-    : `Hola! Me interesa el ${equipo.modelo} ${equipo.gb}GB ${equipo.color} con Plan Canje. ¿Me ayudás a calcular la diferencia?`;
+    ? `Hola! Me interesa el ${equipoTexto} (USD ${precioEquipo}). Tengo un ${canjeElegido.modelo}${canjeElegido.gb ? ` ${formatCapacidad(canjeElegido.gb)}` : ''} para entregar como parte de pago. ¿Confirmamos la diferencia?`
+    : `Hola! Me interesa el ${equipoTexto} con Plan Canje. ¿Me ayudás a calcular la diferencia?`;
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
@@ -22,11 +25,11 @@ export default function PlanCanjeModal({ equipo, listaCanje, tipoCambio, numeroW
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
         </div>
         <div style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 20 }}>
-          Querés: <strong style={{ color: 'var(--rv-text)' }}>{equipo.modelo} {equipo.gb}GB {equipo.color}</strong> — USD {precioEquipo}
+          Querés: <strong style={{ color: 'var(--rv-text)' }}>{equipoTexto}</strong> — USD {precioEquipo}
         </div>
 
         <label style={{ color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 8 }}>
-          Tu iPhone actual
+          Tu equipo actual
         </label>
         <select
           value={seleccion}
@@ -35,7 +38,7 @@ export default function PlanCanjeModal({ equipo, listaCanje, tipoCambio, numeroW
         >
           <option value="">Elegí tu modelo...</option>
           {listaCanje.map((c, i) => (
-            <option key={i} value={i}>{c.modelo}{c.gb ? ` ${c.gb}GB` : ''}</option>
+            <option key={i} value={i}>{c.modelo}{c.gb ? ` ${formatCapacidad(c.gb)}` : ''}</option>
           ))}
         </select>
 

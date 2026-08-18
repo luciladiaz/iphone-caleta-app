@@ -7,13 +7,16 @@ import ComprobanteVenta from '../components/ComprobanteVenta';
 import { IconUser, IconPhone, IconX, IconEdit, IconTrash, IconFile, IconWallet, IconBox, IconArrowSwap, IconCheckCircle } from '../components/Icons';
 import { registrarMovimientosVenta, eliminarMovimientosVenta } from '../lib/caja';
 import SelectorCliente from '../components/SelectorCliente';
+import { CATEGORIAS_STOCK, EMOJI_POR_CATEGORIA } from '../lib/categoriasProducto';
+
+const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 const estadoColor = { pendiente: 'var(--rv-text-mid)', entregado: 'var(--rv-text)', cancelado: 'var(--rv-text-dim)' };
 
 const ORIGENES = ['Instagram ReventApp', 'WhatsApp', 'Local físico', 'Referido', 'Facebook', 'TikTok', 'Otro'];
-const FORMAS_PAGO = ['Efectivo ARS', 'Efectivo USD', 'Transferencia ARS', 'Transferencia USD', 'Cuotas personales', 'iPhone como parte de pago'];
+const FORMAS_PAGO = ['Efectivo ARS', 'Efectivo USD', 'Transferencia ARS', 'Transferencia USD', 'Cuotas personales', 'Equipo como parte de pago'];
 
 export default function Ventas() {
   const { perfil, negocioId, negocio, plan, limitesPlan } = useAuth();
@@ -36,7 +39,7 @@ export default function Ventas() {
     cobros: [{ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS', cuotas: '', montoCuota: '', fechaInicio: '' }],
     partesDePago: []
   });
-  const [nuevaParte, setNuevaParte] = useState({ modelo: '', gb: '', color: '', bateria: '', imei: '', costoUsd: '', pvUsd: '' });
+  const [nuevaParte, setNuevaParte] = useState({ categoria: 'iPhone', modelo: '', gb: '', color: '', bateria: '', imei: '', costoUsd: '', pvUsd: '' });
 
   const cargar = async () => {
     if (!negocioId) return;
@@ -76,7 +79,7 @@ export default function Ventas() {
   const agregarParte = () => {
     if (!nuevaParte.modelo) return;
     setForm(f => ({ ...f, partesDePago: [...f.partesDePago, { ...nuevaParte }] }));
-    setNuevaParte({ modelo: '', gb: '', color: '', bateria: '', imei: '', costoUsd: '', pvUsd: '' });
+    setNuevaParte({ categoria: 'iPhone', modelo: '', gb: '', color: '', bateria: '', imei: '', costoUsd: '', pvUsd: '' });
   };
 
   const abrirComprobante = async (v) => {
@@ -95,7 +98,7 @@ export default function Ventas() {
   };
 
   const eliminarVenta = async (v) => {
-    if (!window.confirm(`¿Eliminás la venta de ${v.modelo} ${v.gb}GB? Esta acción no se puede deshacer.`)) return;
+    if (!window.confirm(`¿Eliminás la venta de ${v.modelo}${v.gb ? ' ' + formatCapacidad(v.gb) : ''}? Esta acción no se puede deshacer.`)) return;
     const base = ['negocios', negocioId];
     await deleteDoc(doc(db, ...base, 'ventas', v.id));
     if (v.equipoId) {
@@ -169,6 +172,7 @@ export default function Ventas() {
         const ventaData = {
           ...form,
           fecha: serverTimestamp(),
+          categoria: equipo?.categoria || '',
           modelo: equipo?.modelo || '',
           gb: equipo?.gb || '',
           color: equipo?.color || '',
@@ -232,7 +236,7 @@ export default function Ventas() {
         {ventas.map(v => (
           <div key={v.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>{v.modelo} {v.gb}GB {v.color}</div>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>{v.categoria ? `${EMOJI_POR_CATEGORIA[v.categoria] || ''} ` : ''}{v.modelo}{v.gb ? ` ${formatCapacidad(v.gb)}` : ''} {v.color}</div>
               <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                 <IconUser size={11} />{v.cliente || 'Sin cliente'}
                 {v.telefono ? (
@@ -284,13 +288,13 @@ export default function Ventas() {
                   <label style={labelStyle}>Equipo</label>
                   <select value={form.equipoId} onChange={e => setForm({ ...form, equipoId: e.target.value })} required style={inputStyle}>
                     <option value="">Elegir equipo...</option>
-                    {stock.map(s => <option key={s.id} value={s.id}>{s.modelo} {s.gb}GB {s.color} · Bat {s.bateria}%</option>)}
+                    {stock.map(s => <option key={s.id} value={s.id}>{s.categoria ? `[${s.categoria}] ` : ''}{s.modelo} {s.gb ? `· ${formatCapacidad(s.gb)} ` : ''}{s.color}{s.bateria ? ` · Bat ${s.bateria}%` : ''}</option>)}
                   </select>
                 </div>
               )}
               {equipoSeleccionado && (
                 <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--rv-accent)', display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <IconBox size={13} />{equipoSeleccionado.modelo} · {equipoSeleccionado.gb}GB · {equipoSeleccionado.color} · Bat {equipoSeleccionado.bateria}% · Costo USD {equipoSeleccionado.costoUsd}
+                  <IconBox size={13} />{equipoSeleccionado.modelo}{equipoSeleccionado.gb ? ` · ${formatCapacidad(equipoSeleccionado.gb)}` : ''} · {equipoSeleccionado.color}{equipoSeleccionado.bateria ? ` · Bat ${equipoSeleccionado.bateria}%` : ''} · Costo USD {equipoSeleccionado.costoUsd}
                 </div>
               )}
 
@@ -357,7 +361,7 @@ export default function Ventas() {
                   const pvUsd = Number(equipoSeleccionado?.pvUsd || form.pvUsdVenta) || 0;
 
                   const cobradoUsd = form.cobros.reduce((sum, c) => {
-                    if (c.tipo === 'iPhone como parte de pago') return sum;
+                    if (c.tipo === 'Equipo como parte de pago') return sum;
                     const monto = c.tipo === 'Cuotas personales'
                       ? (Number(c.cuotas) || 0) * (Number(c.montoCuota) || 0)
                       : Number(c.monto) || 0;
@@ -384,7 +388,7 @@ export default function Ventas() {
                                 {FORMAS_PAGO.map(f => <option key={f}>{f}</option>)}
                               </select>
                             </div>
-                            {cobro.tipo !== 'iPhone como parte de pago' && (
+                            {cobro.tipo !== 'Equipo como parte de pago' && (
                               <>
                                 <div>
                                   <label style={labelStyle}>Monto</label>
@@ -462,14 +466,14 @@ export default function Ventas() {
                 })()}
               </div>
 
-              {/* Partes de pago iPhone */}
+              {/* Partes de pago (equipos recibidos) */}
               {!editando && (
                 <div style={{ borderTop: '1px solid var(--rv-border)', paddingTop: 16 }}>
-                  <label style={{ ...labelStyle, marginBottom: 12 }}>iPhones recibidos como parte de pago</label>
+                  <label style={{ ...labelStyle, marginBottom: 12 }}>Equipos recibidos como parte de pago</label>
                   {form.partesDePago.map((p, i) => (
                     <div key={i} style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px', marginBottom: 8, fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <span style={{ color: 'var(--rv-accent)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}><IconArrowSwap size={13} />{p.modelo} {p.gb}GB {p.color}</span>
+                        <span style={{ color: 'var(--rv-accent)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}><IconArrowSwap size={13} />{EMOJI_POR_CATEGORIA[p.categoria] || '📱'} {p.modelo} {p.gb ? formatCapacidad(p.gb) : ''} {p.color}</span>
                         <div style={{ color: 'var(--rv-text-dim)', fontSize: 11, marginTop: 3 }}>
                           Toma: USD {p.costoUsd} · Venta: USD {p.pvUsd}
                         </div>
@@ -479,11 +483,12 @@ export default function Ventas() {
                   ))}
                   <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: 14 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                      <div><label style={labelStyle}>Categoría</label><select value={nuevaParte.categoria} onChange={e => setNuevaParte({ ...nuevaParte, categoria: e.target.value })} style={inputStyle}>{CATEGORIAS_STOCK.map(c => <option key={c} value={c}>{EMOJI_POR_CATEGORIA[c]} {c}</option>)}</select></div>
                       <div><label style={labelStyle}>Modelo</label><input value={nuevaParte.modelo} onChange={e => setNuevaParte({ ...nuevaParte, modelo: e.target.value })} placeholder="iPhone 13" style={inputStyle} /></div>
-                      <div><label style={labelStyle}>GB</label><input value={nuevaParte.gb} onChange={e => setNuevaParte({ ...nuevaParte, gb: e.target.value })} placeholder="128" style={inputStyle} /></div>
+                      <div><label style={labelStyle}>Capacidad / specs</label><input value={nuevaParte.gb} onChange={e => setNuevaParte({ ...nuevaParte, gb: e.target.value })} placeholder="128" style={inputStyle} /></div>
                       <div><label style={labelStyle}>Color</label><input value={nuevaParte.color} onChange={e => setNuevaParte({ ...nuevaParte, color: e.target.value })} placeholder="Negro" style={inputStyle} /></div>
                       <div><label style={labelStyle}>Batería %</label><input type="number" value={nuevaParte.bateria} onChange={e => setNuevaParte({ ...nuevaParte, bateria: e.target.value })} placeholder="85" style={inputStyle} /></div>
-                      <div><label style={labelStyle}>IMEI</label><input value={nuevaParte.imei} onChange={e => setNuevaParte({ ...nuevaParte, imei: e.target.value })} style={inputStyle} /></div>
+                      <div><label style={labelStyle}>IMEI / N° de serie</label><input value={nuevaParte.imei} onChange={e => setNuevaParte({ ...nuevaParte, imei: e.target.value })} style={inputStyle} /></div>
                       <div style={{ gridColumn: '1/-1', background: 'var(--rv-accent-soft)', border: '1px solid rgba(47,111,237,0.15)', borderRadius: 8, padding: 10 }}>
                         <div style={{ color: 'var(--rv-accent)', fontSize: 11, fontWeight: 600, marginBottom: 8 }}>VALUACIÓN DEL EQUIPO RECIBIDO</div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -500,7 +505,7 @@ export default function Ventas() {
                         </div>
                       </div>
                     </div>
-                    <button type="button" onClick={agregarParte} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>+ Agregar iPhone</button>
+                    <button type="button" onClick={agregarParte} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>+ Agregar equipo</button>
                   </div>
                 </div>
               )}

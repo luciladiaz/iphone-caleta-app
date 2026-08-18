@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { IconWallet, IconTruck, IconUser, IconClock, IconCheck, IconCheckCircle, IconCalendar, IconCoin, IconFile, IconX, IconBox } from '../components/Icons';
 import { registrarMovimientoPagoProveedor, eliminarMovimientoPagoProveedor } from '../lib/caja';
 
+const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
+
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 
@@ -89,7 +91,7 @@ export default function PagosProveedores() {
             <div key={v.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '18px 20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>{v.modelo} {v.gb}GB {v.color}</div>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>{v.modelo}{v.gb ? ` ${formatCapacidad(v.gb)}` : ''} {v.color}</div>
                   <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}><IconTruck size={11} />{v.proveedor} <span>· <IconUser size={11} style={{ verticalAlign: 'text-bottom' }} /> {v.cliente || '-'}</span></div>
                 </div>
                 <button onClick={() => abrirModalPago(v)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-accent)', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}><IconCheck size={13} />Registrar pago</button>
@@ -121,7 +123,7 @@ export default function PagosProveedores() {
               <div key={v.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '14px 20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>{v.modelo} {v.gb}GB · <IconTruck size={12} />{v.proveedor}</div>
+                    <div style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>{v.modelo}{v.gb ? ` ${formatCapacidad(v.gb)}` : ''} · <IconTruck size={12} />{v.proveedor}</div>
                     <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
                       {v.fechaPagoProveedor && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><IconCalendar size={11} />{new Date(v.fechaPagoProveedor).toLocaleDateString('es-AR')}</span>}
                       {v.montoPagadoProveedor && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><IconCoin size={11} />USD {v.montoPagadoProveedor}</span>}
@@ -146,7 +148,7 @@ export default function PagosProveedores() {
               <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Registrar pago</h2>
               <button onClick={() => setModalPago(null)} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
             </div>
-            <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: '10px 14px', marginBottom: 18, fontSize: 13, color: 'var(--rv-accent)', display: 'flex', alignItems: 'center', gap: 7 }}><IconBox size={13} />{modalPago.modelo} {modalPago.gb}GB · {modalPago.proveedor}</div>
+            <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: '10px 14px', marginBottom: 18, fontSize: 13, color: 'var(--rv-accent)', display: 'flex', alignItems: 'center', gap: 7 }}><IconBox size={13} />{modalPago.modelo}{modalPago.gb ? ` ${formatCapacidad(modalPago.gb)}` : ''} · {modalPago.proveedor}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div><label style={labelStyle}>Fecha de pago</label><input type="date" value={formPago.fecha} onChange={e => setFormPago({ ...formPago, fecha: e.target.value })} style={inputStyle} /></div>
               <div><label style={labelStyle}>Monto pagado (USD)</label><input type="number" value={formPago.monto} onChange={e => setFormPago({ ...formPago, monto: e.target.value })} placeholder="0" style={inputStyle} /></div>

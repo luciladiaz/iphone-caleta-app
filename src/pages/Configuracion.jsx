@@ -4,6 +4,7 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconGear, IconBox, IconCoin, IconArrowSwap, IconX, IconPin, IconUser, IconTruck, IconBell, IconTrendUp, IconTag, IconWallet } from '../components/Icons';
 import { CATEGORIAS_INGRESO as CATEGORIAS_INGRESO_DEFAULT, CATEGORIAS_EGRESO as CATEGORIAS_EGRESO_DEFAULT } from '../lib/caja';
+import { CATEGORIAS_STOCK, MODELOS_DEFAULT_POR_CATEGORIA } from '../lib/categoriasProducto';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -74,7 +75,8 @@ export default function Configuracion() {
   const [vendedores, setVendedores] = useState([]);
   const [proveedores, setProveedores] = useState([]);
   const [origenes, setOrigenes] = useState([]);
-  const [modelos, setModelos] = useState([]);
+  const [modelosPorCategoria, setModelosPorCategoria] = useState({});
+  const [categoriaModelos, setCategoriaModelos] = useState('iPhone');
   const [listaCanje, setListaCanje] = useState([]);
   const [categoriasIngreso, setCategoriasIngreso] = useState([]);
   const [categoriasEgreso, setCategoriasEgreso] = useState([]);
@@ -113,8 +115,15 @@ export default function Configuracion() {
     setTipoDolar(cfg.tipoDolar || 'blue');
     setUltimaActualizacion(cfg.ultimaActualizacionTC || null);
     setOrigenes((cfg.origenes || []).map((o, i) => ({ id: i, nombre: o })));
-    const modelosDefault = ['iPhone 12','iPhone 12 Pro','iPhone 12 Pro Max','iPhone 13','iPhone 13 Pro','iPhone 13 Pro Max','iPhone 14','iPhone 14 Pro','iPhone 14 Pro Max','iPhone 15','iPhone 15 Pro','iPhone 15 Pro Max','iPhone 16','iPhone 16 Plus','iPhone 16 Pro','iPhone 16 Pro Max','iPhone 17','iPhone 17 Air','iPhone 17 Pro','iPhone 17 Pro Max'];
-    setModelos((cfg.modelos || modelosDefault).map((m, i) => ({ id: i, nombre: m })));
+    // Legacy: antes había una sola lista plana `modelos` (todos iPhone). Si ya existe
+    // la nueva `modelosPorCategoria` se usa esa; si no, se migra la vieja a iPhone.
+    const porCategoria = cfg.modelosPorCategoria || {};
+    const nuevoEstado = {};
+    CATEGORIAS_STOCK.forEach(cat => {
+      const lista = porCategoria[cat] || (cat === 'iPhone' ? cfg.modelos : null) || MODELOS_DEFAULT_POR_CATEGORIA[cat] || [];
+      nuevoEstado[cat] = lista.map((m, i) => ({ id: i, nombre: m }));
+    });
+    setModelosPorCategoria(nuevoEstado);
     setListaCanje((cfg.listaCanje || []).map((c, i) => ({ id: i, ...c })));
     setCategoriasIngreso((cfg.categoriasIngreso || CATEGORIAS_INGRESO_DEFAULT).map((c, i) => ({ id: i, nombre: c })));
     setCategoriasEgreso((cfg.categoriasEgreso || CATEGORIAS_EGRESO_DEFAULT).map((c, i) => ({ id: i, nombre: c })));
@@ -212,6 +221,26 @@ export default function Configuracion() {
     cargar();
   };
 
+  const agregarModelo = (categoria) => async (nombre) => {
+    const snap = await getDoc(doc(db, ...base, 'config', 'general'));
+    const actuales = snap.data()?.modelosPorCategoria || {};
+    const listaActual = actuales[categoria] || modelosPorCategoria[categoria]?.map(m => m.nombre) || [];
+    await setDoc(doc(db, ...base, 'config', 'general'), {
+      modelosPorCategoria: { ...actuales, [categoria]: [...listaActual, nombre] },
+    }, { merge: true });
+    cargar();
+  };
+
+  const eliminarModelo = (categoria, items) => async (id) => {
+    const snap = await getDoc(doc(db, ...base, 'config', 'general'));
+    const actuales = snap.data()?.modelosPorCategoria || {};
+    const nuevos = items.filter(m => m.id !== id).map(m => m.nombre);
+    await setDoc(doc(db, ...base, 'config', 'general'), {
+      modelosPorCategoria: { ...actuales, [categoria]: nuevos },
+    }, { merge: true });
+    cargar();
+  };
+
   const agregarCanje = async () => {
     if (!nuevoCanje.modelo || !nuevoCanje.valorUsd) return;
     setGuardandoCanje(true);
@@ -238,7 +267,7 @@ export default function Configuracion() {
     { key: 'vendedores', label: 'Vendedores', Icono: IconUser, contador: vendedores.length },
     { key: 'proveedores', label: 'Proveedores', Icono: IconTruck, contador: proveedores.length },
     { key: 'origenes', label: 'Orígenes de venta', Icono: IconBell, contador: origenes.length },
-    { key: 'modelos', label: 'Modelos de iPhone', Icono: IconTag, contador: modelos.length },
+    { key: 'modelos', label: 'Modelos', Icono: IconTag, contador: Object.values(modelosPorCategoria).reduce((s, l) => s + l.length, 0) },
     { key: 'canje', label: 'Plan Canje', Icono: IconArrowSwap, contador: listaCanje.length },
     { key: 'categoriasCaja', label: 'Categorías de Caja', Icono: IconWallet, contador: categoriasIngreso.length + categoriasEgreso.length },
   ];
@@ -331,8 +360,22 @@ export default function Configuracion() {
       )}
 
       {seccionAbierta === 'modelos' && (
-        <ModalSeccion titulo="Modelos de iPhone" Icono={IconTag} onClose={cerrar}>
-          <SeccionLista items={modelos} onAgregar={agregarEnConfig('modelos')} onEliminar={eliminarDeConfig('modelos', modelos)} placeholder="Ej: iPhone 18 Pro..." />
+        <ModalSeccion titulo="Modelos" Icono={IconTag} onClose={cerrar}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
+            {CATEGORIAS_STOCK.map(cat => (
+              <button key={cat} onClick={() => setCategoriaModelos(cat)} style={{
+                background: categoriaModelos === cat ? 'var(--rv-accent)' : 'var(--rv-surface-alt)',
+                color: categoriaModelos === cat ? '#fff' : 'var(--rv-text-mid)',
+                border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              }}>{cat}</button>
+            ))}
+          </div>
+          <SeccionLista
+            items={modelosPorCategoria[categoriaModelos] || []}
+            onAgregar={agregarModelo(categoriaModelos)}
+            onEliminar={eliminarModelo(categoriaModelos, modelosPorCategoria[categoriaModelos] || [])}
+            placeholder={`Ej: ${categoriaModelos === 'iPhone' ? 'iPhone 18 Pro' : categoriaModelos === 'Mac' ? 'MacBook Pro 14" M5' : categoriaModelos === 'iPad' ? 'iPad Pro 13" M5' : categoriaModelos === 'Android' ? 'Samsung Galaxy S26' : 'DJI Mini 5'}...`}
+          />
         </ModalSeccion>
       )}
 
@@ -344,7 +387,11 @@ export default function Configuracion() {
           <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
             <select value={nuevoCanje.modelo} onChange={e => setNuevoCanje({ ...nuevoCanje, modelo: e.target.value })} style={{ ...inputStyle, flex: '2 1 160px' }}>
               <option value="">Modelo...</option>
-              {modelos.map(m => <option key={m.id} value={m.nombre}>{m.nombre}</option>)}
+              {CATEGORIAS_STOCK.map(cat => (
+                <optgroup key={cat} label={cat}>
+                  {(modelosPorCategoria[cat] || []).map(m => <option key={m.id} value={m.nombre}>{m.nombre}</option>)}
+                </optgroup>
+              ))}
             </select>
             <input value={nuevoCanje.gb} onChange={e => setNuevoCanje({ ...nuevoCanje, gb: e.target.value })} placeholder="GB" style={{ ...inputStyle, flex: '1 1 70px' }} />
             <input type="number" value={nuevoCanje.valorUsd} onChange={e => setNuevoCanje({ ...nuevoCanje, valorUsd: e.target.value })} placeholder="Toma USD" style={{ ...inputStyle, flex: '1 1 100px' }} />
@@ -353,7 +400,7 @@ export default function Configuracion() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {listaCanje.map(c => (
               <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px' }}>
-                <span style={{ fontSize: 14 }}>{c.modelo} {c.gb ? `${c.gb}GB` : ''} — toma USD {c.valorUsd}</span>
+                <span style={{ fontSize: 14 }}>{c.modelo}{c.gb ? ` ${/^\d+$/.test(String(c.gb).trim()) ? c.gb + 'GB' : c.gb}` : ''} — toma USD {c.valorUsd}</span>
                 <button onClick={() => eliminarCanje(c.id)} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', display: 'flex' }}><IconX size={15} /></button>
               </div>
             ))}

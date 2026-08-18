@@ -4,6 +4,8 @@ import html2canvas from 'html2canvas';
 import { db } from '../firebase/config';
 import { IconFile, IconX, IconCheck, IconDownload, IconSave } from './Icons';
 
+const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
+
 const ITEMS_CHECKLIST = [
   { key: 'bateria', label: 'Batería revisada delante del cliente' },
   { key: 'pantalla', label: 'Pantalla sin fisuras, táctil funciona correctamente' },
@@ -121,7 +123,7 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
         </div>
 
         <div style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 20 }}>
-          {venta.modelo} {venta.gb}GB {venta.color} · {venta.cliente || 'Sin cliente'}
+          {venta.modelo}{venta.gb ? ` ${formatCapacidad(venta.gb)}` : ''} {venta.color} · {venta.cliente || 'Sin cliente'}
         </div>
 
         {!modoFirma && c ? (
@@ -214,9 +216,9 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
           <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>{venta.cliente || 'Sin nombre'} {venta.telefono ? `· ${venta.telefono}` : ''}</div>
 
           <div style={{ fontSize: 13, color: '#555', marginBottom: 4 }}>EQUIPO</div>
-          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>{venta.modelo} {venta.gb}GB {venta.color}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>{venta.modelo}{venta.gb ? ` ${formatCapacidad(venta.gb)}` : ''} {venta.color}</div>
           <div style={{ fontSize: 13, color: '#333', marginBottom: 16 }}>
-            IMEI: {venta.imei || 'no registrado'} · Batería al momento de la venta: {venta.bateria ? `${venta.bateria}%` : 'no registrada'}
+            IMEI/N° de serie: {venta.imei || 'no registrado'} · Batería al momento de la venta: {venta.bateria ? `${venta.bateria}%` : 'no registrada'}
           </div>
 
           <div style={{ fontSize: 13, color: '#555', marginBottom: 8 }}>ESTADO VERIFICADO DELANTE DEL CLIENTE</div>

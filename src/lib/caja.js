@@ -2,8 +2,10 @@ import { collection, addDoc, serverTimestamp, query, where, orderBy, limit, getD
 import { db } from '../firebase/config';
 
 // Formas de pago que no representan efectivo/transferencia recibida en el momento
-// (una cuota se cobra a futuro, un iPhone de parte de pago no es dinero).
-const TIPOS_SIN_CAJA = ['Cuotas personales', 'iPhone como parte de pago'];
+// (una cuota se cobra a futuro, un equipo de parte de pago no es dinero). Se
+// mantiene el string viejo 'iPhone como parte de pago' para no dejar de detectar
+// ventas históricas que ya lo tenían guardado así.
+const TIPOS_SIN_CAJA = ['Cuotas personales', 'Equipo como parte de pago', 'iPhone como parte de pago'];
 
 // Categorías elegibles a mano en un movimiento manual (ingreso o egreso). Los
 // movimientos automáticos (venta, cuota, reparación, pago a proveedor) llevan su

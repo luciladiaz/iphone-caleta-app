@@ -4,6 +4,8 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconCoin, IconBox, IconClock, IconWarning, IconBell, IconCheckCircle, IconCheck } from '../components/Icons';
 
+const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
+
 function StatCard({ Icon, label, value, sub, urgente }) {
   return (
     <div style={{
@@ -28,7 +30,7 @@ function fechaCuotaCalc(fechaInicio, idx) {
 }
 
 const generarMensajeWA = (cliente, telefono, modelo, gb, numeroCuota, totalCuotas, monto) => {
-  const mensaje = `Hola ${cliente}! Te recuerdo que vence la cuota ${numeroCuota} de ${totalCuotas} de tu ${modelo} ${gb}GB. El monto es $${Number(monto).toLocaleString('es-AR')} ARS. Cualquier consulta avisame. Gracias!`;
+  const mensaje = `Hola ${cliente}! Te recuerdo que vence la cuota ${numeroCuota} de ${totalCuotas} de tu ${modelo}${gb ? ' ' + formatCapacidad(gb) : ''}. El monto es $${Number(monto).toLocaleString('es-AR')} ARS. Cualquier consulta avisame. Gracias!`;
   const tel = telefono?.replace(/\D/g, '');
   const telAR = tel?.startsWith('54') ? tel : `54${tel}`;
   window.open(`https://wa.me/${telAR}?text=${encodeURIComponent(mensaje)}`, '_blank');
@@ -210,7 +212,7 @@ export default function Dashboard() {
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--rv-text)' }}>{c.cliente}</div>
                       <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 2 }}>
-                        {c.modelo} {c.gb}GB · Cuota {c.cuotaNum} de {c.totalCuotas}
+                        {c.modelo}{c.gb ? ` ${formatCapacidad(c.gb)}` : ''} · Cuota {c.cuotaNum} de {c.totalCuotas}
                         {c.diasAtraso > 0 && <span style={{ color: 'var(--rv-danger)', marginLeft: 8, fontWeight: 600 }}>· {c.diasAtraso} días de atraso</span>}
                       </div>
                       <div style={{ color: 'var(--rv-text)', fontWeight: 700, fontSize: 13, marginTop: 4 }}>
@@ -250,7 +252,7 @@ export default function Dashboard() {
             {ventasRecientes.map(v => (
               <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--rv-surface-alt)', borderRadius: 10 }}>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--rv-text)' }}>{v.modelo} {v.gb}GB {v.color}</div>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--rv-text)' }}>{v.modelo}{v.gb ? ` ${formatCapacidad(v.gb)}` : ''} {v.color}</div>
                   <div style={{ color: 'var(--rv-text-dim)', fontSize: 12 }}>{v.cliente || 'Sin cliente'} · {v.vendedor || '-'}</div>
                 </div>
                 <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 99, border: '1px solid var(--rv-border)', color: 'var(--rv-text-mid)' }}>

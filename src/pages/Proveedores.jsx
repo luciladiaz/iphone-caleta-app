@@ -9,6 +9,7 @@ const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 
 const FORMAS_PAGO = ['Efectivo', 'Transferencia', 'Cheque', 'Otro'];
+const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
 
 // Un equipo de stock se considera pagado si el propio equipo tiene `pagadoProveedor`
 // seteado explícitamente, o (mecanismo viejo, previo a la cuenta corriente) si la
@@ -189,7 +190,7 @@ export default function Proveedores() {
                       {p.items.map(item => (
                         <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '9px 14px', flexWrap: 'wrap', gap: 8 }}>
                           <div style={{ fontSize: 13 }}>
-                            <span style={{ fontWeight: 600 }}>{item.modelo} {item.gb}GB {item.color}</span>
+                            <span style={{ fontWeight: 600 }}>{item.modelo}{item.gb ? ` ${formatCapacidad(item.gb)}` : ''} {item.color}</span>
                             <span style={{ color: 'var(--rv-text-dim)', marginLeft: 8 }}>{item.estado === 'vendido' ? 'Vendido' : item.estado === 'asignado' ? 'Asignado' : 'Disponible'}{item.tipo === 'consignacion' ? ' · Consignación' : ''}</span>
                           </div>
                           <span style={{ fontWeight: 700, fontSize: 13 }}>USD {item.costoUsd}</span>

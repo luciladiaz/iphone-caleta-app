@@ -5,6 +5,9 @@ import { db } from '../firebase/config';
 import { PLANES } from '../config/planes';
 import PlanCanjeModal from '../components/PlanCanjeModal';
 import { IconWarning, IconArrowSwap, IconBox } from '../components/Icons';
+import { EMOJI_POR_CATEGORIA } from '../lib/categoriasProducto';
+
+const formatCapacidad = (gb) => /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
 
 // Normaliza un teléfono argentino cargado en cualquier formato común
 // (con 0 nacional, 15 de celular, con o sin código de país) al formato
@@ -55,7 +58,7 @@ export default function CatalogoPublico() {
   }, [negocioId]);
 
   const equiposFiltrados = equipos.filter(e =>
-    `${e.modelo} ${e.color} ${e.gb}`.toLowerCase().includes(filtro.toLowerCase())
+    `${e.categoria} ${e.modelo} ${e.color} ${e.gb}`.toLowerCase().includes(filtro.toLowerCase())
   );
 
   if (loading) return (
@@ -101,20 +104,29 @@ export default function CatalogoPublico() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
           {equiposFiltrados.map(eq => (
             <div key={eq.id} style={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', gap: 14, borderTop: '3px solid #c9a96e' }}>
-              <div style={{ fontWeight: 700, fontSize: 16 }}>{eq.modelo}</div>
+              <div>
+                <div style={{ fontSize: 11, color: '#86868b', marginBottom: 2 }}>{EMOJI_POR_CATEGORIA[eq.categoria] || '📱'} {eq.categoria || 'iPhone'}</div>
+                <div style={{ fontWeight: 700, fontSize: 16 }}>{eq.modelo}</div>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ color: '#2563EB', fontWeight: 700 }}>✓</span>
-                  <span>{eq.gb}GB</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ color: '#2563EB', fontWeight: 700 }}>✓</span>
-                  <span>{eq.color}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ color: '#2563EB', fontWeight: 700 }}>✓</span>
-                  <span>Batería <strong>{eq.bateria}%</strong></span>
-                </div>
+                {eq.gb && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ color: '#2563EB', fontWeight: 700 }}>✓</span>
+                    <span>{formatCapacidad(eq.gb)}</span>
+                  </div>
+                )}
+                {eq.color && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ color: '#2563EB', fontWeight: 700 }}>✓</span>
+                    <span>{eq.color}</span>
+                  </div>
+                )}
+                {eq.bateria && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ color: '#2563EB', fontWeight: 700 }}>✓</span>
+                    <span>Batería <strong>{eq.bateria}%</strong></span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ color: '#2563EB', fontWeight: 700 }}>✓</span>
                   <span style={{ color: '#30d158', fontWeight: 600 }}>Disponible</span>
@@ -129,7 +141,7 @@ export default function CatalogoPublico() {
               )}
               {numeroWhatsapp(negocio?.telefono) ? (
                 <a
-                  href={`https://wa.me/${numeroWhatsapp(negocio.telefono)}?text=${encodeURIComponent(`Hola! Quiero comprar el ${eq.modelo} ${eq.gb}GB ${eq.color}. ¿Cómo seguimos?`)}`}
+                  href={`https://wa.me/${numeroWhatsapp(negocio.telefono)}?text=${encodeURIComponent(`Hola! Quiero comprar el ${[eq.modelo, eq.gb && formatCapacidad(eq.gb), eq.color].filter(Boolean).join(' ')}. ¿Cómo seguimos?`)}`}
                   target="_blank" rel="noreferrer"
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#25D366', color: '#fff', borderRadius: 10, padding: '10px', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}
                 >

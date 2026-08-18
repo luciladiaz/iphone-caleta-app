@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { IconWallet, IconBell, IconCheck, IconCheckCircle, IconWarning, IconPhone, IconArrowSwap } from '../components/Icons';
 import { registrarMovimientoCuota, eliminarMovimientoCuota } from '../lib/caja';
 
+const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
+
 function diasDesde(fecha) {
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const d = new Date(fecha); d.setHours(0,0,0,0);
@@ -130,7 +132,7 @@ export default function Cobros() {
         ventaId: venta.id, cobroIdx: ci,
         cliente: venta.cliente || 'Sin nombre',
         telefono: venta.telefono || '',
-        modelo: `${venta.modelo || ''} ${venta.gb || ''}GB`.trim(),
+        modelo: `${venta.modelo || ''}${venta.gb ? ' ' + formatCapacidad(venta.gb) : ''}`.trim(),
         cuotasVencidas: vencidas.length, montoVencido: montoTotal,
         moneda: cobro.moneda || 'ARS', maxDias, sem, pendientesFuturo,
         totalCuotas: total, cobro,
@@ -148,7 +150,7 @@ export default function Cobros() {
 
     const tc = tipoCambio || 0;
     const cobradoUsd = (venta.cobros || []).reduce((sum, c) => {
-      if (c.tipo === 'iPhone como parte de pago') return sum;
+      if (c.tipo === 'Equipo como parte de pago' || c.tipo === 'iPhone como parte de pago') return sum;
       const monto = Number(c.monto) || 0;
       return sum + (c.moneda === 'USD' ? monto : tc > 0 ? monto / tc : 0);
     }, 0);
@@ -330,7 +332,7 @@ export default function Cobros() {
         {ventasConCobros.map(v => (
           <div key={v.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 20 }}>
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>{v.modelo} {v.gb}GB · {v.cliente || 'Sin cliente'}</div>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>{v.modelo}{v.gb ? ` ${formatCapacidad(v.gb)}` : ''} · {v.cliente || 'Sin cliente'}</div>
               <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 2 }}>
                 Vendedor: {v.vendedor || '-'}
                 {v.telefono && <a href={`tel:${v.telefono}`} style={{ color: 'var(--rv-accent)', marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 5 }}><IconPhone size={11} />{v.telefono}</a>}
@@ -365,7 +367,7 @@ export default function Cobros() {
                     </div>
                   </div>
                 )}
-                {cobro.tipo === 'iPhone como parte de pago' && <div style={{ color: 'var(--rv-accent)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 7 }}><IconArrowSwap size={13} />iPhone recibido como parte de pago</div>}
+                {(cobro.tipo === 'Equipo como parte de pago' || cobro.tipo === 'iPhone como parte de pago') && <div style={{ color: 'var(--rv-accent)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 7 }}><IconArrowSwap size={13} />Equipo recibido como parte de pago</div>}
               </div>
             ))}
           </div>

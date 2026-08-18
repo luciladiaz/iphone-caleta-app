@@ -32,6 +32,7 @@ export default function Stock() {
   const [editandoId, setEditandoId] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [filtro, setFiltro] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState('activos');
   const [showCalculadora, setShowCalculadora] = useState(false);
   const [modalCatalogo, setModalCatalogo] = useState(false);
   const [copiado, setCopiado] = useState(false);
@@ -118,10 +119,17 @@ export default function Stock() {
 
   const urlCatalogo = `${window.location.origin}/catalogo/${negocioId}`;
   const stockDisponible = equipos.filter(e => e.estado === 'disponible');
+  const stockVendido = equipos.filter(e => e.estado === 'vendido');
   const totalValorUSD = stockDisponible.reduce((acc, e) => acc + Number(e.pvUsd || 0), 0);
-  const equiposFiltrados = equipos.filter(e =>
-    `${e.modelo} ${e.color} ${e.gb} ${e.imei} ${e.puntoVenta} ${e.asignadoA}`.toLowerCase().includes(filtro.toLowerCase())
-  );
+  const equiposFiltrados = equipos
+    .filter(e => {
+      if (filtroEstado === 'activos') return e.estado !== 'vendido';
+      if (filtroEstado === 'vendido') return e.estado === 'vendido';
+      return true;
+    })
+    .filter(e =>
+      `${e.modelo} ${e.color} ${e.gb} ${e.imei} ${e.puntoVenta} ${e.asignadoA}`.toLowerCase().includes(filtro.toLowerCase())
+    );
   const maxStock = limitesPlan?.maxStock ?? Infinity;
   const limiteAlcanzado = maxStock !== Infinity && equipos.length >= maxStock;
 
@@ -138,7 +146,7 @@ export default function Stock() {
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Stock</h1>
           <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, margin: '4px 0 0' }}>
-            {stockDisponible.length} disponibles · {equipos.length} total
+            {stockDisponible.length} disponibles · {stockVendido.length} vendidos · {equipos.length} total
             {esAdmin && totalValorUSD > 0 && <span style={{ color: 'var(--rv-accent)', marginLeft: 8 }}>· USD {totalValorUSD.toFixed(0)} en stock</span>}
           </p>
         </div>
@@ -147,6 +155,12 @@ export default function Stock() {
           <button onClick={() => setModalCatalogo(true)} style={{ background: 'var(--rv-surface-alt)', color: 'var(--rv-text)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}><IconLink size={15} />Catálogo</button>
           {esAdmin && <button onClick={handleAgregarEquipo} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>+ Agregar equipo</button>}
         </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+        {[{ key: 'activos', label: 'En stock' }, { key: 'vendido', label: 'Vendidos' }, { key: 'todos', label: 'Todos' }].map(f => (
+          <button key={f.key} onClick={() => setFiltroEstado(f.key)} style={{ background: filtroEstado === f.key ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: filtroEstado === f.key ? '#fff' : 'var(--rv-text-mid)', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{f.label}</button>
+        ))}
       </div>
 
       <input placeholder="Buscar por modelo, color, IMEI, vendedor..." value={filtro} onChange={e => setFiltro(e.target.value)} style={{ ...inputStyle, marginBottom: 20, maxWidth: 420 }} />
@@ -186,7 +200,7 @@ export default function Stock() {
       {equiposFiltrados.length === 0 && (
         <div style={{ textAlign: 'center', padding: 60, color: 'var(--rv-text-dim)' }}>
           <IconBox size={36} style={{ marginBottom: 12 }} />
-          <p>No hay equipos en stock</p>
+          <p>{filtroEstado === 'vendido' ? 'Todavía no vendiste ningún equipo' : filtro ? 'No hay equipos que coincidan con la búsqueda' : 'No hay equipos en stock'}</p>
         </div>
       )}
 

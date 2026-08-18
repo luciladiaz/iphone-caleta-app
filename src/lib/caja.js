@@ -16,6 +16,7 @@ const CATEGORIA_POR_ORIGEN = {
   cuota: 'Cobro de cuota',
   reparacion: 'Reparación',
   pago_proveedor: 'Pago a proveedor',
+  pago_proveedor_cc: 'Pago a proveedor',
   reparacion_costo: 'Repuesto de reparación',
 };
 
@@ -121,6 +122,33 @@ export async function eliminarMovimientoPagoProveedor(negocioId, ventaId) {
   await eliminarMovimientosVenta(negocioId, ventaId, 'pago_proveedor');
 }
 
+// Pago de la cuenta corriente de un proveedor (independiente de una venta puntual):
+// puede ser parcial, en ARS o USD, con su forma de pago. Cada pago registrado en
+// negocios/{id}/pagosProveedores dispara este egreso en caja, en la moneda real en la
+// que se pagó (no siempre USD, a diferencia del viejo mecanismo por venta).
+export async function registrarPagoProveedorCC(negocioId, pagoId, pago) {
+  const base = ['negocios', negocioId];
+  const monto = Number(pago.monto) || 0;
+  if (monto <= 0) return;
+  await addDoc(collection(db, ...base, 'caja'), {
+    fecha: pago.fecha ? new Date(pago.fecha) : serverTimestamp(),
+    tipo: 'egreso',
+    moneda: pago.moneda === 'ARS' ? 'ARS' : 'USD',
+    monto,
+    concepto: `Pago a ${pago.proveedor || 'proveedor'}${pago.formaPago ? ' · ' + pago.formaPago : ''}${pago.nota ? ' · ' + pago.nota : ''}`,
+    origen: 'pago_proveedor_cc',
+    categoria: CATEGORIA_POR_ORIGEN.pago_proveedor_cc,
+    ventaId: pagoId,
+    cobroIdx: null,
+    cuotaIdx: null,
+    automatico: true,
+  });
+}
+
+export async function eliminarMovimientoPagoProveedorCC(negocioId, pagoId) {
+  await eliminarMovimientosVenta(negocioId, pagoId, 'pago_proveedor_cc');
+}
+
 // El monto que el cliente ya pagó por una reparación entra a caja como ingreso en USD
 // (las reparaciones se presupuestan solo en dólares). Se reusa el campo `ventaId` como
 // id genérico del documento de origen para poder reutilizar eliminarMovimientosVenta.
@@ -177,10 +205,11 @@ export async function eliminarMovimientosReparacion(negocioId, reparacionId) {
 // ventaId + origen + cobroIdx + cuotaIdx y solo se crea si todavía no existe.
 export async function reconciliarCaja(negocioId) {
   const base = ['negocios', negocioId];
-  const [cajaSnap, ventasSnap, reparacionesSnap] = await Promise.all([
+  const [cajaSnap, ventasSnap, reparacionesSnap, pagosProveedorSnap] = await Promise.all([
     getDocs(collection(db, ...base, 'caja')),
     getDocs(collection(db, ...base, 'ventas')),
     getDocs(collection(db, ...base, 'reparaciones')),
+    getDocs(collection(db, ...base, 'pagosProveedores')),
   ]);
 
   const existentes = new Set(
@@ -256,6 +285,16 @@ export async function reconciliarCaja(negocioId) {
       existentes.add(keyEgreso);
       creados++;
     }
+  }
+
+  for (const pagoDoc of pagosProveedorSnap.docs) {
+    const pago = { id: pagoDoc.id, ...pagoDoc.data() };
+    const key = `pago_proveedor_cc:${pago.id}::`;
+    if (existentes.has(key)) continue;
+    if (!(Number(pago.monto) > 0)) continue;
+    await registrarPagoProveedorCC(negocioId, pago.id, pago);
+    existentes.add(key);
+    creados++;
   }
 
   return creados;

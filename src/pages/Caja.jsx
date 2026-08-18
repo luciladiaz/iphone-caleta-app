@@ -9,7 +9,7 @@ import GraficoIngresosEgresos from '../components/GraficoIngresosEgresos';
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 
-const ORIGEN_LABEL = { venta: 'Venta', cuota: 'Cuota', pago_proveedor: 'Pago a proveedor', reparacion: 'Reparación', reparacion_costo: 'Repuesto reparación', manual: 'Otro' };
+const ORIGEN_LABEL = { venta: 'Venta', cuota: 'Cuota', pago_proveedor: 'Pago a proveedor', pago_proveedor_cc: 'Pago a proveedor', reparacion: 'Reparación', reparacion_costo: 'Repuesto reparación', manual: 'Otro' };
 
 // Los movimientos automáticos ya vienen con `categoria` asignada sola; para los pocos
 // movimientos manuales viejos que no la tenían todavía, se cae al label de su origen.

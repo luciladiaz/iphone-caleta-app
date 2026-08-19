@@ -8,9 +8,7 @@ import { IconUser, IconPhone, IconX, IconEdit, IconTrash, IconFile, IconWallet, 
 import { registrarMovimientosVenta, eliminarMovimientosVenta } from '../lib/caja';
 import SelectorCliente from '../components/SelectorCliente';
 import SelectorEquipoStock from '../components/SelectorEquipoStock';
-import { CATEGORIAS_STOCK } from '../lib/categoriasProducto';
-
-const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
+import { CATEGORIAS_STOCK, formatCapacidad } from '../lib/categoriasProducto';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -22,7 +20,6 @@ const FORMAS_PAGO = ['Efectivo ARS', 'Efectivo USD', 'Transferencia ARS', 'Trans
 export default function Ventas() {
   const { perfil, negocioId, negocio, plan, limitesPlan } = useAuth();
   const [comprobanteDe, setComprobanteDe] = useState(null);
-  const esAdmin = perfil?.rol === 'admin';
   const [ventas, setVentas] = useState([]);
   const [stock, setStock] = useState([]);
   const [vendedores, setVendedores] = useState([]);
@@ -95,7 +92,7 @@ export default function Ventas() {
           const eq = eqSnap.data();
           v = { ...v, imei: v.imei || eq.imei || '', bateria: v.bateria || eq.bateria || '' };
         }
-      } catch {}
+      } catch (err) { console.error('Error completando IMEI/batería para el comprobante:', err); }
     }
     setComprobanteDe(v);
   };
@@ -105,9 +102,9 @@ export default function Ventas() {
     const base = ['negocios', negocioId];
     await deleteDoc(doc(db, ...base, 'ventas', v.id));
     if (v.equipoId) {
-      try { await updateDoc(doc(db, ...base, 'stock', v.equipoId), { estado: 'disponible' }); } catch {}
+      try { await updateDoc(doc(db, ...base, 'stock', v.equipoId), { estado: 'disponible' }); } catch (err) { console.error('Error devolviendo el equipo al stock:', err); }
     }
-    try { await eliminarMovimientosVenta(negocioId, v.id); } catch {}
+    try { await eliminarMovimientosVenta(negocioId, v.id); } catch (err) { console.error('Error borrando movimientos de caja de la venta:', err); }
     cargar();
   };
 

@@ -38,3 +38,8 @@ export const EMOJI_POR_CATEGORIA = {
   Android: '📱',
   Drone: '🛸',
 };
+
+// Los teléfonos/tablets guardan la capacidad como número plano ("128") y
+// necesitan el sufijo GB; Mac/Drone suelen cargar specs libres ("16GB RAM /
+// 512GB SSD") que ya vienen con unidad y no hay que duplicar.
+export const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;

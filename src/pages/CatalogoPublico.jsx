@@ -5,8 +5,7 @@ import { db } from '../firebase/config';
 import { PLANES } from '../config/planes';
 import PlanCanjeModal from '../components/PlanCanjeModal';
 import { IconWarning, IconArrowSwap, IconBox } from '../components/Icons';
-
-const formatCapacidad = (gb) => /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
+import { formatCapacidad } from '../lib/categoriasProducto';
 
 // Normaliza un teléfono argentino cargado en cualquier formato común
 // (con 0 nacional, 15 de celular, con o sin código de país) al formato

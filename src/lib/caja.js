@@ -120,10 +120,6 @@ export async function registrarMovimientoPagoProveedor(negocioId, venta, monto, 
   });
 }
 
-export async function eliminarMovimientoPagoProveedor(negocioId, ventaId) {
-  await eliminarMovimientosVenta(negocioId, ventaId, 'pago_proveedor');
-}
-
 // Pago de la cuenta corriente de un proveedor (independiente de una venta puntual):
 // puede ser parcial, en ARS o USD, con su forma de pago. Cada pago registrado en
 // negocios/{id}/pagosProveedores dispara este egreso en caja, en la moneda real en la

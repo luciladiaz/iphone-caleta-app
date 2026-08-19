@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+﻿import { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
@@ -280,7 +280,7 @@ function FeedTestimonio({ cita, nombre, ciudad }) {
       <div style={{ position: 'absolute', bottom: 60, right: -40, width: 180, height: 180, borderRadius: '50%', border: '1px solid rgba(37,99,235,0.1)', pointerEvents: 'none' }} />
 
       <div style={{ flex: 1, padding: '36px 52px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div style={{ fontSize: 70, fontWeight: 900, color: B.blue, lineHeight: 0.9, marginBottom: 14, opacity: 0.65 }}>"</div>
+        <div style={{ fontSize: 70, fontWeight: 900, color: B.blue, lineHeight: 0.9, marginBottom: 14, opacity: 0.65 }}>&ldquo;</div>
         <div style={{ fontSize: 15, color: B.blue, letterSpacing: 4, marginBottom: 18 }}>★★★★★</div>
         <div style={{ fontSize: 21, fontWeight: 700, color: B.white, lineHeight: 1.55, letterSpacing: '-0.5px', marginBottom: 28, whiteSpace: 'pre-line' }}>{cita}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -692,84 +692,6 @@ function AdHook({ headline, callout, trial, cta, tagline, url }) {
       <div style={{ padding: '0 28px 18px', textAlign: 'center', zIndex: 2 }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: '#e2e8f0', marginBottom: 2, letterSpacing: '0.3px' }}>{tagline}</div>
         <div style={{ fontSize: 10, color: '#334155' }}>{url}</div>
-      </div>
-    </div>
-  );
-}
-
-function AdProducto({ headline, callout, trial, cta, tagline, url }) {
-  return (
-    <div style={{
-      width: 405, height: 720,
-      background: 'linear-gradient(175deg, #030b1e 0%, #091840 40%, #030c1f 100%)',
-      display: 'flex', flexDirection: 'column',
-      fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden',
-    }}>
-      {/* Glow central */}
-      <div style={{ position: 'absolute', top: '38%', left: '50%', transform: 'translate(-50%,-50%)', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.28) 0%, transparent 60%)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: -80, right: -80, width: 260, height: 260, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.1) 0%, transparent 65%)', pointerEvents: 'none' }} />
-
-      {/* Logo */}
-      <div style={{ padding: '18px 28px 0', display: 'flex', justifyContent: 'center', zIndex: 2 }}>
-        <LogoMark iconSize={22} />
-      </div>
-
-      {/* Headline */}
-      <div style={{ padding: '12px 24px 0', textAlign: 'center', zIndex: 2 }}>
-        <div style={{ fontSize: 27, fontWeight: 900, color: '#fff', lineHeight: 1.08, letterSpacing: '-0.5px', textTransform: 'uppercase', whiteSpace: 'pre-line' }}>{headline}</div>
-      </div>
-
-      {/* Phone mockup grande */}
-      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '12px 40px', zIndex: 2 }}>
-        <div style={{
-          width: '100%', maxWidth: 220,
-          background: '#090918',
-          border: '3px solid rgba(37,99,235,0.55)',
-          borderRadius: 28,
-          overflow: 'hidden',
-          boxShadow: '0 0 70px rgba(37,99,235,0.38), 0 32px 64px rgba(0,0,0,0.65)',
-        }}>
-          {/* Notch pill */}
-          <div style={{ background: '#090918', padding: '7px 0 4px', display: 'flex', justifyContent: 'center' }}>
-            <div style={{ width: 55, height: 6, background: '#111125', borderRadius: 99 }} />
-          </div>
-          {/* Screenshot real */}
-          <img
-            src="/app-mockup.png"
-            alt="ReventApp"
-            style={{ width: '100%', height: 290, display: 'block', objectFit: 'cover', objectPosition: 'top center' }}
-            crossOrigin="anonymous"
-          />
-          {/* Home indicator */}
-          <div style={{ background: '#090918', padding: '5px 0 7px', display: 'flex', justifyContent: 'center' }}>
-            <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,0.18)', borderRadius: 99 }} />
-          </div>
-        </div>
-      </div>
-
-      {/* Callout */}
-      <div style={{ padding: '0 28px 8px', textAlign: 'center', zIndex: 2 }}>
-        <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.55, whiteSpace: 'pre-line' }}>{callout}</div>
-      </div>
-
-      {/* Trial pill glassmorphism */}
-      <div style={{ padding: '0 24px 9px', zIndex: 2 }}>
-        <div style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 8, padding: '8px 14px', textAlign: 'center' }}>
-          <span style={{ fontSize: 11, color: '#e2e8f0', fontWeight: 600 }}>{trial}</span>
-        </div>
-      </div>
-
-      {/* CTA button */}
-      <div style={{ padding: '0 24px 9px', zIndex: 2 }}>
-        <div style={{ background: 'linear-gradient(90deg, #1a3a8f 0%, #2563EB 100%)', borderRadius: 10, padding: '13px', textAlign: 'center', boxShadow: '0 0 30px rgba(37,99,235,0.55)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <span style={{ fontSize: 15, fontWeight: 900, color: '#fff', letterSpacing: '0.3px' }}>{cta} &gt;</span>
-        </div>
-      </div>
-
-      {/* Tagline + URL */}
-      <div style={{ padding: '0 28px 16px', textAlign: 'center', zIndex: 2 }}>
-        <div style={{ fontSize: 10, fontWeight: 900, color: '#e2e8f0', marginBottom: 3, letterSpacing: '0.5px', textTransform: 'uppercase' }}>{tagline}</div>
-        <div style={{ fontSize: 9, color: '#475569', fontWeight: 600 }}>{url}</div>
       </div>
     </div>
   );

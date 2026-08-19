@@ -187,18 +187,18 @@ export default function Accesorios() {
       )}
 
       {/* Filtros */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <input
-          placeholder="Buscar accesorio..."
-          value={filtro} onChange={e => setFiltro(e.target.value)}
-          style={{ ...inputStyle, flex: 1, minWidth: 180 }}
-        />
-        <select value={categoriaFiltro} onChange={e => setCategoriaFiltro(e.target.value)}
-          style={{ ...inputStyle, width: 'auto', minWidth: 160 }}>
-          <option value="Todas">Todas las categorías</option>
-          {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+        <button onClick={() => setCategoriaFiltro('Todas')} style={{ background: categoriaFiltro === 'Todas' ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: categoriaFiltro === 'Todas' ? '#fff' : 'var(--rv-text-dim)', border: '1px solid var(--rv-border)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Todas las categorías</button>
+        {CATEGORIAS.map(c => (
+          <button key={c} onClick={() => setCategoriaFiltro(c)} style={{ background: categoriaFiltro === c ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: categoriaFiltro === c ? '#fff' : 'var(--rv-text-dim)', border: '1px solid var(--rv-border)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{c}</button>
+        ))}
       </div>
+
+      <input
+        placeholder="Buscar accesorio..."
+        value={filtro} onChange={e => setFiltro(e.target.value)}
+        style={{ ...inputStyle, marginBottom: 20, maxWidth: 420 }}
+      />
 
       {/* Tabla */}
       {filtrados.length === 0 ? (

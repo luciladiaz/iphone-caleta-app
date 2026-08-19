@@ -3,8 +3,7 @@ import { collection, getDocs, query, orderBy, limit, doc, getDoc, updateDoc } fr
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconCoin, IconBox, IconClock, IconWarning, IconBell, IconCheckCircle, IconCheck } from '../components/Icons';
-
-const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
+import { formatCapacidad } from '../lib/categoriasProducto';
 
 function StatCard({ Icon, label, value, sub, urgente }) {
   return (

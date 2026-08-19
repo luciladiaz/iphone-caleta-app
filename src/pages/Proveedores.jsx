@@ -4,12 +4,12 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconTruck, IconGear, IconCheckCircle, IconWarning, IconBox, IconPlus, IconTrash, IconX, IconCalendar, IconCard } from '../components/Icons';
 import { registrarPagoProveedorCC, eliminarMovimientoPagoProveedorCC } from '../lib/caja';
+import { formatCapacidad } from '../lib/categoriasProducto';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 
 const FORMAS_PAGO = ['Efectivo', 'Transferencia', 'Cheque', 'Otro'];
-const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
 
 // Un equipo de stock se considera pagado si el propio equipo tiene `pagadoProveedor`
 // seteado explícitamente, o (mecanismo viejo, previo a la cuenta corriente) si la
@@ -143,7 +143,7 @@ export default function Proveedores() {
     <div>
       <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}><IconTruck size={22} style={{ color: 'var(--rv-accent)' }} />Proveedores</h1>
       <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-        Cargá los proveedores desde <IconGear size={12} />Configuración. El costo que cargás al agregar un equipo al Stock se atribuye acá solo, como cuenta corriente. Los equipos de "Compra directa" generan deuda apenas se cargan; los de "Consignación" recién generan deuda cuando se venden.
+        Cargá los proveedores desde <IconGear size={12} />Configuración. El costo que cargás al agregar un equipo al Stock se atribuye acá solo, como cuenta corriente. Los equipos de &ldquo;Compra directa&rdquo; generan deuda apenas se cargan; los de &ldquo;Consignación&rdquo; recién generan deuda cuando se venden.
       </p>
       {totalPendienteGeneral > 0 && (
         <div style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', borderRadius: 10, padding: '10px 16px', marginBottom: 24, display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13 }}>

@@ -89,7 +89,7 @@ export default function Reparaciones() {
   const eliminarReparacion = async (rep) => {
     if (!window.confirm('¿Eliminás esta reparación? Esta acción no se puede deshacer.')) return;
     await deleteDoc(doc(db, ...base, 'reparaciones', rep.id));
-    try { await eliminarMovimientosReparacion(negocioId, rep.id); } catch {}
+    try { await eliminarMovimientosReparacion(negocioId, rep.id); } catch (err) { console.error('Error borrando movimientos de caja de la reparación:', err); }
     cargar();
   };
 
@@ -207,7 +207,7 @@ export default function Reparaciones() {
                   onClienteCreado={(c) => setClientes(cs => [...cs, c].sort((a, b) => a.nombre.localeCompare(b.nombre)))}
                 />
                 <div><label style={labelStyle}>Teléfono</label><input value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} placeholder="+54 9 11 1234-5678" style={inputStyle} /></div>
-                <div><label style={labelStyle}>Modelo</label><input value={form.modelo} onChange={e => setForm({ ...form, modelo: e.target.value })} placeholder="iPhone 13" required style={inputStyle} /></div>
+                <div><label style={labelStyle}>Modelo</label><input value={form.modelo} onChange={e => setForm({ ...form, modelo: e.target.value })} placeholder="Modelo del equipo" required style={inputStyle} /></div>
                 <div><label style={labelStyle}>Color</label><input value={form.color} onChange={e => setForm({ ...form, color: e.target.value })} placeholder="Negro" style={inputStyle} /></div>
                 <div><label style={labelStyle}>IMEI / N° de serie</label><input value={form.imei} onChange={e => setForm({ ...form, imei: e.target.value })} placeholder="123456789012345" style={inputStyle} /></div>
                 <div><label style={labelStyle}>Clave / patrón</label><input value={form.claveEquipo} onChange={e => setForm({ ...form, claveEquipo: e.target.value })} placeholder="Para poder testear" style={inputStyle} /></div>

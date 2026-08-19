@@ -1,5 +1,4 @@
 ﻿import { useState, useEffect } from 'react';
-import { PLANES } from '../config/planes';
 
 // ── Lógica de simulación (réplica de AuthContext) ─────────────────────────────
 function simularNegocio(negocio) {
@@ -220,7 +219,7 @@ async function runTests(setLog) {
   // ──────────────────────────────────────────────────────────────────────────
   try {
     await whook('cleanup', { negocioIds: TEST_IDS });
-  } catch {}
+  } catch (err) { console.error('Error en la limpieza automática de documentos de test:', err); }
 
   return results;
 }

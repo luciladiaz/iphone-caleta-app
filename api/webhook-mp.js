@@ -86,7 +86,7 @@ async function logPagoRechazado(negocioId, mpId) {
       mpId: mpId || 'test',
       fecha: FieldValue.serverTimestamp(),
     });
-  } catch {}
+  } catch (err) { console.error('[Webhook MP] Error logueando pago rechazado:', err); }
   console.log(`[Webhook MP] ⏳ Pago rechazado, MP reintentando | negocio=${negocioId}`);
 }
 

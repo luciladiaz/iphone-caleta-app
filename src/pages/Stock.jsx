@@ -5,17 +5,13 @@ import { useAuth } from '../context/AuthContext';
 import CalculadoraPrecio from '../components/CalculadoraPrecio';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
 import { IconCalculator, IconLink, IconShare, IconEdit, IconTrash, IconCheck, IconX, IconBox, IconPin } from '../components/Icons';
-import { CATEGORIAS_STOCK, MODELOS_DEFAULT_POR_CATEGORIA, ETIQUETA_ID_POR_CATEGORIA, SUGERENCIAS_CAPACIDAD_POR_CATEGORIA, EMOJI_POR_CATEGORIA } from '../lib/categoriasProducto';
+import { CATEGORIAS_STOCK, MODELOS_DEFAULT_POR_CATEGORIA, ETIQUETA_ID_POR_CATEGORIA, SUGERENCIAS_CAPACIDAD_POR_CATEGORIA, EMOJI_POR_CATEGORIA, formatCapacidad } from '../lib/categoriasProducto';
 
 const COLORES = ['Negro','Blanco','Azul','Natural','Desert','Desert Titanium','Natural Titanium','Naranja','Rosa','Verde','Morado','Rojo','Gris','Plata','Dorado'];
 const TIPOS = ['compra','consignacion'];
 const ESTADOS = ['disponible','asignado','vendido'];
 const estadoColor = { disponible: 'var(--rv-accent)', asignado: 'var(--rv-text-mid)', vendido: 'var(--rv-text-dim)' };
 
-// Los teléfonos guardan la capacidad como número plano ("128") y necesitan el
-// sufijo GB; Mac/Drone suelen cargar specs libres ("16GB RAM / 512GB SSD") que
-// ya vienen con unidad y no hay que duplicar.
-const formatCapacidad = (gb) => /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
 const fechaMs = (f) => { if (!f) return 0; const d = f.toDate ? f.toDate() : new Date(f); return d.getTime(); };
 const formatFecha = (f) => { if (!f) return 'Sin fecha'; const d = f.toDate ? f.toDate() : new Date(f); return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }); };
 const ESTADO_VENTA_LABEL = { pendiente: 'Pendiente', entregado: 'Entregado', cancelado: 'Cancelado' };

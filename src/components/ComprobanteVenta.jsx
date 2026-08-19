@@ -3,8 +3,7 @@ import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import html2canvas from 'html2canvas';
 import { db } from '../firebase/config';
 import { IconFile, IconX, IconCheck, IconDownload, IconSave } from './Icons';
-
-const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
+import { formatCapacidad } from '../lib/categoriasProducto';
 
 const ITEMS_CHECKLIST = [
   { key: 'bateria', label: 'Batería revisada delante del cliente' },

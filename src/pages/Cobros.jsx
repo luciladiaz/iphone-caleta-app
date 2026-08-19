@@ -4,8 +4,7 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconWallet, IconBell, IconCheck, IconCheckCircle, IconWarning, IconPhone } from '../components/Icons';
 import { registrarMovimientoCuota, eliminarMovimientoCuota } from '../lib/caja';
-
-const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
+import { formatCapacidad } from '../lib/categoriasProducto';
 
 function diasDesde(fecha) {
   const hoy = new Date(); hoy.setHours(0,0,0,0);

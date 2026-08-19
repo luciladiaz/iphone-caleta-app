@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconChart } from '../components/Icons';
@@ -9,6 +9,7 @@ const fmt = (n) => new Intl.NumberFormat('es-AR').format(Math.round(n));
 export default function DashboardGerencial() {
   const { negocioId } = useAuth();
   const [datos, setDatos] = useState(null);
+  const [tipoCambio, setTipoCambio] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,10 +22,12 @@ export default function DashboardGerencial() {
     inicioMes.setDate(1);
     inicioMes.setHours(0, 0, 0, 0);
 
-    const [ventasSnap, stockSnap] = await Promise.all([
+    const [ventasSnap, stockSnap, cfgSnap] = await Promise.all([
       getDocs(query(collection(db, 'negocios', negocioId, 'ventas'), orderBy('fecha', 'desc'))),
       getDocs(collection(db, 'negocios', negocioId, 'stock')),
+      getDoc(doc(db, 'negocios', negocioId, 'config', 'general')),
     ]);
+    setTipoCambio(Number(cfgSnap.data()?.tipoCambio) || 0);
 
     const todas = ventasSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     const ventasMes = todas.filter(v => {
@@ -104,7 +107,7 @@ export default function DashboardGerencial() {
                 const fecha = v.fecha?.toDate?.() || new Date(v.fecha);
                 const totalVenta = (v.cobros || []).reduce((acc, c) => {
                   const m = parseFloat(c.monto) || 0;
-                  return acc + (c.moneda === 'ARS' ? m : m * (v.tipoCambio || 1200));
+                  return acc + (c.moneda === 'ARS' ? m : m * (Number(v.tipoCambio) || tipoCambio || 0));
                 }, 0);
                 return (
                   <div key={v.id} style={{ padding: '14px 24px', borderBottom: '1px solid var(--rv-border-soft)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>

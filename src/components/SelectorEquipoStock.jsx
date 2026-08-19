@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { IconSearch, IconX, IconBox } from './Icons';
+import { formatCapacidad } from '../lib/categoriasProducto';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
-
-const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
 
 // Combobox de equipo de stock reutilizable: busca por modelo, color o —sobre todo—
 // IMEI/N° de serie, porque puede haber varias unidades idénticas (mismo modelo,

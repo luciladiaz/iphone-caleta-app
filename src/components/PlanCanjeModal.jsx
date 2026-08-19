@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { IconArrowSwap, IconX } from './Icons';
-
-const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
+import { formatCapacidad } from '../lib/categoriasProducto';
 
 export default function PlanCanjeModal({ equipo, listaCanje, tipoCambio, numeroWhatsapp, telefono, onClose }) {
   const [seleccion, setSeleccion] = useState('');

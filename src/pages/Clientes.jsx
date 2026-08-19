@@ -3,13 +3,13 @@ import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy,
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconUser, IconPhone, IconMail, IconPin, IconHash, IconEdit, IconTrash, IconX, IconPlus, IconSearch, IconBox, IconArrowSwap, IconWrench, IconClock } from '../components/Icons';
+import { formatCapacidad } from '../lib/categoriasProducto';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 
 const FORM_VACIO = { nombre: '', telefono: '', email: '', dni: '', direccion: '', notas: '' };
 
-const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
 const fechaMs = (f) => { if (!f) return 0; const d = f.toDate ? f.toDate() : new Date(f); return d.getTime(); };
 const formatFecha = (f) => { if (!f) return 'Sin fecha'; const d = f.toDate ? f.toDate() : new Date(f); return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }); };
 
@@ -263,7 +263,7 @@ export default function Clientes() {
                           </div>
                           {ev.venta.cobros?.length > 0 && (
                             <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 4 }}>
-                              {ev.venta.cobros.map((c, ci) => `${c.tipo}${c.monto ? `: ${c.moneda === 'USD' ? 'USD' : '$'} ${c.monto}` : ''}`).join(' · ')}
+                              {ev.venta.cobros.map((c) => `${c.tipo}${c.monto ? `: ${c.moneda === 'USD' ? 'USD' : '$'} ${c.monto}` : ''}`).join(' · ')}
                             </div>
                           )}
                         </div>

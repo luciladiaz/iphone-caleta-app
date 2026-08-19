@@ -25,7 +25,7 @@ import Accesorios from './pages/Accesorios';
 import Reparaciones from './pages/Reparaciones';
 
 function PrivateRoute({ children, modulo }) {
-  const { user, perfil, negocioId, puedeVer, planActivo, motivoBloqueo } = useAuth();
+  const { user, negocioId, puedeVer, planActivo, motivoBloqueo } = useAuth();
 
   if (!user) return <Navigate to="/landing" />;
 

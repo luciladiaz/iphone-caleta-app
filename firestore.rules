@@ -2,10 +2,44 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Usuarios globales: cada usuario lee su propio doc (para obtener negocioId al login)
+    // Perfil (rol/negocioId/permisos) del usuario autenticado, leído de su propio
+    // doc en la colección global de usuarios.
+    function perfilAutenticado() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    function esAdminDe(negocioId) {
+      return request.auth != null
+        && perfilAutenticado().negocioId == negocioId
+        && perfilAutenticado().rol == 'admin';
+    }
+
+    // Usuarios globales: cada usuario lee su propio doc (para obtener negocioId/permisos
+    // al login). La escritura está separada en create/update para dos cosas:
+    // 1) que un admin pueda dar de alta al doc de OTRO uid (así se crea un vendedor
+    //    desde Usuarios.jsx: antes esto estaba roto, `request.auth.uid == uid` nunca
+    //    daba true porque quien escribe es el admin, no el usuario nuevo);
+    // 2) que un usuario no-admin NUNCA pueda tocar su propio rol/permisos/negocioId
+    //    (si pudiera, se autoescalaría a admin editando su propio doc a mano).
     match /usuarios/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
-      allow write: if request.auth != null && request.auth.uid == uid;
+
+      // Alta propia: auto-registro de un negocio nuevo (Registro.jsx) — el usuario
+      // recién creado se autoasigna su propio uid como negocioId (nace admin de su
+      // propio negocio).
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.negocioId == uid;
+
+      // Alta de un compañero de equipo: la hace un admin ya existente del negocio.
+      allow create: if esAdminDe(request.resource.data.negocioId);
+
+      allow update: if esAdminDe(resource.data.negocioId)
+        || (request.auth != null && request.auth.uid == uid
+            && request.resource.data.rol == resource.data.rol
+            && request.resource.data.permisos == resource.data.permisos
+            && request.resource.data.negocioId == resource.data.negocioId);
+
+      allow delete: if esAdminDe(resource.data.negocioId);
     }
 
     // Negocios: solo acceden usuarios que pertenecen al negocio

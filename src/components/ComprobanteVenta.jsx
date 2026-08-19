@@ -1,23 +1,36 @@
 import { useRef, useState, useEffect } from 'react';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import html2canvas from 'html2canvas';
 import { db } from '../firebase/config';
-import { IconFile, IconX, IconCheck, IconDownload, IconSave } from './Icons';
+import { IconFile, IconX, IconCheck, IconDownload, IconSave, IconTrash } from './Icons';
 import { formatCapacidad } from '../lib/categoriasProducto';
 
-const ITEMS_CHECKLIST = [
-  { key: 'bateria', label: 'Batería revisada delante del cliente' },
-  { key: 'pantalla', label: 'Pantalla sin fisuras, táctil funciona correctamente' },
-  { key: 'camaras', label: 'Cámaras (foto y video) probadas' },
-  { key: 'botones', label: 'Botones de volumen y encendido funcionan' },
-  { key: 'carga', label: 'Carga y conexión (WiFi/datos) probadas' },
-  { key: 'faceId', label: 'Face ID / Touch ID funciona' },
+const ITEMS_CHECKLIST_DEFAULT = [
+  'Batería revisada delante del cliente',
+  'Pantalla sin fisuras, táctil funciona correctamente',
+  'Cámaras (foto y video) probadas',
+  'Botones de volumen y encendido funcionan',
+  'Carga y conexión (WiFi/datos) probadas',
+  'Face ID / Touch ID funciona',
 ];
+
+// Comprobantes viejos guardan el checklist como {key: true/false} con textos fijos;
+// los nuevos, como lista [{label, checked}] editable por el negocio. Esto traduce
+// el formato viejo al nuevo para poder seguir mostrándolo.
+const LABEL_POR_KEY_VIEJA = {
+  bateria: ITEMS_CHECKLIST_DEFAULT[0], pantalla: ITEMS_CHECKLIST_DEFAULT[1], camaras: ITEMS_CHECKLIST_DEFAULT[2],
+  botones: ITEMS_CHECKLIST_DEFAULT[3], carga: ITEMS_CHECKLIST_DEFAULT[4], faceId: ITEMS_CHECKLIST_DEFAULT[5],
+};
+function checklistDeComprobante(c) {
+  if (!c?.checklist) return null;
+  if (Array.isArray(c.checklist)) return c.checklist;
+  return Object.entries(c.checklist).map(([key, checked]) => ({ label: LABEL_POR_KEY_VIEJA[key] || key, checked }));
+}
 
 export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vendedorNombre, onClose, onGuardado }) {
   const yaExiste = !!venta.comprobante;
-  const [checklist, setChecklist] = useState(
-    venta.comprobante?.checklist || Object.fromEntries(ITEMS_CHECKLIST.map(i => [i.key, false]))
+  const [items, setItems] = useState(
+    checklistDeComprobante(venta.comprobante) || ITEMS_CHECKLIST_DEFAULT.map(label => ({ label, checked: false }))
   );
   const [modoFirma, setModoFirma] = useState(!yaExiste);
   const [firmaVacia, setFirmaVacia] = useState(true);
@@ -36,6 +49,24 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
   }, [modoFirma]);
+
+  // Si esta venta todavía no tiene su propio checklist guardado, arranca con el último
+  // que el negocio dejó configurado (para no reescribir los puntos en cada venta nueva).
+  useEffect(() => {
+    if (venta.comprobante) return;
+    (async () => {
+      try {
+        const cfgSnap = await getDoc(doc(db, 'negocios', negocioId, 'config', 'general'));
+        const guardado = cfgSnap.data()?.checklistVenta;
+        if (guardado?.length) setItems(guardado.map(label => ({ label, checked: false })));
+      } catch (err) { console.error('Error cargando checklist configurado:', err); }
+    })();
+  }, [negocioId]);
+
+  const editarLabel = (idx, label) => setItems(its => its.map((it, i) => i === idx ? { ...it, label } : it));
+  const toggleItem = (idx) => setItems(its => its.map((it, i) => i === idx ? { ...it, checked: !it.checked } : it));
+  const agregarItem = () => setItems(its => [...its, { label: '', checked: false }]);
+  const quitarItem = (idx) => setItems(its => its.filter((_, i) => i !== idx));
 
   const posDesdeEvento = (e, canvas) => {
     const rect = canvas.getBoundingClientRect();
@@ -69,7 +100,7 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
     setFirmaVacia(true);
   };
 
-  const todoTildado = ITEMS_CHECKLIST.every(i => checklist[i.key]);
+  const todoTildado = items.length > 0 && items.every(it => it.checked);
 
   const generarImagen = async (dataUrlFirma) => {
     setFirmaParaRecibo(dataUrlFirma);
@@ -83,18 +114,21 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
   };
 
   const guardarYGenerar = async () => {
-    if (!todoTildado) { alert('Tildá los 6 puntos del checklist antes de generar el comprobante.'); return; }
+    if (!todoTildado) { alert('Tildá todos los puntos del checklist antes de generar el comprobante.'); return; }
     if (firmaVacia) { alert('Falta la firma del cliente.'); return; }
     setGuardando(true);
     try {
       const firma = canvasRef.current.toDataURL('image/png');
       const comprobante = {
-        checklist,
+        checklist: items,
         firma,
         fecha: serverTimestamp(),
         generadoPor: vendedorNombre || 'Vendedor',
       };
       await updateDoc(doc(db, 'negocios', negocioId, 'ventas', venta.id), { comprobante });
+      // Esta versión del checklist (con lo agregado/editado) queda como la default del
+      // negocio para la próxima venta.
+      await setDoc(doc(db, 'negocios', negocioId, 'config', 'general'), { checklistVenta: items.map(it => it.label) }, { merge: true });
       await generarImagen(firma);
       onGuardado({ ...comprobante, fecha: new Date().toISOString() });
     } catch (err) {
@@ -128,9 +162,9 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
         {!modoFirma && c ? (
           <>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
-              {ITEMS_CHECKLIST.map(i => (
-                <div key={i.key} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--rv-text-mid)', alignItems: 'center' }}>
-                  <IconCheck size={12} /> {i.label}
+              {items.map((it, idx) => (
+                <div key={idx} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--rv-text-mid)', alignItems: 'center' }}>
+                  <IconCheck size={12} /> {it.label}
                 </div>
               ))}
             </div>
@@ -154,19 +188,30 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
             <div style={{ color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
               Chequeo delante del cliente
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-              {ITEMS_CHECKLIST.map(i => (
-                <label key={i.key} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--rv-text-mid)', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+              {items.map((it, idx) => (
+                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <input
                     type="checkbox"
-                    checked={checklist[i.key]}
-                    onChange={e => setChecklist(ch => ({ ...ch, [i.key]: e.target.checked }))}
-                    style={{ width: 18, height: 18, accentColor: 'var(--rv-accent)' }}
+                    checked={it.checked}
+                    onChange={() => toggleItem(idx)}
+                    style={{ width: 18, height: 18, accentColor: 'var(--rv-accent)', flexShrink: 0 }}
                   />
-                  {i.label}
-                </label>
+                  <input
+                    value={it.label}
+                    onChange={e => editarLabel(idx, e.target.value)}
+                    placeholder="Punto a chequear"
+                    style={{ flex: 1, background: 'transparent', border: 'none', borderBottom: '1px solid var(--rv-border)', color: 'var(--rv-text)', fontSize: 13, padding: '4px 2px', outline: 'none' }}
+                  />
+                  <button type="button" onClick={() => quitarItem(idx)} title="Quitar este punto" style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex', flexShrink: 0 }}>
+                    <IconTrash size={13} />
+                  </button>
+                </div>
               ))}
             </div>
+            <button type="button" onClick={agregarItem} style={{ background: 'none', border: '1px solid var(--rv-accent)', color: 'var(--rv-accent)', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', marginBottom: 20 }}>
+              + Agregar punto
+            </button>
 
             <div style={{ color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
               Firma del cliente al retirar
@@ -222,8 +267,8 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
 
           <div style={{ fontSize: 13, color: '#555', marginBottom: 8 }}>ESTADO VERIFICADO DELANTE DEL CLIENTE</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 20 }}>
-            {ITEMS_CHECKLIST.map(i => (
-              <div key={i.key} style={{ fontSize: 13 }}>✓ {i.label}</div>
+            {items.map((it, idx) => (
+              <div key={idx} style={{ fontSize: 13 }}>✓ {it.label}</div>
             ))}
           </div>
 

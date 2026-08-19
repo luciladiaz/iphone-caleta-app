@@ -16,6 +16,9 @@ const estadoColor = { disponible: 'var(--rv-accent)', asignado: 'var(--rv-text-m
 // sufijo GB; Mac/Drone suelen cargar specs libres ("16GB RAM / 512GB SSD") que
 // ya vienen con unidad y no hay que duplicar.
 const formatCapacidad = (gb) => /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
+const fechaMs = (f) => { if (!f) return 0; const d = f.toDate ? f.toDate() : new Date(f); return d.getTime(); };
+const formatFecha = (f) => { if (!f) return 'Sin fecha'; const d = f.toDate ? f.toDate() : new Date(f); return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }); };
+const ESTADO_VENTA_LABEL = { pendiente: 'Pendiente', entregado: 'Entregado', cancelado: 'Cancelado' };
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -26,9 +29,11 @@ export default function Stock() {
   const base = ['negocios', negocioId];
 
   const [equipos, setEquipos] = useState([]);
+  const [ventas, setVentas] = useState([]);
   const [proveedores, setProveedores] = useState([]);
   const [puntosVenta, setPuntosVenta] = useState([]);
   const [vendedores, setVendedores] = useState([]);
+  const [equipoHistorial, setEquipoHistorial] = useState(null);
   const [categoriasProducto, setCategoriasProducto] = useState(CATEGORIAS_STOCK);
   const [modelosPorCategoria, setModelosPorCategoria] = useState(MODELOS_DEFAULT_POR_CATEGORIA);
   const [tipoCambio, setTipoCambio] = useState(0);
@@ -53,14 +58,16 @@ export default function Stock() {
 
   const cargar = async () => {
     if (!negocioId) return;
-    const [eSnap, pSnap, pvSnap, vSnap, cfgSnap] = await Promise.all([
+    const [eSnap, ventasSnap, pSnap, pvSnap, vSnap, cfgSnap] = await Promise.all([
       getDocs(query(collection(db, ...base, 'stock'), orderBy('fechaIngreso', 'desc'))),
+      getDocs(collection(db, ...base, 'ventas')),
       getDocs(collection(db, ...base, 'proveedores')),
       getDocs(collection(db, ...base, 'puntosVenta')),
       getDocs(collection(db, ...base, 'vendedores')),
       getDoc(doc(db, ...base, 'config', 'general')),
     ]);
     setEquipos(eSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    setVentas(ventasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     setProveedores(pSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     setPuntosVenta(pvSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     setVendedores(vSnap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -142,6 +149,24 @@ export default function Stock() {
     if (eq.proveedor) return `${eq.tipo === 'consignacion' ? 'Consignación' : 'Proveedor'}: ${eq.proveedor}`;
     if (eq.tipo === 'parte_de_pago') return 'Recibido como parte de pago (origen no registrado)';
     return null;
+  };
+
+  // Arma la ruta completa de un equipo físico: junta todos los registros de
+  // Stock que compartan el mismo IMEI/N° de serie (porque un mismo aparato puede
+  // volver a entrar más de una vez — se vende, un día lo traen de parte de pago
+  // de otra compra, y vuelve a entrar como un alta nueva) y, para cada uno, su
+  // alta (de dónde salió) y su baja (a quién se le vendió, si corresponde).
+  const historialEquipo = (eq) => {
+    const mismoImei = eq.imei ? equipos.filter(e => e.imei && e.imei === eq.imei) : [eq];
+    const eventos = [];
+    mismoImei.forEach(item => {
+      eventos.push({ tipo: 'alta', fecha: item.fechaIngreso, item });
+      if (item.estado === 'vendido') {
+        const venta = ventas.find(v => v.equipoId === item.id);
+        if (venta) eventos.push({ tipo: 'venta', fecha: venta.fecha, venta, item });
+      }
+    });
+    return eventos.sort((a, b) => fechaMs(a.fecha) - fechaMs(b.fecha));
   };
 
   const generarFichaWA = (eq) => {
@@ -240,7 +265,9 @@ export default function Stock() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
               <div>
                 <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--rv-text-dim)', letterSpacing: 0.4, textTransform: 'uppercase' }}>{eq.categoria || 'iPhone'}</span>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>{eq.modelo}</div>
+                <button onClick={() => setEquipoHistorial(eq)} style={{ display: 'block', background: 'none', border: 'none', padding: 0, font: 'inherit', fontWeight: 700, fontSize: 15, color: 'var(--rv-text)', cursor: 'pointer', textAlign: 'left', textDecoration: 'underline', textDecorationColor: 'var(--rv-border)', textUnderlineOffset: 3 }}>
+                  {eq.modelo}
+                </button>
               </div>
               <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 99, textTransform: 'uppercase', border: '1px solid var(--rv-border)', color: estadoColor[eq.estado] }}>{eq.estado}</span>
             </div>
@@ -366,6 +393,64 @@ export default function Stock() {
           cantidadActual={equipos.length}
           onCerrar={() => setModalLimite(false)}
         />
+      )}
+
+      {/* Modal historial de equipo */}
+      {equipoHistorial && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
+          <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 620, margin: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{equipoHistorial.modelo}{equipoHistorial.gb ? ` · ${formatCapacidad(equipoHistorial.gb)}` : ''} {equipoHistorial.color}</h2>
+                <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 4, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <span>{equipoHistorial.categoria || 'iPhone'}</span>
+                  {equipoHistorial.imei && <span>{ETIQUETA_ID_POR_CATEGORIA[equipoHistorial.categoria] || 'IMEI'} {equipoHistorial.imei}</span>}
+                </div>
+              </div>
+              <button onClick={() => setEquipoHistorial(null)} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
+            </div>
+
+            {!equipoHistorial.imei && (
+              <p style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 16, background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px' }}>
+                Este equipo no tiene IMEI/N° de serie cargado, así que solo se puede mostrar su propio registro — si más adelante vuelve como parte de pago, no se va a poder enlazar automáticamente con este.
+              </p>
+            )}
+
+            <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {historialEquipo(equipoHistorial).map((ev, i, arr) => {
+                const esVenta = ev.tipo === 'venta';
+                const color = esVenta ? 'var(--rv-text-mid)' : 'var(--rv-accent)';
+                return (
+                  <div key={i} style={{ display: 'flex', gap: 12, paddingBottom: 16, borderLeft: i === arr.length - 1 ? 'none' : '2px solid var(--rv-border)', marginLeft: 11, paddingLeft: 20, position: 'relative' }}>
+                    <div style={{
+                      position: 'absolute', left: -12, top: 0, width: 24, height: 24, borderRadius: '50%',
+                      background: 'var(--rv-surface)', border: `2px solid ${color}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {esVenta ? <IconShare size={11} style={{ color }} /> : <IconBox size={11} style={{ color }} />}
+                    </div>
+                    <div style={{ flex: 1, paddingTop: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 2 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color, textTransform: 'uppercase' }}>{esVenta ? 'Venta' : 'Alta en stock'}</span>
+                        <span style={{ fontSize: 11, color: 'var(--rv-text-dim)' }}>{formatFecha(ev.fecha)}</span>
+                        {ev.item.id !== equipoHistorial.id && <span style={{ fontSize: 10, color: 'var(--rv-text-dim)', fontStyle: 'italic' }}>(otro ingreso a stock, mismo equipo)</span>}
+                      </div>
+                      {!esVenta ? (
+                        <div style={{ fontSize: 13, color: 'var(--rv-text-mid)' }}>
+                          {origenDe(ev.item) || 'Sin origen registrado'}
+                          {ev.item.costoUsd ? ` · Costo USD ${ev.item.costoUsd}` : ''}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 13, color: 'var(--rv-text-mid)' }}>
+                          Vendido a {ev.venta.cliente || 'cliente sin nombre'} · USD {ev.venta.pvUsd || ev.item.pvUsd || 0} · {ESTADO_VENTA_LABEL[ev.venta.estado] || ev.venta.estado}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -215,9 +215,14 @@ export default function Configuracion() {
     setSavingTC(false);
   };
 
-  const agregarEnConfig = (campo) => async (nombre) => {
-    const snap = await getDoc(doc(db, ...base, 'config', 'general'));
-    const actuales = snap.data()?.[campo] || [];
+  // Agrega un ítem partiendo de la lista YA resuelta en pantalla (`items`), que
+  // incluye los valores por defecto cuando Firestore todavía no tiene nada guardado.
+  // Antes releía directo de Firestore con un fallback a `[]`: si el negocio nunca
+  // había tocado esa lista, el default solo existía en memoria (nunca se había
+  // guardado), así que el primer "Agregar" pisaba el campo entero con un array
+  // de un solo elemento y los demás valores por defecto desaparecían de la vista.
+  const agregarEnConfig = (campo, items = []) => async (nombre) => {
+    const actuales = items.map(o => o.nombre);
     await setDoc(doc(db, ...base, 'config', 'general'), { [campo]: [...actuales, nombre] }, { merge: true });
     cargar();
   };
@@ -225,6 +230,16 @@ export default function Configuracion() {
   const eliminarDeConfig = (campo, items) => async (id) => {
     const nuevos = items.filter(o => o.id !== id).map(o => o.nombre);
     await setDoc(doc(db, ...base, 'config', 'general'), { [campo]: nuevos }, { merge: true });
+    cargar();
+  };
+
+  // Repara el caso de negocios que ya se comieron el bug de arriba: vuelve a
+  // agregar los valores por defecto que falten, sin tocar lo que ya cargaste vos.
+  const restaurarCategoriasDefault = (campo, items, defaults) => async () => {
+    const nombresActuales = items.map(o => o.nombre);
+    const faltantes = defaults.filter(d => !nombresActuales.some(n => n.toLowerCase() === d.toLowerCase()));
+    if (faltantes.length === 0) return;
+    await setDoc(doc(db, ...base, 'config', 'general'), { [campo]: [...nombresActuales, ...faltantes] }, { merge: true });
     cargar();
   };
 
@@ -383,7 +398,7 @@ export default function Configuracion() {
 
       {seccionAbierta === 'origenes' && (
         <ModalSeccion titulo="Orígenes de venta" Icono={IconBell} onClose={cerrar}>
-          <SeccionLista items={origenes} onAgregar={agregarEnConfig('origenes')} onEliminar={eliminarDeConfig('origenes', origenes)} placeholder="Ej: Instagram, WhatsApp..." />
+          <SeccionLista items={origenes} onAgregar={agregarEnConfig('origenes', origenes)} onEliminar={eliminarDeConfig('origenes', origenes)} placeholder="Ej: Instagram, WhatsApp..." />
         </ModalSeccion>
       )}
 
@@ -458,8 +473,14 @@ export default function Configuracion() {
             Estas son las categorías que aparecen para elegir al cargar un movimiento manual en Caja. Los movimientos automáticos (Venta, Cobro de cuota, Reparación, Pago a proveedor) ya tienen la suya asignada sola.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 24 }}>
-            <SeccionLista titulo="Ingresos" items={categoriasIngreso} onAgregar={agregarEnConfig('categoriasIngreso')} onEliminar={eliminarDeConfig('categoriasIngreso', categoriasIngreso)} placeholder="Ej: Alquiler cobrado..." />
-            <SeccionLista titulo="Egresos" items={categoriasEgreso} onAgregar={agregarEnConfig('categoriasEgreso')} onEliminar={eliminarDeConfig('categoriasEgreso', categoriasEgreso)} placeholder="Ej: Insumos..." />
+            <div>
+              <SeccionLista titulo="Ingresos" items={categoriasIngreso} onAgregar={agregarEnConfig('categoriasIngreso', categoriasIngreso)} onEliminar={eliminarDeConfig('categoriasIngreso', categoriasIngreso)} placeholder="Ej: Alquiler cobrado..." />
+              <button type="button" onClick={restaurarCategoriasDefault('categoriasIngreso', categoriasIngreso, CATEGORIAS_INGRESO_DEFAULT)} style={{ background: 'none', border: 'none', color: 'var(--rv-accent)', fontSize: 11, cursor: 'pointer', padding: 0, marginTop: 6 }}>Restaurar categorías por defecto</button>
+            </div>
+            <div>
+              <SeccionLista titulo="Egresos" items={categoriasEgreso} onAgregar={agregarEnConfig('categoriasEgreso', categoriasEgreso)} onEliminar={eliminarDeConfig('categoriasEgreso', categoriasEgreso)} placeholder="Ej: Insumos..." />
+              <button type="button" onClick={restaurarCategoriasDefault('categoriasEgreso', categoriasEgreso, CATEGORIAS_EGRESO_DEFAULT)} style={{ background: 'none', border: 'none', color: 'var(--rv-accent)', fontSize: 11, cursor: 'pointer', padding: 0, marginTop: 6 }}>Restaurar categorías por defecto</button>
+            </div>
           </div>
         </ModalSeccion>
       )}

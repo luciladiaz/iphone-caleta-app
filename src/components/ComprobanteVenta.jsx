@@ -5,6 +5,16 @@ import { db } from '../firebase/config';
 import { IconFile, IconX, IconCheck, IconDownload, IconSave, IconTrash } from './Icons';
 import { formatCapacidad } from '../lib/categoriasProducto';
 
+const GARANTIA_TEXTO_DEFAULT = `Este equipo cuenta con garantía de 90 días corridos desde la fecha de entrega (mínimo legal: 3 meses para bienes usados, según el Art. 11 de la Ley 24.240 de Defensa del Consumidor).
+
+Cubre fallas de funcionamiento no informadas al momento de la entrega, incluyendo batería por debajo del 80% de su capacidad, pantalla, cámaras, botones, altavoces y conectividad, siempre que la falla no sea consecuencia de golpe, líquido o mal uso posterior a la entrega.
+
+No cubre: daños por caídas, golpes o líquidos; roturas de pantalla o carcasa por impacto; desgaste estético normal; intervención de terceros no autorizados (anula la garantía); pérdida de datos o cuentas asociadas; ni equipos con IMEI alterado.
+
+El equipo debe usarse de forma normal y cuidada. Cualquier apertura fuera de este negocio anula la garantía.
+
+Ante una falla cubierta, presentate con este comprobante y el equipo. Si corresponde, se repara sin cargo o se reemplaza por uno de las mismas o mejores características.`;
+
 const ITEMS_CHECKLIST_DEFAULT = [
   'Batería revisada delante del cliente',
   'Pantalla sin fisuras, táctil funciona correctamente',
@@ -32,6 +42,7 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
   const [items, setItems] = useState(
     checklistDeComprobante(venta.comprobante) || ITEMS_CHECKLIST_DEFAULT.map(label => ({ label, checked: false }))
   );
+  const [garantiaTexto, setGarantiaTexto] = useState(venta.comprobante?.garantiaTexto || GARANTIA_TEXTO_DEFAULT);
   const [modoFirma, setModoFirma] = useState(!yaExiste);
   const [firmaVacia, setFirmaVacia] = useState(true);
   const [guardando, setGuardando] = useState(false);
@@ -57,9 +68,10 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
     (async () => {
       try {
         const cfgSnap = await getDoc(doc(db, 'negocios', negocioId, 'config', 'general'));
-        const guardado = cfgSnap.data()?.checklistVenta;
-        if (guardado?.length) setItems(guardado.map(label => ({ label, checked: false })));
-      } catch (err) { console.error('Error cargando checklist configurado:', err); }
+        const cfg = cfgSnap.data() || {};
+        if (cfg.checklistVenta?.length) setItems(cfg.checklistVenta.map(label => ({ label, checked: false })));
+        if (cfg.garantiaTextoVenta) setGarantiaTexto(cfg.garantiaTextoVenta);
+      } catch (err) { console.error('Error cargando checklist/garantía configurados:', err); }
     })();
   }, [negocioId]);
 
@@ -121,14 +133,15 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
       const firma = canvasRef.current.toDataURL('image/png');
       const comprobante = {
         checklist: items,
+        garantiaTexto,
         firma,
         fecha: serverTimestamp(),
         generadoPor: vendedorNombre || 'Vendedor',
       };
       await updateDoc(doc(db, 'negocios', negocioId, 'ventas', venta.id), { comprobante });
-      // Esta versión del checklist (con lo agregado/editado) queda como la default del
-      // negocio para la próxima venta.
-      await setDoc(doc(db, 'negocios', negocioId, 'config', 'general'), { checklistVenta: items.map(it => it.label) }, { merge: true });
+      // Esta versión del checklist y de la garantía (con lo agregado/editado) queda como
+      // la default del negocio para la próxima venta.
+      await setDoc(doc(db, 'negocios', negocioId, 'config', 'general'), { checklistVenta: items.map(it => it.label), garantiaTextoVenta: garantiaTexto }, { merge: true });
       await generarImagen(firma);
       onGuardado({ ...comprobante, fecha: new Date().toISOString() });
     } catch (err) {
@@ -214,6 +227,16 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
             </button>
 
             <div style={{ color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
+              Garantía (va impresa en el comprobante)
+            </div>
+            <textarea
+              value={garantiaTexto}
+              onChange={e => setGarantiaTexto(e.target.value)}
+              rows={6}
+              style={{ width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 12, lineHeight: 1.5, outline: 'none', boxSizing: 'border-box', resize: 'vertical', marginBottom: 20, fontFamily: 'inherit' }}
+            />
+
+            <div style={{ color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
               Firma del cliente al retirar
             </div>
             <div style={{ background: '#fff', border: '1px solid var(--rv-border)', borderRadius: 10, marginBottom: 8, touchAction: 'none' }}>
@@ -275,10 +298,8 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
           <div style={{ fontSize: 13, color: '#555', marginBottom: 4 }}>FIRMA DEL CLIENTE</div>
           {firmaParaRecibo && <img src={firmaParaRecibo} alt="firma" style={{ width: 240, border: '1px solid #ccc', borderRadius: 6, marginBottom: 20 }} />}
 
-          <div style={{ fontSize: 11, color: '#777', lineHeight: 1.6, borderTop: '1px solid #ccc', paddingTop: 12 }}>
-            Este equipo cuenta con garantía legal de 3 meses conforme a la Ley 24.240 de Defensa del Consumidor.
-            La batería se considera en condiciones normales de uso mientras su capacidad de carga sea igual o mayor al 80%.
-            El cliente revisó y probó el equipo en persona antes de retirarlo, según el detalle anterior.
+          <div style={{ fontSize: 11, color: '#777', lineHeight: 1.6, borderTop: '1px solid #ccc', paddingTop: 12, whiteSpace: 'pre-line' }}>
+            {garantiaTexto}
           </div>
 
           <div style={{ fontSize: 10, color: '#999', marginTop: 16, textAlign: 'right' }}>

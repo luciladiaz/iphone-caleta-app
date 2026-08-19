@@ -63,11 +63,15 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
 
   // Si esta venta todavía no tiene su propio checklist guardado, arranca con el último
   // que el negocio dejó configurado (para no reescribir los puntos en cada venta nueva).
+  // configEditadoRef evita que esta respuesta (async, puede tardar) pise checklist/garantía
+  // si el vendedor ya empezó a tildar/editar mientras se esperaba la config.
+  const configEditadoRef = useRef(false);
   useEffect(() => {
     if (venta.comprobante) return;
     (async () => {
       try {
         const cfgSnap = await getDoc(doc(db, 'negocios', negocioId, 'config', 'general'));
+        if (configEditadoRef.current) return;
         const cfg = cfgSnap.data() || {};
         if (cfg.checklistVenta?.length) setItems(cfg.checklistVenta.map(label => ({ label, checked: false })));
         if (cfg.garantiaTextoVenta) setGarantiaTexto(cfg.garantiaTextoVenta);
@@ -75,10 +79,11 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
     })();
   }, [negocioId]);
 
-  const editarLabel = (idx, label) => setItems(its => its.map((it, i) => i === idx ? { ...it, label } : it));
-  const toggleItem = (idx) => setItems(its => its.map((it, i) => i === idx ? { ...it, checked: !it.checked } : it));
-  const agregarItem = () => setItems(its => [...its, { label: '', checked: false }]);
-  const quitarItem = (idx) => setItems(its => its.filter((_, i) => i !== idx));
+  const editarLabel = (idx, label) => { configEditadoRef.current = true; setItems(its => its.map((it, i) => i === idx ? { ...it, label } : it)); };
+  const toggleItem = (idx) => { configEditadoRef.current = true; setItems(its => its.map((it, i) => i === idx ? { ...it, checked: !it.checked } : it)); };
+  const agregarItem = () => { configEditadoRef.current = true; setItems(its => [...its, { label: '', checked: false }]); };
+  const quitarItem = (idx) => { configEditadoRef.current = true; setItems(its => its.filter((_, i) => i !== idx)); };
+  const editarGarantia = (texto) => { configEditadoRef.current = true; setGarantiaTexto(texto); };
 
   const posDesdeEvento = (e, canvas) => {
     const rect = canvas.getBoundingClientRect();
@@ -112,7 +117,7 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
     setFirmaVacia(true);
   };
 
-  const todoTildado = items.length > 0 && items.every(it => it.checked);
+  const todoTildado = items.length > 0 && items.every(it => it.checked && it.label.trim());
 
   const generarImagen = async (dataUrlFirma) => {
     setFirmaParaRecibo(dataUrlFirma);
@@ -140,8 +145,11 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
       };
       await updateDoc(doc(db, 'negocios', negocioId, 'ventas', venta.id), { comprobante });
       // Esta versión del checklist y de la garantía (con lo agregado/editado) queda como
-      // la default del negocio para la próxima venta.
-      await setDoc(doc(db, 'negocios', negocioId, 'config', 'general'), { checklistVenta: items.map(it => it.label), garantiaTextoVenta: garantiaTexto }, { merge: true });
+      // la default del negocio para la próxima venta. No se espera ni se deja que una
+      // falla acá tire abajo todo el flujo: el comprobante ya quedó guardado y el
+      // vendedor necesita el PNG igual.
+      setDoc(doc(db, 'negocios', negocioId, 'config', 'general'), { checklistVenta: items.map(it => it.label), garantiaTextoVenta: garantiaTexto }, { merge: true })
+        .catch(err => console.error('Error guardando checklist/garantía default:', err));
       await generarImagen(firma);
       onGuardado({ ...comprobante, fecha: new Date().toISOString() });
     } catch (err) {
@@ -231,7 +239,7 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
             </div>
             <textarea
               value={garantiaTexto}
-              onChange={e => setGarantiaTexto(e.target.value)}
+              onChange={e => editarGarantia(e.target.value)}
               rows={6}
               style={{ width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 12, lineHeight: 1.5, outline: 'none', boxSizing: 'border-box', resize: 'vertical', marginBottom: 20, fontFamily: 'inherit' }}
             />

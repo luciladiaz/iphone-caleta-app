@@ -25,7 +25,7 @@ import Accesorios from './pages/Accesorios';
 import Reparaciones from './pages/Reparaciones';
 
 function PrivateRoute({ children, modulo }) {
-  const { user, negocioId, puedeVer, planActivo, motivoBloqueo } = useAuth();
+  const { user, perfil, negocioId, puedeVer, planActivo, motivoBloqueo, logout } = useAuth();
 
   if (!user) return <Navigate to="/landing" />;
 
@@ -34,6 +34,16 @@ function PrivateRoute({ children, modulo }) {
   if (!user.emailVerified && negocioId === user.uid) return <Navigate to="/login" />;
 
   if (!planActivo) return <Navigate to={`/planes?motivo=${motivoBloqueo || 'vencido'}`} />;
+
+  // Un admin puede desactivar a un vendedor desde Usuarios sin borrar su cuenta.
+  // Si `perfil` todavía no cargó (carrera al registrarse) no se bloquea.
+  if (perfil && perfil.activo === false) return (
+    <div style={{ padding: 60, textAlign: 'center', color: 'var(--rv-text-dim)', fontFamily: 'Manrope, sans-serif' }}>
+      <div style={{ fontSize: 40, marginBottom: 12 }}>🔒</div>
+      <p>Tu cuenta fue desactivada. Consultá con el administrador de tu negocio.</p>
+      <button onClick={logout} style={{ marginTop: 16, background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, padding: '10px 20px', color: 'var(--rv-text)', fontSize: 14, cursor: 'pointer' }}>Cerrar sesión</button>
+    </div>
+  );
 
   if (modulo && !puedeVer(modulo)) return (
     <div style={{ padding: 60, textAlign: 'center', color: 'var(--rv-text-dim)', fontFamily: 'Manrope, sans-serif' }}>

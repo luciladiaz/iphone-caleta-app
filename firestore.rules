@@ -42,10 +42,15 @@ service cloud.firestore {
       allow delete: if esAdminDe(resource.data.negocioId);
     }
 
-    // Negocios: solo acceden usuarios que pertenecen al negocio
+    // Negocios: solo acceden usuarios que pertenecen al negocio Y que además
+    // estén activos. Si un admin desactiva a alguien desde Usuarios.jsx, esto le
+    // corta el acceso de verdad (a nivel base de datos, no solo ocultándole
+    // pantallas) — no puede seguir leyendo ni escribiendo nada aunque intente
+    // hacerlo por afuera de la app, con la sesión que ya tenía abierta.
     match /negocios/{negocioId}/{document=**} {
       allow read, write: if request.auth != null
-        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.negocioId == negocioId;
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.negocioId == negocioId
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.activo != false;
     }
 
     // Catálogo público: cualquiera puede leer el stock disponible

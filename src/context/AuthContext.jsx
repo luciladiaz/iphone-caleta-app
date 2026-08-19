@@ -62,9 +62,11 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     let unsubNegocio = null;
+    let unsubPerfil = null;
 
     const unsubAuth = onAuthStateChanged(auth, async (u) => {
       if (unsubNegocio) { unsubNegocio(); unsubNegocio = null; }
+      if (unsubPerfil) { unsubPerfil(); unsubPerfil = null; }
 
       if (!u) {
         setUser(null); setPerfil(null); setNegocioId(null);
@@ -130,6 +132,16 @@ export function AuthProvider({ children }) {
             setLoading(false);
           }
         );
+
+        // Escucha en vivo el propio doc de usuario: si un admin te desactiva
+        // (Usuarios.jsx), la sesión se corta al instante en vez de esperar a que
+        // recargues la página o vuelvas a loguearte.
+        unsubPerfil = onSnapshot(doc(db, 'usuarios', u.uid), (perfilSnap) => {
+          if (!perfilSnap.exists()) return;
+          const perfilData = perfilSnap.data();
+          if (perfilData.activo === false) { signOut(auth); return; }
+          setPerfil(perfilData);
+        }, (err) => console.error('Error escuchando perfil:', err));
       } catch (e) {
         console.error('Error cargando perfil:', e);
         setPlanActivo(true);
@@ -137,7 +149,7 @@ export function AuthProvider({ children }) {
       }
     });
 
-    return () => { unsubAuth(); if (unsubNegocio) unsubNegocio(); };
+    return () => { unsubAuth(); if (unsubNegocio) unsubNegocio(); if (unsubPerfil) unsubPerfil(); };
   }, []);
 
   const login = (email, password) => signInWithEmailAndPassword(auth, email, password);

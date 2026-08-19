@@ -145,9 +145,13 @@ export default function Usuarios() {
                   <IconEdit size={12} />Editar
                 </button>
               )}
-              <button onClick={() => toggleActivo(u)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text-mid)', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                {u.activo ? 'Activo' : 'Inactivo'}
-              </button>
+              {u.rol === 'admin' ? (
+                <span style={{ color: 'var(--rv-text-dim)', fontSize: 12, fontWeight: 600, padding: '6px 14px' }}>Admin</span>
+              ) : (
+                <button onClick={() => toggleActivo(u)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text-mid)', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  {u.activo ? 'Activo' : 'Inactivo'}
+                </button>
+              )}
             </div>
           </div>
         ))}

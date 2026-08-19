@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
-import { collection, getDocs, getDoc, addDoc, serverTimestamp, query, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, getDoc, addDoc, serverTimestamp, query, orderBy, doc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
@@ -73,7 +73,18 @@ export default function Ventas() {
   };
 
   const agregarCobro = () => setForm(f => ({ ...f, cobros: [...f.cobros, { tipo: 'Efectivo ARS', monto: '', moneda: 'ARS', cuotas: '', montoCuota: '', fechaInicio: '' }] }));
-  const quitarCobro = (i) => setForm(f => ({ ...f, cobros: f.cobros.filter((_, idx) => idx !== i) }));
+  const quitarCobro = (i) => {
+    // Los movimientos de caja de una cuota se guardan con la posición (índice) del cobro
+    // dentro de este array, no con un id propio. Si se borra un cobro anterior, todos los
+    // que quedan después corren de índice y sus cuotas ya cobradas quedan huérfanas en
+    // Caja (dejan de encontrarse). Se bloquea ese caso en vez de romper la conciliación.
+    const afectaCuotasCobradas = form.cobros.some((c, idx) => idx >= i && (c.cuotasPagadas?.length > 0));
+    if (afectaCuotasCobradas) {
+      alert('No se puede quitar esta forma de pago: hay cuotas ya cobradas (en esta o en una posterior) cuyos movimientos de Caja quedarían desincronizados. Si necesitás corregirla, primero desmarcá esas cuotas como pagadas desde Cobros.');
+      return;
+    }
+    setForm(f => ({ ...f, cobros: f.cobros.filter((_, idx) => idx !== i) }));
+  };
   const updateCobro = (i, campo, val) => setForm(f => ({ ...f, cobros: f.cobros.map((c, idx) => idx === i ? { ...c, [campo]: val } : c) }));
 
   const agregarParte = () => {
@@ -168,10 +179,24 @@ export default function Ventas() {
           cliente: form.cliente,
           cobros: form.cobros,
         });
+        // Cancelar una venta libera el equipo de vuelta al stock (si no, desaparece del
+        // negocio para siempre sin haberse vendido realmente). Si se "descancela", vuelve
+        // a marcarse vendido.
+        if (ventaOriginal?.equipoId && ventaOriginal.estado !== form.estado) {
+          if (form.estado === 'cancelado' && ventaOriginal.estado !== 'cancelado') {
+            try { await updateDoc(doc(db, ...base, 'stock', ventaOriginal.equipoId), { estado: 'disponible' }); } catch (err) { console.error('Error devolviendo el equipo al stock al cancelar:', err); }
+          } else if (ventaOriginal.estado === 'cancelado' && form.estado !== 'cancelado') {
+            try { await updateDoc(doc(db, ...base, 'stock', ventaOriginal.equipoId), { estado: 'vendido' }); } catch (err) { console.error('Error volviendo a marcar el equipo como vendido:', err); }
+          }
+        }
       } else {
         const equipo = stock.find(s => s.id === form.equipoId);
         const ventaData = {
           ...form,
+          // Si se deja en blanco, se guarda el TC global vigente en vez de "" — así el
+          // Dashboard Gerencial no termina recalculando esta venta con el TC de hoy
+          // (que puede ser muy distinto) cuando busca convertir ARS/USD a futuro.
+          tipoCambio: form.tipoCambio || tipoCambioGlobal || '',
           fecha: serverTimestamp(),
           categoria: equipo?.categoria || '',
           modelo: equipo?.modelo || '',
@@ -184,9 +209,20 @@ export default function Ventas() {
           pvUsd: equipo?.pvUsd || '',
           equipoId: form.equipoId,
         };
-        const ventaRef = await addDoc(collection(db, ...base, 'ventas'), ventaData);
+        const ventaRef = doc(collection(db, ...base, 'ventas'));
+        // Transacción: relee el equipo justo antes de confirmar y solo escribe si sigue
+        // "disponible". Sin esto, dos ventas abiertas a la vez sobre la última unidad de
+        // un equipo podían venderse las dos (la segunda pisaba el estado sin chequear nada).
+        await runTransaction(db, async (transaction) => {
+          const stockRef = doc(db, ...base, 'stock', form.equipoId);
+          const stockSnap = await transaction.get(stockRef);
+          if (!stockSnap.exists() || stockSnap.data().estado !== 'disponible') {
+            throw new Error('Este equipo ya no está disponible (puede que otra persona ya lo haya vendido). Elegí otro equipo.');
+          }
+          transaction.set(ventaRef, ventaData);
+          transaction.update(stockRef, { estado: 'vendido' });
+        });
         await registrarMovimientosVenta(negocioId, ventaRef.id, ventaData);
-        if (form.equipoId) await updateDoc(doc(db, ...base, 'stock', form.equipoId), { estado: 'vendido' });
         const clienteQueEntrega = clientes.find(c => c.id === form.clienteId);
         for (const parte of form.partesDePago) {
           await addDoc(collection(db, ...base, 'stock'), {
@@ -209,8 +245,11 @@ export default function Ventas() {
       }
       cerrarModal();
       cargar();
-    } catch (err) { console.error(err); }
-    finally { setGuardando(false); }
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'No se pudo guardar la venta. Probá de nuevo.');
+      cargar();
+    } finally { setGuardando(false); }
   };
 
   if (loading) return <div style={{ color: 'var(--rv-text-dim)', padding: 40 }}>Cargando ventas...</div>;

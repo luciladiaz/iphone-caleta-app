@@ -3,7 +3,7 @@ import { collection, getDocs, query, orderBy, doc, updateDoc, getDoc } from 'fir
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconWallet, IconBell, IconCheck, IconCheckCircle, IconWarning, IconPhone } from '../components/Icons';
-import { registrarMovimientoCuota, eliminarMovimientoCuota } from '../lib/caja';
+import { registrarMovimientoCuota, eliminarMovimientoCuota, montoCobro } from '../lib/caja';
 import { formatCapacidad } from '../lib/categoriasProducto';
 
 function diasDesde(fecha) {
@@ -149,10 +149,12 @@ export default function Cobros() {
     const tieneCuotasPersonales = (venta.cobros || []).some(c => c.tipo === 'Cuotas personales');
     if (tieneCuotasPersonales || !venta.fecha) continue;
 
-    const tc = tipoCambio || 0;
+    // Se usa el TC que tenía la venta en su momento (no el global actual): si el dólar
+    // subió desde entonces, un pago en ARS ya hecho no debe convertirse a un USD menor
+    // del que realmente representaba cuando el cliente pagó, o aparece deuda fantasma.
+    const tc = Number(venta.tipoCambio) || tipoCambio || 0;
     const cobradoUsd = (venta.cobros || []).reduce((sum, c) => {
-      if (c.tipo === 'Equipo como parte de pago' || c.tipo === 'iPhone como parte de pago') return sum;
-      const monto = Number(c.monto) || 0;
+      const monto = montoCobro(c);
       return sum + (c.moneda === 'USD' ? monto : tc > 0 ? monto / tc : 0);
     }, 0);
     const partesUsd = (venta.partesDePago || []).reduce((s, p) => s + (Number(p.costoUsd) || 0), 0);

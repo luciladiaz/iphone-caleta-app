@@ -7,6 +7,16 @@ import { db } from '../firebase/config';
 // ventas históricas que ya lo tenían guardado así.
 const TIPOS_SIN_CAJA = ['Cuotas personales', 'Equipo como parte de pago', 'iPhone como parte de pago'];
 
+// Monto real de un cobro en su propia moneda. Para "Cuotas personales" el importe
+// no vive en `monto` (ese campo queda vacío, ver Ventas.jsx) sino en cuotas × montoCuota;
+// "Equipo como parte de pago" no es dinero. Usar esto en vez de leer `cobro.monto` directo
+// en cualquier lugar que sume/compare montos de cobros.
+export function montoCobro(cobro) {
+  if (cobro.tipo === 'Equipo como parte de pago' || cobro.tipo === 'iPhone como parte de pago') return 0;
+  if (cobro.tipo === 'Cuotas personales') return (Number(cobro.cuotas) || 0) * (Number(cobro.montoCuota) || 0);
+  return Number(cobro.monto) || 0;
+}
+
 // Categorías elegibles a mano en un movimiento manual (ingreso o egreso). Los
 // movimientos automáticos (venta, cuota, reparación, pago a proveedor) llevan su
 // categoría fija asignada solos, sin que el usuario tenga que elegir nada.

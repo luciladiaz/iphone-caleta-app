@@ -19,7 +19,6 @@ import DashboardGerencial from './pages/DashboardGerencial';
 import ReporteVendedores from './pages/ReporteVendedores';
 import DevSeed from './pages/DevSeed';
 import AppTest from './pages/AppTest';
-import TestPagos from './pages/TestPagos';
 import Studio from './pages/Studio';
 import Accesorios from './pages/Accesorios';
 import Reparaciones from './pages/Reparaciones';
@@ -69,7 +68,6 @@ function AppRoutes() {
       {/* Rutas de desarrollo */}
       <Route path="/dev/seed" element={<DevSeed />} />
       <Route path="/test" element={<AppTest />} />
-      <Route path="/test-pagos" element={<TestPagos />} />
 
       {/* Rutas públicas */}
       <Route path="/landing" element={<Landing />} />

@@ -3,6 +3,7 @@ import { collection, getDocs, query, orderBy, doc, getDoc } from 'firebase/fires
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconChart } from '../components/Icons';
+import { montoCobro } from '../lib/caja';
 
 const fmt = (n) => new Intl.NumberFormat('es-AR').format(Math.round(n));
 
@@ -39,7 +40,7 @@ export default function DashboardGerencial() {
     let totalUSD = 0;
     ventasMes.forEach(v => {
       (v.cobros || []).forEach(c => {
-        const m = parseFloat(c.monto) || 0;
+        const m = montoCobro(c);
         if (c.moneda === 'USD') totalUSD += m;
         else totalARS += m;
       });
@@ -106,7 +107,7 @@ export default function DashboardGerencial() {
               datos.recientes.map(v => {
                 const fecha = v.fecha?.toDate?.() || new Date(v.fecha);
                 const totalVenta = (v.cobros || []).reduce((acc, c) => {
-                  const m = parseFloat(c.monto) || 0;
+                  const m = montoCobro(c);
                   return acc + (c.moneda === 'ARS' ? m : m * (Number(v.tipoCambio) || tipoCambio || 0));
                 }, 0);
                 return (

@@ -1,4 +1,4 @@
-import { adminDb } from './_firebase.js';
+import { adminDb, usuarioDeRequest } from './_firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
@@ -25,6 +25,13 @@ export default async function handler(req, res) {
 
   if (!plan || !negocioId || !email)
     return res.status(400).json({ error: 'Faltan datos: plan, negocioId, email' });
+
+  // El negocioId es visible en cualquier link de catálogo público, así que no alcanza
+  // con que el cliente lo mande — hay que confirmar que quien llama es realmente dueño
+  // de ese negocio antes de tocar nada.
+  const usuario = await usuarioDeRequest(req);
+  if (!usuario || usuario.negocioId !== negocioId)
+    return res.status(403).json({ error: 'No autorizado para este negocio' });
 
   if (!MP_ACCESS_TOKEN)
     return res.status(500).json({ error: 'MercadoPago no configurado en el servidor' });

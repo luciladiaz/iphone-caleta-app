@@ -21,10 +21,11 @@ export default function Login() {
       if (!cred.user.emailVerified) {
         // Reenviar el link y cerrar sesión — no pueden entrar sin verificar
         try {
+          const idToken = await cred.user.getIdToken();
           await fetch('/api/enviar-verificacion', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: cred.user.email }),
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+            body: JSON.stringify({}),
           });
         } catch (mailErr) {
           console.error('Error enviando mail de verificación:', mailErr);

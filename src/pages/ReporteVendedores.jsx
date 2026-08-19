@@ -3,6 +3,7 @@ import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconChart } from '../components/Icons';
+import { montoCobro } from '../lib/caja';
 
 const fmt = (n) => new Intl.NumberFormat('es-AR').format(Math.round(n));
 
@@ -39,7 +40,7 @@ export default function ReporteVendedores() {
       mapa[nombre].ventas++;
       if (v.estado === 'entregado') mapa[nombre].entregadas++;
       (v.cobros || []).forEach(c => {
-        const m = parseFloat(c.monto) || 0;
+        const m = montoCobro(c);
         if (c.moneda === 'USD') mapa[nombre].totalUSD += m;
         else mapa[nombre].totalARS += m;
       });

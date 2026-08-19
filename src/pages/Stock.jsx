@@ -179,14 +179,6 @@ export default function Stock() {
     setTimeout(() => setCopiado(false), 2000);
   };
 
-  const catalogoEsParcial = catalogoCategorias.length > 0 && catalogoCategorias.length < categoriasConStock.length;
-  const urlCatalogo = catalogoEsParcial
-    ? `${window.location.origin}/catalogo/${negocioId}?cat=${encodeURIComponent(catalogoCategorias.join(','))}`
-    : `${window.location.origin}/catalogo/${negocioId}`;
-  const toggleCatalogoCategoria = (cat) => {
-    setCatalogoCategorias(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
-  };
-  const abrirModalCatalogo = () => { setCatalogoCategorias([]); setModalCatalogo(true); };
   const stockDisponible = equipos.filter(e => e.estado === 'disponible');
   const stockAsignado = equipos.filter(e => e.estado === 'asignado');
   const totalValorUSD = stockDisponible.reduce((acc, e) => acc + Number(e.pvUsd || 0), 0);
@@ -204,6 +196,14 @@ export default function Stock() {
   const categoriasConStock = categoriasProducto.filter(cat => equipos.some(e => e.categoria === cat && e.estado !== 'vendido'));
   const puntosVentaConStock = puntosVenta.map(p => p.nombre).filter(nombre => equipos.some(e => e.puntoVenta === nombre && e.estado !== 'vendido'));
   const hayEquiposSinPuntoVenta = equipos.some(e => !e.puntoVenta && e.estado !== 'vendido');
+  const catalogoEsParcial = catalogoCategorias.length > 0 && catalogoCategorias.length < categoriasConStock.length;
+  const urlCatalogo = catalogoEsParcial
+    ? `${window.location.origin}/catalogo/${negocioId}?cat=${encodeURIComponent(catalogoCategorias.join(','))}`
+    : `${window.location.origin}/catalogo/${negocioId}`;
+  const toggleCatalogoCategoria = (cat) => {
+    setCatalogoCategorias(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
+  };
+  const abrirModalCatalogo = () => { setCatalogoCategorias([]); setModalCatalogo(true); };
   const maxStock = limitesPlan?.maxStock ?? Infinity;
   const limiteAlcanzado = maxStock !== Infinity && equipos.length >= maxStock;
 

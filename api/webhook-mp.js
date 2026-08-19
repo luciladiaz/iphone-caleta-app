@@ -93,48 +93,6 @@ async function logPagoRechazado(negocioId, mpId) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const testMode = req.headers['x-test-mode'];
-
-  // ── MODO TEST: opera con Firebase Admin sin llamar a MercadoPago ───────────
-  if (testMode === 'setup') {
-    const { negocioId, data } = req.body || {};
-    if (!negocioId) return res.status(400).json({ error: 'Falta negocioId' });
-    await adminDb.doc(`negocios/${negocioId}`).set(data || {}, { merge: false });
-    return res.status(200).json({ ok: true, action: 'setup', negocioId });
-  }
-
-  if (testMode === 'read') {
-    const { negocioId } = req.body || {};
-    if (!negocioId) return res.status(400).json({ error: 'Falta negocioId' });
-    const snap = await adminDb.doc(`negocios/${negocioId}`).get();
-    if (!snap.exists) return res.status(200).json({ exists: false });
-    return res.status(200).json({ exists: true, data: snap.data() });
-  }
-
-  if (testMode === 'cleanup') {
-    const { negocioIds } = req.body || {};
-    for (const id of (negocioIds || [])) {
-      await adminDb.doc(`negocios/${id}`).delete();
-    }
-    return res.status(200).json({ ok: true, action: 'cleanup', deleted: negocioIds });
-  }
-
-  if (testMode === 'true') {
-    const { negocioId, status, plan } = req.body || {};
-    if (!negocioId || !status) return res.status(400).json({ error: 'Falta negocioId o status' });
-
-    if (status === 'approved' || status === 'authorized') {
-      await activarPlan(negocioId, plan || 'pro', 'test');
-    } else if (status === 'cancelled') {
-      await procesarCancelacion(negocioId, 'test');
-    } else if (status === 'paused' || status === 'rejected') {
-      await logPagoRechazado(negocioId, 'test');
-    }
-
-    return res.status(200).json({ ok: true, testMode: true, negocioId, status });
-  }
-
-  // ── HANDLER NORMAL (producción) ────────────────────────────────────────────
   const { type, data } = req.body || {};
   if (!type || !data?.id) return res.status(200).json({ ok: true, msg: 'Notificación ignorada' });
 

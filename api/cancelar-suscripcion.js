@@ -1,4 +1,4 @@
-import { adminDb } from './_firebase.js';
+import { adminDb, usuarioDeRequest } from './_firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
@@ -15,6 +15,13 @@ export default async function handler(req, res) {
   const { negocioId } = req.body || {};
   if (!negocioId) return res.status(400).json({ error: 'Falta negocioId' });
   if (!MP_ACCESS_TOKEN) return res.status(500).json({ error: 'MercadoPago no configurado en el servidor' });
+
+  // El negocioId es visible en cualquier link de catálogo público, así que no alcanza
+  // con que el cliente lo mande — sin esto, cualquiera podía cancelarle la suscripción
+  // paga a otro negocio con solo saber su negocioId.
+  const usuario = await usuarioDeRequest(req);
+  if (!usuario || usuario.negocioId !== negocioId)
+    return res.status(403).json({ error: 'No autorizado para este negocio' });
 
   try {
     const negSnap = await adminDb.doc(`negocios/${negocioId}`).get();

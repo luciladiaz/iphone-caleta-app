@@ -129,9 +129,10 @@ export default function Planes() {
   const handleContratar = async (planId, { silent = false } = {}) => {
 if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO_PLAN[planId] ?? 0, currency: 'ARS' });
     try {
+      const idToken = await user.getIdToken();
       const res = await fetch('/api/crear-suscripcion', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
         body: JSON.stringify({ plan: planId, negocioId, email: user?.email || perfil?.email }),
       });
       const data = await res.json();
@@ -159,9 +160,10 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
     setCancelando(true);
     setCancelError('');
     try {
+      const idToken = await user.getIdToken();
       const res = await fetch('/api/cancelar-suscripcion', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
         body: JSON.stringify({ negocioId }),
       });
       const data = await res.json();

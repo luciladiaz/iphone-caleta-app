@@ -17,12 +17,13 @@ async function fetchCotizacion(tipo) {
 }
 
 export default async function handler(req, res) {
-  // Acepta el secreto por header (Vercel cron) o por query param (cron-job.org u otros servicios externos)
+  // Acepta el secreto por header (Vercel cron) o por query param (cron-job.org u otros
+  // servicios externos). Si CRON_SECRET no está seteado, el endpoint queda cerrado para
+  // todos, nunca abierto por default.
   const authHeader = req.headers['authorization'];
   const querySecret = req.query?.secret;
-  const secretValido = !process.env.CRON_SECRET ||
-    authHeader === `Bearer ${process.env.CRON_SECRET}` ||
-    querySecret === process.env.CRON_SECRET;
+  const secretValido = !!process.env.CRON_SECRET &&
+    (authHeader === `Bearer ${process.env.CRON_SECRET}` || querySecret === process.env.CRON_SECRET);
   if (!secretValido) {
     return res.status(401).json({ error: 'No autorizado' });
   }

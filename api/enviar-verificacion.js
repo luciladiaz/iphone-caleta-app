@@ -1,4 +1,4 @@
-import { adminAuth } from './_firebase.js';
+import { adminAuth, usuarioDeRequest } from './_firebase.js';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const APP_URL = 'https://reventapp.com.ar';
@@ -12,8 +12,14 @@ function botonWhatsapp(mensaje) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
 
-  const { email, nombre } = req.body || {};
-  if (!email) return res.status(400).json({ error: 'Falta email' });
+  const { nombre } = req.body || {};
+
+  // El email sale del token verificado de la sesión que llama, nunca del body — si no,
+  // cualquiera podía mandar el mail de verificación (y con él, adivinar por el mensaje
+  // de error qué emails están registrados) a una casilla ajena, sin límite, gratis.
+  const usuario = await usuarioDeRequest(req);
+  if (!usuario?.email) return res.status(401).json({ error: 'No autorizado' });
+  const email = usuario.email;
 
   try {
     const link = await adminAuth.generateEmailVerificationLink(email, {

@@ -70,10 +70,11 @@ export default function Registro() {
       });
 
       try {
+        const idToken = await cred.user.getIdToken();
         await fetch('/api/enviar-verificacion', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: form.email, nombre: form.nombre }),
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+          body: JSON.stringify({ nombre: form.nombre }),
         });
       } catch (mailErr) {
         console.error('Error enviando mail de verificación:', mailErr);

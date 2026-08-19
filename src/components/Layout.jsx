@@ -53,11 +53,6 @@ const NAV = [
       <path d="M3 21V9.5L12 3l9 6.5V21H3z"/><path d="M9 21V14h6v7"/>
     </svg>
   )},
-  { to: '/pagos', label: 'Pagos Prov.', modulo: 'pagos', icon: (
-    <svg viewBox="0 0 24 24" style={SZ} {...SA}>
-      <path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 7.5m0 0L7.5 12M12 7.5V18"/>
-    </svg>
-  )},
   { to: '/gerencial', label: 'Gerencial', modulo: 'gerencial', feature: 'dashboardGerencial', icon: (
     <svg viewBox="0 0 24 24" style={SZ} {...SA}>
       <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>

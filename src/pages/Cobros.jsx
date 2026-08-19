@@ -1,8 +1,8 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { collection, getDocs, query, orderBy, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
-import { IconWallet, IconBell, IconCheck, IconCheckCircle, IconWarning, IconPhone, IconArrowSwap } from '../components/Icons';
+import { IconWallet, IconBell, IconCheck, IconCheckCircle, IconWarning, IconPhone } from '../components/Icons';
 import { registrarMovimientoCuota, eliminarMovimientoCuota } from '../lib/caja';
 
 const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
@@ -27,8 +27,8 @@ function calcSemaforo(diasVencidos) {
 }
 
 const colorSem = { rojo: 'var(--rv-danger)', amarillo: 'var(--rv-text-mid)', verde: 'var(--rv-text-dim)' };
-const bgSem = { rojo: 'var(--rv-danger-soft)', amarillo: 'var(--rv-surface-alt)', verde: 'var(--rv-surface-alt)' };
 const etiquetaSem = { rojo: 'URGENTE', amarillo: 'ATENCIÓN', verde: 'AL DÍA' };
+const ORDEN_SEM = { rojo: 0, amarillo: 1, verde: 2 };
 
 function textoDeuda(d) {
   if (d.tipoDeuda === 'saldo') return 'saldo pendiente';
@@ -52,20 +52,24 @@ const FILTROS = [
 export default function Cobros() {
   const { negocioId } = useAuth();
   const [ventas, setVentas] = useState([]);
+  const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('todas');
   const [tipoCambio, setTipoCambio] = useState(null);
-  const [modalWA, setModalWA] = useState(null); // deudor seleccionado para enviar WA
+  const [modalWA, setModalWA] = useState(null); // grupo (cliente) seleccionado para enviar WA
+  const [abierto, setAbierto] = useState(null); // clave del cliente con el detalle desplegado
 
   useEffect(() => {
     if (!negocioId) return;
     const base = ['negocios', negocioId];
     const cargar = async () => {
-      const [ventasSnap, cfgSnap] = await Promise.all([
+      const [ventasSnap, cliSnap, cfgSnap] = await Promise.all([
         getDocs(query(collection(db, ...base, 'ventas'), orderBy('fecha', 'desc'))),
+        getDocs(collection(db, ...base, 'clientes')),
         getDoc(doc(db, ...base, 'config', 'general')),
       ]);
       setVentas(ventasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setClientes(cliSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       const tc = cfgSnap.data()?.tipoCambio;
       if (tc) setTipoCambio(Number(tc));
       setLoading(false);
@@ -92,12 +96,10 @@ export default function Cobros() {
 
   if (loading) return <div style={{ color: 'var(--rv-text-dim)', padding: 40 }}>Cargando...</div>;
 
-  // Calcular deudores
+  // Calcular deudas sueltas (por cuota vencida o por saldo pendiente de una venta)
   const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const finSemana = new Date(hoy); finSemana.setDate(finSemana.getDate() + 7);
-  const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
 
-  const deudores = [];
+  const deudas = [];
   for (const venta of ventas) {
     if (!venta.cobros) continue;
     for (let ci = 0; ci < venta.cobros.length; ci++) {
@@ -107,7 +109,7 @@ export default function Cobros() {
       const total = Number(cobro.cuotas);
       const monto = Number(cobro.montoCuota) || 0;
       let vencidas = [], montoTotal = 0, maxDias = 0;
-      let proximasNoVencidas = [];
+      let pendientesFuturo = 0;
 
       for (let qi = 0; qi < total; qi++) {
         if (pagadas.includes(qi)) continue;
@@ -120,16 +122,16 @@ export default function Cobros() {
           montoTotal += monto;
           if (diff > maxDias) maxDias = diff;
         } else {
-          proximasNoVencidas.push({ idx: qi, fecha: fc });
+          pendientesFuturo++;
         }
       }
 
       const sem = vencidas.length > 0 ? calcSemaforo(maxDias) : 'verde';
-      const pendientesFuturo = proximasNoVencidas.length;
 
-      deudores.push({
+      deudas.push({
         tipoDeuda: 'cuotas',
         ventaId: venta.id, cobroIdx: ci,
+        clienteId: venta.clienteId || null,
         cliente: venta.cliente || 'Sin nombre',
         telefono: venta.telefono || '',
         modelo: `${venta.modelo || ''}${venta.gb ? ' ' + formatCapacidad(venta.gb) : ''}`.trim(),
@@ -162,12 +164,13 @@ export default function Cobros() {
     const diasDesdeVenta = diasDesde(fechaVenta);
     const sem = calcSemaforo(diasDesdeVenta);
 
-    deudores.push({
+    deudas.push({
       tipoDeuda: 'saldo',
       ventaId: venta.id, cobroIdx: null,
+      clienteId: venta.clienteId || null,
       cliente: venta.cliente || 'Sin nombre',
       telefono: venta.telefono || '',
-      modelo: `${venta.modelo || ''} ${venta.gb || ''}GB`.trim(),
+      modelo: `${venta.modelo || ''}${venta.gb ? ' ' + formatCapacidad(venta.gb) : ''}`.trim(),
       cuotasVencidas: 1, montoVencido: saldoUsd,
       moneda: 'USD', maxDias: diasDesdeVenta, sem, pendientesFuturo: 0,
       totalCuotas: 1, cobro: null,
@@ -175,75 +178,83 @@ export default function Cobros() {
     });
   }
 
-  deudores.sort((a, b) => ({ rojo: 0, amarillo: 1, verde: 2 }[a.sem] - { rojo: 0, amarillo: 1, verde: 2 }[b.sem] || b.maxDias - a.maxDias));
+  // Agrupar por cliente (por clienteId si la venta lo tiene, si no por nombre+teléfono)
+  // — esto es lo que convierte la lista suelta en una cuenta corriente por cliente.
+  const gruposMap = new Map();
+  deudas.forEach(d => {
+    const clave = d.clienteId || `${d.cliente}|${d.telefono}`;
+    if (!gruposMap.has(clave)) {
+      gruposMap.set(clave, { clave, clienteId: d.clienteId, nombre: d.cliente, telefono: d.telefono, deudas: [], totalesPorMoneda: {} });
+    }
+    const g = gruposMap.get(clave);
+    g.deudas.push(d);
+    g.totalesPorMoneda[d.moneda] = (g.totalesPorMoneda[d.moneda] || 0) + d.montoVencido;
+    if (!g.telefono && d.telefono) g.telefono = d.telefono;
+  });
 
-  const deudoresFiltrados = deudores.filter(d => {
+  const grupos = Array.from(gruposMap.values()).map(g => {
+    const vencidas = g.deudas.filter(d => d.cuotasVencidas > 0);
+    const semPeor = vencidas.some(d => d.sem === 'rojo') ? 'rojo' : vencidas.some(d => d.sem === 'amarillo') ? 'amarillo' : 'verde';
+    const maxDias = Math.max(0, ...g.deudas.map(d => d.maxDias));
+    const clienteDoc = clientes.find(c => c.id === g.clienteId);
+    return { ...g, semPeor, maxDias, numero: clienteDoc?.numero || null, tieneAtraso: vencidas.length > 0 };
+  }).sort((a, b) => ORDEN_SEM[a.semPeor] - ORDEN_SEM[b.semPeor] || b.maxDias - a.maxDias);
+
+  const gruposFiltrados = grupos.filter(g => {
     if (filtro === 'todas') return true;
-    if (filtro === 'vencidas') return d.cuotasVencidas > 0;
-    if (filtro === 'semana') return d.maxDias <= 7 && d.maxDias >= 1;
-    if (filtro === 'mes') return d.maxDias <= 31 && d.maxDias >= 1;
-    if (filtro === 'aldia') return d.cuotasVencidas === 0;
+    if (filtro === 'vencidas') return g.tieneAtraso;
+    if (filtro === 'semana') return g.maxDias <= 7 && g.maxDias >= 1;
+    if (filtro === 'mes') return g.maxDias <= 31 && g.maxDias >= 1;
+    if (filtro === 'aldia') return !g.tieneAtraso;
     return true;
   });
 
-  const ventasConCobros = ventas.filter(v => v.cobros && v.cobros.length > 0);
+  const construirMensaje = (g, convertirARS) => {
+    const lineas = g.deudas.map(d => {
+      let montoTxt;
+      if (convertirARS && d.moneda === 'USD' && tipoCambio) {
+        montoTxt = `$${Math.round(d.montoVencido * tipoCambio).toLocaleString('es-AR')} ARS`;
+      } else {
+        montoTxt = `${d.moneda} ${d.montoVencido.toLocaleString('es-AR')}`;
+      }
+      return `• ${d.modelo || 'Compra'} — ${textoDeuda(d)}: ${montoTxt}`;
+    });
+    return `Hola ${g.nombre}! Te recuerdo que tenés pendiente:\n${lineas.join('\n')}\nCualquier consulta avisame. Gracias!`;
+  };
 
-  // Modal: elegir moneda del mensaje de WhatsApp
+  // Modal: elegir cómo mandar el recordatorio por WhatsApp
   const ModalWhatsApp = () => {
     if (!modalWA) return null;
-    const d = modalWA;
-    const esUSD = d.moneda === 'USD';
-    const montoUSD = d.montoVencido;
-    const montoARS = tipoCambio ? montoUSD * tipoCambio : null;
+    const g = modalWA;
+    const monedas = Object.keys(g.totalesPorMoneda);
+    const tieneUSD = monedas.includes('USD');
 
-    const enviar = (enARS) => {
-      let montoTexto;
-      if (esUSD && !enARS) {
-        montoTexto = `USD ${montoUSD.toLocaleString('es-AR')}`;
-      } else if (esUSD && enARS && montoARS) {
-        montoTexto = `$${Math.round(montoARS).toLocaleString('es-AR')} ARS`;
-      } else {
-        montoTexto = `$${montoUSD.toLocaleString('es-AR')} ARS`;
-      }
-      const msg = `Hola ${d.cliente}! Te recuerdo que tenés ${textoDeuda(d)} de tu ${d.modelo}. El monto pendiente es ${montoTexto}. Cualquier consulta avisame. Gracias!`;
-      abrirWA(d.telefono, msg);
-      setModalWA(null);
-    };
+    const enviar = (convertirARS) => { abrirWA(g.telefono, construirMensaje(g, convertirARS)); setModalWA(null); };
 
     return (
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-        <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 18, padding: 28, maxWidth: 380, width: '100%' }}>
+        <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 18, padding: 28, maxWidth: 420, width: '100%' }}>
           <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}><IconBell size={16} />Enviar recordatorio por WhatsApp</div>
-          <div style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 20 }}>
-            {d.cliente} · {textoDeuda(d)}
-          </div>
+          <div style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 16 }}>{g.nombre}{g.numero ? ` · Cliente #${g.numero}` : ''}</div>
 
-          <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
-            ¿Cómo querés mostrar la deuda?
+          <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: 14, marginBottom: 18, fontSize: 12, color: 'var(--rv-text-mid)', whiteSpace: 'pre-line' }}>
+            {construirMensaje(g, false)}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-            {esUSD && (
-              <button onClick={() => enviar(false)} style={{ background: 'var(--rv-accent-soft)', border: '1px solid rgba(47,111,237,0.4)', borderRadius: 12, padding: '14px 18px', cursor: 'pointer', textAlign: 'left' }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--rv-accent)' }}>USD {montoUSD.toLocaleString('es-AR')}</div>
-                <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3 }}>Enviar en dólares (monto acordado)</div>
-              </button>
-            )}
-            {esUSD && montoARS ? (
+            <button onClick={() => enviar(false)} style={{ background: 'var(--rv-accent-soft)', border: '1px solid rgba(47,111,237,0.4)', borderRadius: 12, padding: '14px 18px', cursor: 'pointer', textAlign: 'left', color: 'var(--rv-accent)', fontWeight: 700, fontSize: 14 }}>
+              Enviar como está
+            </button>
+            {tieneUSD && tipoCambio ? (
               <button onClick={() => enviar(true)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '14px 18px', cursor: 'pointer', textAlign: 'left' }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--rv-text)' }}>${Math.round(montoARS).toLocaleString('es-AR')} ARS</div>
-                <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3 }}>Equivalente al TC del día · 1 USD = ${tipoCambio?.toLocaleString('es-AR')}</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--rv-text)' }}>Convertir USD a ARS</div>
+                <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3 }}>Al TC del día · 1 USD = ${tipoCambio.toLocaleString('es-AR')}</div>
               </button>
-            ) : esUSD && !montoARS ? (
-              <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 12, padding: '14px 18px' }}>
-                <div style={{ color: 'var(--rv-text-dim)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 7 }}><IconWarning size={14} />No hay tipo de cambio cargado. Actualizalo en Configuración.</div>
+            ) : tieneUSD && !tipoCambio ? (
+              <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 12, padding: '12px 16px', color: 'var(--rv-text-dim)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 7 }}>
+                <IconWarning size={14} />No hay tipo de cambio cargado para convertir a ARS.
               </div>
-            ) : (
-              <button onClick={() => enviar(false)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '14px 18px', cursor: 'pointer', textAlign: 'left' }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--rv-text)' }}>${montoUSD.toLocaleString('es-AR')} ARS</div>
-                <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3 }}>Monto en pesos argentinos</div>
-              </button>
-            )}
+            ) : null}
           </div>
 
           <button onClick={() => setModalWA(null)} style={{ width: '100%', background: 'var(--rv-surface-alt)', border: 'none', borderRadius: 10, padding: '11px', color: 'var(--rv-text-dim)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
@@ -257,26 +268,28 @@ export default function Cobros() {
   return (
     <div>
       <ModalWhatsApp />
-      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}><IconWallet size={22} style={{ color: 'var(--rv-accent)' }} />Cobros</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}><IconWallet size={22} style={{ color: 'var(--rv-accent)' }} />Cobros</h1>
+      <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 24 }}>
+        Cuenta corriente de clientes: solo aparecen acá los que todavía te deben algo (cuotas o saldo). En cuanto un cliente termina de pagar, sale de esta lista solo — su historial completo lo seguís viendo en <strong>Clientes</strong>.
+      </p>
 
-      {/* Panel deudores */}
-      {deudores.length === 0 && (
-        <div style={{ marginBottom: 32, background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: '28px 20px', textAlign: 'center' }}>
-          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>Deudores con cuotas pendientes</div>
+      {grupos.length === 0 && (
+        <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: '28px 20px', textAlign: 'center' }}>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>No hay clientes con deuda pendiente</div>
           <div style={{ color: 'var(--rv-text-dim)', fontSize: 13, maxWidth: 420, margin: '0 auto' }}>
-            Por ahora no tenés ventas con saldo pendiente. En cuanto registres una venta en <strong>Ventas</strong> que quede en cuotas o pagada solo en parte (cualquier forma de pago), vas a poder verla acá con semáforo de atraso y mandar recordatorios por WhatsApp.
+            En cuanto registres una venta en <strong>Ventas</strong> que quede en cuotas o pagada solo en parte, vas a poder verla acá con semáforo de atraso y mandar recordatorios por WhatsApp.
           </div>
         </div>
       )}
-      {deudores.length > 0 && (
-        <div style={{ marginBottom: 32 }}>
+
+      {grupos.length > 0 && (
+        <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 15, fontWeight: 700 }}>Deudores con cuotas pendientes</span>
-            <span style={{ background: 'var(--rv-danger-soft)', color: 'var(--rv-danger)', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99 }}>{deudores.filter(d => d.cuotasVencidas > 0).length} con atraso</span>
+            <span style={{ fontSize: 15, fontWeight: 700 }}>Deudores</span>
+            <span style={{ background: 'var(--rv-danger-soft)', color: 'var(--rv-danger)', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99 }}>{grupos.filter(g => g.tieneAtraso).length} con atraso</span>
           </div>
 
-          {/* Filtros */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
             {FILTROS.map(f => (
               <button key={f.key} onClick={() => setFiltro(f.key)} style={{ background: filtro === f.key ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: filtro === f.key ? '#fff' : 'var(--rv-text-mid)', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                 {f.dot && <span style={{ width: 7, height: 7, borderRadius: '50%', background: f.dot, flexShrink: 0 }} />}
@@ -285,101 +298,87 @@ export default function Cobros() {
             ))}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {deudoresFiltrados.map((d, idx) => (
-              <div key={idx} style={{
-                background: d.cuotasVencidas > 0 && d.sem === 'rojo' ? 'var(--rv-danger-soft)' : 'var(--rv-surface)',
-                border: d.cuotasVencidas > 0 && d.sem === 'rojo' ? '1px solid rgba(212,61,61,0.3)' : '1px solid var(--rv-border)',
-                borderLeft: d.cuotasVencidas > 0 ? `4px solid ${colorSem[d.sem]}` : '4px solid var(--rv-border)',
-                borderRadius: 12, padding: '14px 18px'
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {gruposFiltrados.map(g => (
+              <div key={g.clave} style={{
+                background: g.tieneAtraso && g.semPeor === 'rojo' ? 'var(--rv-danger-soft)' : 'var(--rv-surface)',
+                border: g.tieneAtraso && g.semPeor === 'rojo' ? '1px solid rgba(212,61,61,0.3)' : '1px solid var(--rv-border)',
+                borderLeft: g.tieneAtraso ? `4px solid ${colorSem[g.semPeor]}` : '4px solid var(--rv-border)',
+                borderRadius: 14, padding: 20,
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-                      {d.cuotasVencidas > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, border: '1px solid var(--rv-border)', color: colorSem[d.sem] }}>{etiquetaSem[d.sem]}</span>}
-                      <span style={{ fontWeight: 700, fontSize: 14 }}>{d.cliente}</span>
-                      <span style={{ color: 'var(--rv-text-dim)', fontSize: 12 }}>{d.modelo}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                      {g.tieneAtraso && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, border: '1px solid var(--rv-border)', color: colorSem[g.semPeor] }}>{etiquetaSem[g.semPeor]}</span>}
+                      <span style={{ fontWeight: 700, fontSize: 16 }}>{g.nombre}</span>
+                      {g.numero && <span style={{ color: 'var(--rv-text-dim)', fontSize: 12, fontWeight: 600 }}>Cliente #{g.numero}</span>}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--rv-text-dim)' }}>
-                      {d.cuotasVencidas > 0 && (
-                        <span style={{ color: colorSem[d.sem], fontWeight: 600 }}>
-                          {textoDeuda(d)} · Hace {d.maxDias} días
-                        </span>
-                      )}
-                      {d.cuotasVencidas > 0 && d.montoVencido > 0 && <span style={{ color: 'var(--rv-text)', fontWeight: 600, marginLeft: 8 }}>· Debe {d.moneda} {d.montoVencido.toLocaleString('es-AR')}</span>}
-                      {d.cuotasVencidas === 0 && <span style={{ color: 'var(--rv-text-dim)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>Al día <IconCheck size={11} /></span>}
+                    <div style={{ color: 'var(--rv-text-dim)', fontSize: 12 }}>
+                      {g.deudas.length} ítem{g.deudas.length === 1 ? '' : 's'} pendiente{g.deudas.length === 1 ? '' : 's'}
+                      {g.tieneAtraso && <span style={{ color: colorSem[g.semPeor], fontWeight: 600 }}> · Hace {g.maxDias} días</span>}
+                      {g.telefono && <a href={`tel:${g.telefono}`} style={{ color: 'var(--rv-accent)', marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 4 }}><IconPhone size={11} />{g.telefono}</a>}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button
-                      onClick={() => d.telefono ? setModalWA(d) : null}
-                      title={!d.telefono ? 'Agregá el teléfono del cliente en la venta' : ''}
-                      style={{ background: '#25D366', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: d.telefono ? 'pointer' : 'not-allowed', opacity: d.telefono ? 1 : 0.4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      onClick={() => g.telefono ? setModalWA(g) : null}
+                      title={!g.telefono ? 'Agregá el teléfono del cliente en la venta' : ''}
+                      style={{ background: '#25D366', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: g.telefono ? 'pointer' : 'not-allowed', opacity: g.telefono ? 1 : 0.4, display: 'flex', alignItems: 'center', gap: 6 }}>
                       <IconBell size={13} />WhatsApp
+                    </button>
+                    <button onClick={() => setAbierto(a => a === g.clave ? null : g.clave)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text-mid)', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                      {abierto === g.clave ? 'Ocultar detalle' : 'Ver detalle'}
                     </button>
                   </div>
                 </div>
-              </div>
-            ))}
-            {deudoresFiltrados.length === 0 && <div style={{ textAlign: 'center', color: 'var(--rv-text-dim)', padding: 20, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}><IconCheckCircle size={15} style={{ color: 'var(--rv-accent)' }} />No hay deudores en esta categoría</div>}
-          </div>
-        </div>
-      )}
 
-      {/* Lista de cobros con cuotas */}
-      <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Detalle de cuotas</h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {ventasConCobros.map(v => (
-          <div key={v.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 20 }}>
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>{v.modelo}{v.gb ? ` ${formatCapacidad(v.gb)}` : ''} · {v.cliente || 'Sin cliente'}</div>
-              <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 2 }}>
-                Vendedor: {v.vendedor || '-'}
-                {v.telefono && <a href={`tel:${v.telefono}`} style={{ color: 'var(--rv-accent)', marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 5 }}><IconPhone size={11} />{v.telefono}</a>}
-              </div>
-            </div>
-            {v.cobros.map((cobro, ci) => (
-              <div key={ci} style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: 14, marginBottom: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <span style={{ fontWeight: 600, fontSize: 14 }}>{cobro.tipo}</span>
-                  {cobro.monto && <span style={{ color: 'var(--rv-accent)', fontWeight: 700 }}>{cobro.moneda} {cobro.monto}</span>}
-                </div>
-                {cobro.tipo === 'Cuotas personales' && cobro.cuotas && (
-                  <div>
-                    <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginBottom: 8 }}>{cobro.cuotas} cuotas de {cobro.moneda} {cobro.montoCuota}</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                      {Array.from({ length: Number(cobro.cuotas) }).map((_, qi) => {
-                        const pagada = (cobro.cuotasPagadas || []).includes(qi);
-                        const fc = cobro.fechaInicio ? fechaCuota(cobro.fechaInicio, qi) : null;
-                        const vencida = fc && fc < hoy && !pagada;
-                        const fecha = fc ? fc.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' }) : `Cuota ${qi + 1}`;
-                        return (
-                          <button key={qi} onClick={() => marcarCuota(v.id, ci, qi, pagada)} style={{
-                            padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--rv-border)',
-                            background: vencida ? 'var(--rv-danger-soft)' : 'var(--rv-surface-alt)',
-                            color: pagada ? 'var(--rv-text-mid)' : vencida ? 'var(--rv-danger)' : 'var(--rv-text-dim)',
-                            display: 'inline-flex', alignItems: 'center', gap: 5,
-                          }}>
-                            {pagada ? <IconCheck size={11} /> : vencida ? <IconWarning size={11} /> : null} {fecha}
-                          </button>
-                        );
-                      })}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10, marginTop: 16 }}>
+                  {Object.entries(g.totalesPorMoneda).map(([moneda, monto]) => (
+                    <div key={moneda} style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '8px 12px' }}>
+                      <div style={{ color: 'var(--rv-text-dim)', fontSize: 10, marginBottom: 2 }}>DEBE {moneda}</div>
+                      <div style={{ fontWeight: 800, color: 'var(--rv-danger)' }}>{moneda} {monto.toLocaleString('es-AR')}</div>
                     </div>
+                  ))}
+                </div>
+
+                {abierto === g.clave && (
+                  <div style={{ marginTop: 16, borderTop: '1px solid var(--rv-border)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {g.deudas.map((d, di) => (
+                      <div key={di} style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: 14 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+                          <span style={{ fontWeight: 600, fontSize: 13 }}>{d.modelo || 'Compra'}</span>
+                          <span style={{ color: colorSem[d.sem], fontWeight: 700, fontSize: 13 }}>{d.moneda} {d.montoVencido.toLocaleString('es-AR')} · {textoDeuda(d)}</span>
+                        </div>
+                        {d.tipoDeuda === 'cuotas' && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {Array.from({ length: Number(d.totalCuotas) }).map((_, qi) => {
+                              const pagada = (d.cobro.cuotasPagadas || []).includes(qi);
+                              const fc = d.cobro.fechaInicio ? fechaCuota(d.cobro.fechaInicio, qi) : null;
+                              const vencida = fc && fc < hoy && !pagada;
+                              const fecha = fc ? fc.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' }) : `Cuota ${qi + 1}`;
+                              return (
+                                <button key={qi} onClick={() => marcarCuota(d.ventaId, d.cobroIdx, qi, pagada)} style={{
+                                  padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--rv-border)',
+                                  background: vencida ? 'var(--rv-danger-soft)' : 'var(--rv-surface)',
+                                  color: pagada ? 'var(--rv-text-mid)' : vencida ? 'var(--rv-danger)' : 'var(--rv-text-dim)',
+                                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                                }}>
+                                  {pagada ? <IconCheck size={11} /> : vencida ? <IconWarning size={11} /> : null} {fecha}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
-                {(cobro.tipo === 'Equipo como parte de pago' || cobro.tipo === 'iPhone como parte de pago') && <div style={{ color: 'var(--rv-accent)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 7 }}><IconArrowSwap size={13} />Equipo recibido como parte de pago</div>}
               </div>
             ))}
+            {gruposFiltrados.length === 0 && <div style={{ textAlign: 'center', color: 'var(--rv-text-dim)', padding: 20, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}><IconCheckCircle size={15} style={{ color: 'var(--rv-accent)' }} />No hay clientes en esta categoría</div>}
           </div>
-        ))}
-        {ventasConCobros.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 60, color: 'var(--rv-text-dim)' }}>
-            <IconWallet size={36} style={{ marginBottom: 12 }} />
-            <p>No hay cobros registrados</p>
-          </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }
-

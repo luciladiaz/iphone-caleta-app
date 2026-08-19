@@ -18,7 +18,6 @@ const MODULOS = [
   { key: 'cobros', label: 'Cobros' },
   { key: 'caja', label: 'Caja' },
   { key: 'proveedores', label: 'Proveedores' },
-  { key: 'pagos', label: 'Pagos Proveedores' },
   { key: 'config', label: 'Configuración' },
   { key: 'usuarios', label: 'Usuarios' },
 ];

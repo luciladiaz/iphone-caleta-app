@@ -11,7 +11,6 @@ import Cobros from './pages/Cobros';
 import Caja from './pages/Caja';
 import Clientes from './pages/Clientes';
 import Proveedores from './pages/Proveedores';
-import PagosProveedores from './pages/PagosProveedores';
 import Configuracion from './pages/Configuracion';
 import Usuarios from './pages/Usuarios';
 import Planes from './pages/Planes';
@@ -90,7 +89,6 @@ function AppRoutes() {
       <Route path="/caja" element={<PrivateRoute modulo="caja"><Layout><Caja /></Layout></PrivateRoute>} />
       <Route path="/reparaciones" element={<PrivateRoute modulo="reparaciones"><Layout><Reparaciones /></Layout></PrivateRoute>} />
       <Route path="/proveedores" element={<PrivateRoute modulo="proveedores"><Layout><Proveedores /></Layout></PrivateRoute>} />
-      <Route path="/pagos" element={<PrivateRoute modulo="pagos"><Layout><PagosProveedores /></Layout></PrivateRoute>} />
       <Route path="/config" element={<PrivateRoute modulo="config"><Layout><Configuracion /></Layout></PrivateRoute>} />
       <Route path="/usuarios" element={<PrivateRoute modulo="usuarios"><Layout><Usuarios /></Layout></PrivateRoute>} />
       <Route path="/gerencial" element={<PrivateRoute modulo="gerencial"><Layout><DashboardGerencial /></Layout></PrivateRoute>} />

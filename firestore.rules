@@ -47,10 +47,14 @@ service cloud.firestore {
     // corta el acceso de verdad (a nivel base de datos, no solo ocultándole
     // pantallas) — no puede seguir leyendo ni escribiendo nada aunque intente
     // hacerlo por afuera de la app, con la sesión que ya tenía abierta.
+    // Ojo: se usa .get('activo', true) y no .activo — acceder a un campo que no
+    // existe en el doc tira error en las reglas (no da "undefined", deniega TODO
+    // el acceso), así que esto es lo que evita romper a cualquier usuario viejo
+    // que nunca tuvo ese campo guardado.
     match /negocios/{negocioId}/{document=**} {
       allow read, write: if request.auth != null
         && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.negocioId == negocioId
-        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.activo != false;
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('activo', true) != false;
     }
 
     // Catálogo público: cualquiera puede leer el stock disponible

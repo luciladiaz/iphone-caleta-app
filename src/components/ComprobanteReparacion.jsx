@@ -17,6 +17,11 @@ function numeroWhatsapp(telefono) {
   return `549${n}`;
 }
 
+// El selector nativo de compartir archivos es confiable en celular (te muestra WhatsApp
+// con la imagen ya adjunta), pero en Mac/Windows suele fallar o ni mostrar WhatsApp — mejor
+// no ofrecerlo ahí y usar directo el método de descargar + abrir el chat.
+const esMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 const ITEMS_CHECKLIST_DEFAULT = [
   'Equipo probado funcionando delante del cliente',
   'Se informó el diagnóstico y la reparación realizada',
@@ -151,7 +156,7 @@ export default function ComprobanteReparacion({ reparacion, negocioId, negocioNo
     const mensaje = `Hola${reparacion.cliente ? ' ' + reparacion.cliente : ''}! Te paso el comprobante de tu reparación.`;
 
     const file = new File([blob], archivo, { type: 'image/png' });
-    if (navigator.canShare?.({ files: [file] })) {
+    if (esMobile && navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({ files: [file], text: mensaje });
         return;

@@ -18,6 +18,11 @@ function numeroWhatsapp(telefono) {
   return `549${n}`;
 }
 
+// El selector nativo de compartir archivos es confiable en celular (te muestra WhatsApp
+// con la imagen ya adjunta), pero en Mac/Windows suele fallar o ni mostrar WhatsApp — mejor
+// no ofrecerlo ahí y usar directo el método de descargar + abrir el chat.
+const esMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 const GARANTIA_TEXTO_DEFAULT = `Este equipo cuenta con garantía de 90 días corridos desde la fecha de entrega (mínimo legal: 3 meses para bienes usados, según el Art. 11 de la Ley 24.240 de Defensa del Consumidor).
 
 Cubre fallas de funcionamiento no informadas al momento de la entrega, incluyendo batería por debajo del 80% de su capacidad, pantalla, cámaras, botones, altavoces y conectividad, siempre que la falla no sea consecuencia de golpe, líquido o mal uso posterior a la entrega.
@@ -161,7 +166,7 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
     const mensaje = `Hola${venta.cliente ? ' ' + venta.cliente : ''}! Te paso el comprobante de tu compra.`;
 
     const file = new File([blob], archivo, { type: 'image/png' });
-    if (navigator.canShare?.({ files: [file] })) {
+    if (esMobile && navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({ files: [file], text: mensaje });
         return;

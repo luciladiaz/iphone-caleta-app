@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs, getDoc, addDoc, deleteDoc, doc, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
-import { IconWallet, IconCoin, IconPlus, IconTrash, IconX, IconTrendUp, IconTrendDown, IconCalendar, IconRefresh, IconLock, IconCheckCircle, IconWarning, IconChart } from '../components/Icons';
+import { IconWallet, IconCoin, IconPlus, IconTrash, IconX, IconTrendUp, IconTrendDown, IconCalendar, IconRefresh, IconLock, IconCheckCircle, IconWarning, IconChart, IconDownload } from '../components/Icons';
 import { reconciliarCaja, calcularVentasDelDia, obtenerCierre, listarCierres, cerrarCajaDelDia, fechaKey, fechaDeMovimiento, CATEGORIAS_INGRESO as CATEGORIAS_INGRESO_DEFAULT, CATEGORIAS_EGRESO as CATEGORIAS_EGRESO_DEFAULT } from '../lib/caja';
 import GraficoIngresosEgresos from '../components/GraficoIngresosEgresos';
 
@@ -46,6 +46,75 @@ function agruparPorDia(movimientos, moneda, dias) {
     mapa[key][m.tipo === 'ingreso' ? 'ingreso' : 'egreso'] += Number(m.monto) || 0;
   }
   return Object.values(mapa).sort((a, b) => a.fecha.localeCompare(b.fecha));
+}
+
+// CSV con separador ";" y coma decimal (no ",", no "."): es la convención con la que
+// Excel en configuración regional Argentina abre un .csv directo con doble clic y
+// reconoce los montos como números (con separador ",", Excel-AR los toma como texto
+// o rompe columnas si el concepto tiene una coma adentro).
+function csvEscape(valor) {
+  const texto = valor === null || valor === undefined ? '' : String(valor);
+  if (/[;"\n\r]/.test(texto)) return `"${texto.replace(/"/g, '""')}"`;
+  return texto;
+}
+function csvMonto(n) {
+  return typeof n === 'number' ? n.toFixed(2).replace('.', ',') : '';
+}
+
+// Arma el detalle completo de la caja para exportar: TODOS los movimientos (no solo
+// los que están filtrados en pantalla), ordenados del más viejo al más nuevo, con
+// saldo acumulado por moneda calculado sobre esa misma lista completa — así la última
+// fila siempre da exactamente igual al saldo que se ve arriba en pantalla, sin importar
+// qué filtro esté activo en el momento de exportar.
+function exportarCajaCSV(movimientos, negocioId) {
+  const ordenados = [...movimientos].sort((a, b) => fechaDeMovimiento(a) - fechaDeMovimiento(b));
+
+  const encabezado = [
+    'Fecha', 'Hora', 'Tipo', 'Categoría', 'Concepto', 'Moneda',
+    'Ingreso ARS', 'Egreso ARS', 'Ingreso USD', 'Egreso USD',
+    'Saldo ARS acumulado', 'Saldo USD acumulado',
+    'Origen', 'Automático', 'ID de referencia',
+  ];
+
+  const filas = [encabezado];
+  let saldoARS = 0, saldoUSD = 0;
+  for (const m of ordenados) {
+    const monto = Number(m.monto) || 0;
+    const esUSD = m.moneda === 'USD';
+    const esIngreso = m.tipo === 'ingreso';
+    if (esUSD) saldoUSD += esIngreso ? monto : -monto;
+    else saldoARS += esIngreso ? monto : -monto;
+
+    const fecha = fechaDeMovimiento(m);
+    filas.push([
+      fecha.toLocaleDateString('es-AR'),
+      fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+      esIngreso ? 'Ingreso' : 'Egreso',
+      categoriaDe(m),
+      m.concepto || '',
+      esUSD ? 'USD' : 'ARS',
+      !esUSD && esIngreso ? csvMonto(monto) : '',
+      !esUSD && !esIngreso ? csvMonto(monto) : '',
+      esUSD && esIngreso ? csvMonto(monto) : '',
+      esUSD && !esIngreso ? csvMonto(monto) : '',
+      csvMonto(saldoARS),
+      csvMonto(saldoUSD),
+      ORIGEN_LABEL[m.origen] || 'Otro',
+      m.automatico ? 'Sí' : 'No',
+      m.ventaId || '',
+    ]);
+  }
+
+  const csv = filas.map(fila => fila.map(csvEscape).join(';')).join('\r\n');
+  // El BOM UTF-8 es necesario para que Excel muestre bien las tildes/ñ en vez de
+  // caracteres corridos al abrir el archivo directo (sin BOM, Excel asume ANSI).
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `caja-${negocioId}-${fechaKey(new Date())}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function Caja() {
@@ -238,6 +307,9 @@ export default function Caja() {
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={recalcular} disabled={reconciliando} title="Busca ventas, cuotas cobradas y pagos a proveedores que todavía no tengan su movimiento de caja y lo crea" style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text)', borderRadius: 10, padding: '10px 16px', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>
             <IconRefresh size={14} />{reconciliando ? 'Recalculando...' : 'Recalcular desde ventas'}
+          </button>
+          <button onClick={() => exportarCajaCSV(movimientos, negocioId)} disabled={movimientos.length === 0} title="Descarga el detalle completo de la caja (todos los movimientos, con saldo acumulado por moneda) en un CSV" style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text)', borderRadius: 10, padding: '10px 16px', fontSize: 14, fontWeight: 700, cursor: movimientos.length === 0 ? 'not-allowed' : 'pointer', opacity: movimientos.length === 0 ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 7 }}>
+            <IconDownload size={14} />Exportar CSV
           </button>
           <button onClick={abrirModal} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>
             <IconPlus size={14} />Movimiento manual

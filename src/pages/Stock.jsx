@@ -5,7 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import CalculadoraPrecio from '../components/CalculadoraPrecio';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
 import { IconCalculator, IconLink, IconShare, IconEdit, IconTrash, IconCheck, IconX, IconBox, IconPin } from '../components/Icons';
-import { CATEGORIAS_STOCK, MODELOS_DEFAULT_POR_CATEGORIA, ETIQUETA_ID_POR_CATEGORIA, SUGERENCIAS_CAPACIDAD_POR_CATEGORIA, EMOJI_POR_CATEGORIA, formatCapacidad } from '../lib/categoriasProducto';
+import { CATEGORIAS_STOCK, ETIQUETA_ID_POR_CATEGORIA, SUGERENCIAS_CAPACIDAD_POR_CATEGORIA, EMOJI_POR_CATEGORIA, formatCapacidad, cargarModelosPorCategoria } from '../lib/categoriasProducto';
+import SelectorModelo from '../components/SelectorModelo';
 
 const COLORES = ['Negro','Blanco','Azul','Natural','Desert','Desert Titanium','Natural Titanium','Naranja','Rosa','Verde','Morado','Rojo','Gris','Plata','Dorado'];
 const TIPOS = ['compra','consignacion'];
@@ -31,7 +32,7 @@ export default function Stock() {
   const [vendedores, setVendedores] = useState([]);
   const [equipoHistorial, setEquipoHistorial] = useState(null);
   const [categoriasProducto, setCategoriasProducto] = useState(CATEGORIAS_STOCK);
-  const [modelosPorCategoria, setModelosPorCategoria] = useState(MODELOS_DEFAULT_POR_CATEGORIA);
+  const [modelosPorCategoria, setModelosPorCategoria] = useState({});
   const [tipoCambio, setTipoCambio] = useState(0);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
@@ -70,13 +71,7 @@ export default function Stock() {
     const cfg = cfgSnap.data() || {};
     const catsProducto = cfg.categoriasProducto?.length ? cfg.categoriasProducto : CATEGORIAS_STOCK;
     setCategoriasProducto(catsProducto);
-    if (cfg.modelosPorCategoria) {
-      const combinado = {};
-      catsProducto.forEach(cat => { combinado[cat] = cfg.modelosPorCategoria[cat]?.length ? cfg.modelosPorCategoria[cat] : (MODELOS_DEFAULT_POR_CATEGORIA[cat] || []); });
-      setModelosPorCategoria(combinado);
-    } else if (cfg.modelos?.length) {
-      setModelosPorCategoria({ ...MODELOS_DEFAULT_POR_CATEGORIA, iPhone: cfg.modelos });
-    }
+    setModelosPorCategoria(await cargarModelosPorCategoria(negocioId, catsProducto, cfg.modelos));
     if (cfg.tipoCambio) setTipoCambio(cfg.tipoCambio);
     setLoading(false);
   };
@@ -109,6 +104,9 @@ export default function Stock() {
 
   const guardar = async (e) => {
     e.preventDefault();
+    // SelectorModelo es un combobox propio, no un <select> nativo, así que el
+    // "required" del HTML no lo cubre — se valida acá.
+    if (!form.modelo.trim()) { alert('Elegí o escribí un modelo antes de guardar.'); return; }
     setGuardando(true);
     try {
       if (editandoId) {
@@ -314,7 +312,14 @@ export default function Stock() {
             <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div><label style={labelStyle}>Categoría</label><select value={form.categoria} onChange={e => setForm({...form, categoria: e.target.value, modelo: ''})} style={inputStyle}>{categoriasProducto.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-                <div><label style={labelStyle}>Modelo</label><select value={form.modelo} onChange={e => setForm({...form, modelo: e.target.value})} required style={inputStyle}><option value="">Elegir...</option>{(modelosPorCategoria[form.categoria] || []).map(m => <option key={m}>{m}</option>)}</select></div>
+                <SelectorModelo
+                  categorias={[form.categoria]}
+                  modelosPorCategoria={modelosPorCategoria}
+                  value={form.modelo}
+                  onSeleccionar={m => setForm({ ...form, modelo: m })}
+                  label="Modelo"
+                  permitirVacio={false}
+                />
                 <div><label style={labelStyle}>Color</label><select value={form.color} onChange={e => setForm({...form, color: e.target.value})} style={inputStyle}><option value="">Elegir...</option>{COLORES.map(c => <option key={c}>{c}</option>)}</select></div>
                 <div>
                   <label style={labelStyle}>Capacidad / specs</label>

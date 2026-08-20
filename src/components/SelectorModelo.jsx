@@ -10,7 +10,7 @@ const VACIO = 'Universal / no aplica';
 // cargados (agrupados por categoría) en vez de un <select> gigante donde hay
 // que scrollear a mano. También deja usar directamente lo que se escriba,
 // por si el modelo puntual todavía no está en el catálogo.
-export default function SelectorModelo({ categorias, modelosPorCategoria, value, onSeleccionar, label = 'Modelo compatible' }) {
+export default function SelectorModelo({ categorias, modelosPorCategoria, value, onSeleccionar, label = 'Modelo compatible', permitirVacio = true }) {
   const [abierto, setAbierto] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const wrapRef = useRef(null);
@@ -47,7 +47,7 @@ export default function SelectorModelo({ categorias, modelosPorCategoria, value,
       {!abierto ? (
         <div onClick={() => setAbierto(true)} style={{ ...inputStyle, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <span style={{ color: value ? 'var(--rv-text)' : 'var(--rv-text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {value || VACIO}
+            {value || (permitirVacio ? VACIO : 'Elegir...')}
           </span>
           {value ? (
             <button type="button" onClick={quitar} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex', flexShrink: 0 }}><IconX size={14} /></button>
@@ -70,14 +70,16 @@ export default function SelectorModelo({ categorias, modelosPorCategoria, value,
             border: '1px solid var(--rv-border)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.25)', zIndex: 50,
             maxHeight: 280, overflowY: 'auto',
           }}>
-            {!b && (
+            {!b && permitirVacio && (
               <div onClick={() => elegir('')} style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid var(--rv-border)', fontSize: 13, color: 'var(--rv-text-dim)' }}>
                 {VACIO}
               </div>
             )}
             {gruposFiltrados.map(g => (
               <div key={g.cat}>
-                <div style={{ padding: '6px 14px', fontSize: 10, fontWeight: 700, color: 'var(--rv-text-dim)', textTransform: 'uppercase', background: 'var(--rv-surface-alt)' }}>{g.cat}</div>
+                {categorias.length > 1 && (
+                  <div style={{ padding: '6px 14px', fontSize: 10, fontWeight: 700, color: 'var(--rv-text-dim)', textTransform: 'uppercase', background: 'var(--rv-surface-alt)' }}>{g.cat}</div>
+                )}
                 {g.modelos.map(m => (
                   <div key={m} onClick={() => elegir(m)} style={{ padding: '9px 14px', cursor: 'pointer', borderBottom: '1px solid var(--rv-border)', fontSize: 13 }}>
                     {m}

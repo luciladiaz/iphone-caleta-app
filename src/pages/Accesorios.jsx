@@ -3,7 +3,7 @@ import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, getDoc } from '
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconBox, IconHash, IconCoin, IconEdit, IconCheck, IconX } from '../components/Icons';
-import { CATEGORIAS_STOCK, MODELOS_DEFAULT_POR_CATEGORIA } from '../lib/categoriasProducto';
+import { CATEGORIAS_STOCK, cargarModelosPorCategoria } from '../lib/categoriasProducto';
 import SelectorModelo from '../components/SelectorModelo';
 
 const CATEGORIAS = ['Fundas', 'Vidrios templados', 'Cables', 'Cargadores', 'Adaptadores', 'Audio / AirPods', 'MagSafe', 'Power banks', 'Soportes', 'Otros'];
@@ -23,7 +23,7 @@ const FORM_VACIO = { nombre: '', categoria: 'Fundas', modelo: '', color: '', can
 export default function Accesorios() {
   const { negocioId } = useAuth();
   const [accesorios, setAccesorios] = useState([]);
-  const [modelosPorCategoria, setModelosPorCategoria] = useState(MODELOS_DEFAULT_POR_CATEGORIA);
+  const [modelosPorCategoria, setModelosPorCategoria] = useState({});
   const [categoriasProducto, setCategoriasProducto] = useState(CATEGORIAS_STOCK);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(FORM_VACIO);
@@ -44,10 +44,7 @@ export default function Accesorios() {
     const cfg = cfgSnap.data() || {};
     const catsProducto = cfg.categoriasProducto?.length ? cfg.categoriasProducto : CATEGORIAS_STOCK;
     setCategoriasProducto(catsProducto);
-    const porCategoria = cfg.modelosPorCategoria || {};
-    const combinado = {};
-    catsProducto.forEach(cat => { combinado[cat] = porCategoria[cat]?.length ? porCategoria[cat] : (MODELOS_DEFAULT_POR_CATEGORIA[cat] || []); });
-    setModelosPorCategoria(combinado);
+    setModelosPorCategoria(await cargarModelosPorCategoria(negocioId, catsProducto, cfg.modelos));
     setLoading(false);
   };
 

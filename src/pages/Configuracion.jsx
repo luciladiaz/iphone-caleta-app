@@ -4,7 +4,7 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconGear, IconBox, IconCoin, IconArrowSwap, IconX, IconPin, IconUser, IconTruck, IconBell, IconTrendUp, IconTag, IconWallet } from '../components/Icons';
 import { CATEGORIAS_INGRESO as CATEGORIAS_INGRESO_DEFAULT, CATEGORIAS_EGRESO as CATEGORIAS_EGRESO_DEFAULT } from '../lib/caja';
-import { CATEGORIAS_STOCK, MODELOS_DEFAULT_POR_CATEGORIA } from '../lib/categoriasProducto';
+import { CATEGORIAS_STOCK, cargarModelosPorCategoria } from '../lib/categoriasProducto';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -122,13 +122,13 @@ export default function Configuracion() {
     const catsProducto = cfg.categoriasProducto?.length ? cfg.categoriasProducto : CATEGORIAS_STOCK;
     setCategoriasProducto(catsProducto);
     setCategoriaModelos(prev => catsProducto.includes(prev) ? prev : (catsProducto[0] || ''));
-    // Legacy: antes había una sola lista plana `modelos` (todos iPhone). Si ya existe
-    // la nueva `modelosPorCategoria` se usa esa; si no, se migra la vieja a iPhone.
-    const porCategoria = cfg.modelosPorCategoria || {};
+    // Misma fuente que usan Stock y Accesorios: si una categoría nunca se tocó se
+    // completa (y guarda) con la lista de referencia; si el negocio la vació a
+    // propósito, se respeta ese vacío en vez de rellenarla sola de nuevo.
+    const porCategoria = await cargarModelosPorCategoria(negocioId, catsProducto, cfg.modelos);
     const nuevoEstado = {};
     catsProducto.forEach(cat => {
-      const lista = porCategoria[cat] || (cat === 'iPhone' ? cfg.modelos : null) || MODELOS_DEFAULT_POR_CATEGORIA[cat] || [];
-      nuevoEstado[cat] = lista.map((m, i) => ({ id: i, nombre: m }));
+      nuevoEstado[cat] = (porCategoria[cat] || []).map((m, i) => ({ id: i, nombre: m }));
     });
     setModelosPorCategoria(nuevoEstado);
     setListaCanje((cfg.listaCanje || []).map((c, i) => ({ id: i, ...c })));

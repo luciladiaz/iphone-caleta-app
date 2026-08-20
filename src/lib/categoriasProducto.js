@@ -1,3 +1,6 @@
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase/config';
+
 // Categorías de producto que puede manejar el Stock (equipos individuales,
 // no accesorios por cantidad). Cada categoría tiene su propia lista de
 // modelos configurable desde Configuración > Modelos.
@@ -43,3 +46,36 @@ export const EMOJI_POR_CATEGORIA = {
 // necesitan el sufijo GB; Mac/Drone suelen cargar specs libres ("16GB RAM /
 // 512GB SSD") que ya vienen con unidad y no hay que duplicar.
 export const formatCapacidad = (gb) => gb && /^\d+$/.test(String(gb).trim()) ? `${gb}GB` : gb;
+
+// Única fuente de verdad para "qué modelos tiene cada categoría", usada por
+// Configuración, Stock y Accesorios por igual — antes cada pantalla decidía por su
+// cuenta cuándo mostrar la lista guardada y cuándo mostrar los defaults (con reglas
+// levemente distintas entre sí), lo que hacía que una categoría pareciera "vacía" en
+// una pantalla y "llena" en otra para el mismo negocio.
+//
+// La primera vez que se lee una categoría que nunca se tocó (la clave ni existe en
+// Firestore) se la completa con esta lista de referencia y ESA se guarda de una — a
+// partir de ahí ya es la lista real del negocio, no un valor inventado al vuelo. Si
+// el negocio la vacía a propósito más adelante, se respeta ese vacío (no se vuelve a
+// rellenar sola).
+export async function cargarModelosPorCategoria(negocioId, categorias, modelosLegacyIphone) {
+  const cfgRef = doc(db, 'negocios', negocioId, 'config', 'general');
+  const cfgSnap = await getDoc(cfgRef);
+  const guardado = (cfgSnap.data() || {}).modelosPorCategoria || {};
+
+  const resultado = {};
+  const aSembrar = {};
+  for (const cat of categorias) {
+    if (guardado[cat] !== undefined) {
+      resultado[cat] = guardado[cat];
+    } else {
+      const semilla = (cat === 'iPhone' && modelosLegacyIphone?.length) ? modelosLegacyIphone : (MODELOS_DEFAULT_POR_CATEGORIA[cat] || []);
+      resultado[cat] = semilla;
+      aSembrar[cat] = semilla;
+    }
+  }
+  if (Object.keys(aSembrar).length > 0) {
+    await setDoc(cfgRef, { modelosPorCategoria: { ...guardado, ...aSembrar } }, { merge: true });
+  }
+  return resultado;
+}

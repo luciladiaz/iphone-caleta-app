@@ -174,7 +174,7 @@ export default function ComprobanteReparacion({ reparacion, negocioId, negocioNo
     link.click();
     const numero = numeroWhatsapp(reparacion.telefono);
     const url = numero
-      ? `https://wa.me/${numero}?text=${encodeURIComponent(mensaje + ' Un segundo que te adjunto el PDF que se acaba de descargar.')}`
+      ? `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`
       : `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
     window.open(url, '_blank');
   };

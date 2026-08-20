@@ -7,6 +7,8 @@ import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
 import { IconCalculator, IconLink, IconShare, IconEdit, IconTrash, IconCheck, IconX, IconBox, IconPin } from '../components/Icons';
 import { CATEGORIAS_STOCK, ETIQUETA_ID_POR_CATEGORIA, SUGERENCIAS_CAPACIDAD_POR_CATEGORIA, EMOJI_POR_CATEGORIA, formatCapacidad, cargarModelosPorCategoria } from '../lib/categoriasProducto';
 import SelectorModelo from '../components/SelectorModelo';
+import CampoPrecio from '../components/CampoPrecio';
+import { convertirMoneda } from '../lib/moneda';
 
 const COLORES = ['Negro','Blanco','Azul','Natural','Desert','Desert Titanium','Natural Titanium','Naranja','Rosa','Verde','Morado','Rojo','Gris','Plata','Dorado'];
 const TIPOS = ['compra','consignacion'];
@@ -48,7 +50,7 @@ export default function Stock() {
   const [modalLimite, setModalLimite] = useState(false);
   const FORM_VACIO = {
     categoria: categoriasProducto[0] || 'iPhone', modelo: '', color: '', gb: '', bateria: '', imei: '',
-    tipo: 'compra', proveedor: '', costoUsd: '', pvUsd: '',
+    tipo: 'compra', proveedor: '', costoMonto: '', costoMoneda: 'USD', pvMonto: '', pvMoneda: 'USD',
     estado: 'disponible', puntoVenta: '', asignadoA: '', notas: '', fechaManual: ''
   };
   const [form, setForm] = useState(FORM_VACIO);
@@ -83,7 +85,12 @@ export default function Stock() {
     setForm({
       categoria: eq.categoria || 'iPhone', modelo: eq.modelo || '', color: eq.color || '', gb: eq.gb || '',
       bateria: eq.bateria || '', imei: eq.imei || '', tipo: eq.tipo || 'compra',
-      proveedor: eq.proveedor || '', costoUsd: eq.costoUsd || '', pvUsd: eq.pvUsd || '',
+      proveedor: eq.proveedor || '',
+      // Los equipos viejos solo tienen el valor ya convertido a USD (costoUsd/pvUsd); los
+      // nuevos guardan también en qué moneda se cargó (costoMonto/costoMoneda), para poder
+      // reabrir la edición mostrando el mismo monto que se tipeó, no una conversión.
+      costoMonto: eq.costoMonto ?? eq.costoUsd ?? '', costoMoneda: eq.costoMoneda || 'USD',
+      pvMonto: eq.pvMonto ?? eq.pvUsd ?? '', pvMoneda: eq.pvMoneda || 'USD',
       estado: eq.estado || 'disponible', puntoVenta: eq.puntoVenta || '',
       asignadoA: eq.asignadoA || '', notas: eq.notas || '', fechaManual: ''
     });
@@ -109,8 +116,15 @@ export default function Stock() {
     if (!form.modelo.trim()) { alert('Elegí o escribí un modelo antes de guardar.'); return; }
     setGuardando(true);
     try {
+      // costoUsd/pvUsd son el valor canónico en USD que usa el resto de la app (Ventas,
+      // reportes, dashboard); costoMonto/costoMoneda quedan como respaldo de lo que se
+      // tipeó realmente, para poder reabrir la edición sin perder si se cargó en pesos.
+      const costoUsd = convertirMoneda(form.costoMonto, form.costoMoneda, 'USD', tipoCambio);
+      const pvUsd = convertirMoneda(form.pvMonto, form.pvMoneda, 'USD', tipoCambio);
       if (editandoId) {
         const { fechaManual, ...datos } = form;
+        datos.costoUsd = costoUsd;
+        datos.pvUsd = pvUsd;
         if (fechaManual) datos.fechaIngreso = new Date(fechaManual);
         // Un equipo recibido como parte de pago ya trae su origen (cliente + venta)
         // desde Ventas — no se pisa acá al editar otros campos del equipo.
@@ -121,7 +135,7 @@ export default function Stock() {
       } else {
         const fechaIngreso = form.fechaManual ? new Date(form.fechaManual) : serverTimestamp();
         const origen = form.proveedor ? { tipo: form.tipo, proveedorNombre: form.proveedor } : null;
-        await addDoc(collection(db, ...base, 'stock'), { ...form, fechaIngreso, origen });
+        await addDoc(collection(db, ...base, 'stock'), { ...form, costoUsd, pvUsd, fechaIngreso, origen });
       }
       cerrarModal();
       cargar();
@@ -219,7 +233,11 @@ export default function Stock() {
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Stock</h1>
           <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, margin: '4px 0 0' }}>
             {stockDisponible.length} disponibles{stockAsignado.length > 0 ? ` · ${stockAsignado.length} asignados` : ''}
-            {esAdmin && totalValorUSD > 0 && <span style={{ color: 'var(--rv-accent)', marginLeft: 8 }}>· USD {totalValorUSD.toFixed(0)} en stock</span>}
+            {esAdmin && totalValorUSD > 0 && (
+              <span style={{ color: 'var(--rv-accent)', marginLeft: 8 }}>
+                · USD {totalValorUSD.toFixed(0)} en stock{tipoCambio > 0 && ` (≈ $${(totalValorUSD * tipoCambio).toLocaleString('es-AR')} ARS)`}
+              </span>
+            )}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -272,8 +290,16 @@ export default function Stock() {
               {eq.imei && <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>{ETIQUETA_ID_POR_CATEGORIA[eq.categoria] || 'IMEI'} {eq.imei}</span>}
               {eq.puntoVenta && <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>{eq.puntoVenta}</span>}
               {eq.asignadoA && <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>{eq.asignadoA}</span>}
-              {esAdmin && eq.costoUsd && <span style={{ color: 'var(--rv-text-dim)', marginTop: 4 }}>Costo: USD {eq.costoUsd}</span>}
-              {eq.pvUsd && <span style={{ color: 'var(--rv-accent)', fontWeight: 600 }}>Venta: USD {eq.pvUsd}</span>}
+              {esAdmin && eq.costoUsd > 0 && (
+                <span style={{ color: 'var(--rv-text-dim)', marginTop: 4 }}>
+                  Costo: USD {eq.costoUsd}{tipoCambio > 0 && ` · $${(eq.costoUsd * tipoCambio).toLocaleString('es-AR')} ARS`}
+                </span>
+              )}
+              {eq.pvUsd > 0 && (
+                <span style={{ color: 'var(--rv-accent)', fontWeight: 600 }}>
+                  Venta: USD {eq.pvUsd}{tipoCambio > 0 && ` · $${(eq.pvUsd * tipoCambio).toLocaleString('es-AR')} ARS`}
+                </span>
+              )}
               {eq.fechaIngreso && <span style={{ color: 'var(--rv-text-dim)' }}>{eq.fechaIngreso.toDate ? eq.fechaIngreso.toDate().toLocaleDateString('es-AR') : new Date(eq.fechaIngreso).toLocaleDateString('es-AR')}</span>}
               {origenDe(eq) && (
                 <div style={{ marginTop: 6, paddingTop: 8, borderTop: '1px solid var(--rv-border)', color: 'var(--rv-text-dim)', fontSize: 11, lineHeight: 1.4 }}>
@@ -330,8 +356,18 @@ export default function Stock() {
                 <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>{ETIQUETA_ID_POR_CATEGORIA[form.categoria] || 'IMEI'}</label><input value={form.imei} onChange={e => setForm({...form, imei: e.target.value})} placeholder={form.categoria === 'Mac' || form.categoria === 'Drone' ? 'Número de serie' : '123456789012345'} style={inputStyle} /></div>
                 <div><label style={labelStyle}>Tipo de adquisición</label><select value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value})} style={inputStyle}>{TIPOS.map(t => <option key={t} value={t}>{t === 'consignacion' ? 'Consignación' : 'Compra directa'}</option>)}</select></div>
                 <div><label style={labelStyle}>Proveedor</label><select value={form.proveedor} onChange={e => setForm({...form, proveedor: e.target.value})} style={inputStyle}><option value="">Elegir...</option>{proveedores.map(p => <option key={p.id}>{p.nombre}</option>)}</select></div>
-                <div><label style={labelStyle}>Costo USD</label><input type="number" value={form.costoUsd} onChange={e => setForm({...form, costoUsd: e.target.value})} placeholder="400" style={inputStyle} /></div>
-                <div><label style={labelStyle}>Precio Venta USD</label><input type="number" value={form.pvUsd} onChange={e => setForm({...form, pvUsd: e.target.value})} placeholder="500" style={inputStyle} /></div>
+                <CampoPrecio
+                  label="Costo"
+                  monto={form.costoMonto} moneda={form.costoMoneda}
+                  onChange={({ monto, moneda }) => setForm({ ...form, costoMonto: monto, costoMoneda: moneda })}
+                  tipoCambio={tipoCambio} placeholder="400"
+                />
+                <CampoPrecio
+                  label="Precio de venta"
+                  monto={form.pvMonto} moneda={form.pvMoneda}
+                  onChange={({ monto, moneda }) => setForm({ ...form, pvMonto: monto, pvMoneda: moneda })}
+                  tipoCambio={tipoCambio} placeholder="500"
+                />
                 <div><label style={labelStyle}>Punto de venta</label><select value={form.puntoVenta} onChange={e => setForm({...form, puntoVenta: e.target.value})} style={inputStyle}><option value="">Ninguno</option>{puntosVenta.map(p => <option key={p.id}>{p.nombre}</option>)}</select></div>
                 <div><label style={labelStyle}>Asignado a</label><select value={form.asignadoA} onChange={e => setForm({...form, asignadoA: e.target.value})} style={inputStyle}><option value="">Ninguno</option>{vendedores.map(v => <option key={v.id}>{v.nombre}</option>)}</select></div>
                 <div><label style={labelStyle}>Estado</label><select value={form.estado} onChange={e => setForm({...form, estado: e.target.value})} style={inputStyle}>{ESTADOS.map(s => <option key={s}>{s}</option>)}</select></div>

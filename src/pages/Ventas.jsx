@@ -9,6 +9,8 @@ import { registrarMovimientosVenta, eliminarMovimientosVenta } from '../lib/caja
 import SelectorCliente from '../components/SelectorCliente';
 import SelectorEquipoStock from '../components/SelectorEquipoStock';
 import { CATEGORIAS_STOCK, formatCapacidad } from '../lib/categoriasProducto';
+import CampoPrecio from '../components/CampoPrecio';
+import { convertirMoneda } from '../lib/moneda';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -34,11 +36,11 @@ export default function Ventas() {
   const [modalLimite, setModalLimite] = useState(false);
   const [form, setForm] = useState({
     equipoId: '', clienteId: '', cliente: '', telefono: '', vendedor: '', origen: '',
-    estado: 'pendiente', notas: '', tipoCambio: '', pvUsdVenta: '',
+    estado: 'pendiente', notas: '', tipoCambio: '', pvVentaMonto: '', pvVentaMoneda: 'USD',
     cobros: [{ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS', cuotas: '', montoCuota: '', fechaInicio: '' }],
     partesDePago: []
   });
-  const [nuevaParte, setNuevaParte] = useState({ categoria: 'iPhone', modelo: '', gb: '', color: '', bateria: '', imei: '', costoUsd: '', pvUsd: '' });
+  const [nuevaParte, setNuevaParte] = useState({ categoria: 'iPhone', modelo: '', gb: '', color: '', bateria: '', imei: '', costoMonto: '', costoMoneda: 'USD', pvMonto: '', pvMoneda: 'USD' });
 
   const cargar = async () => {
     if (!negocioId) return;
@@ -90,7 +92,7 @@ export default function Ventas() {
   const agregarParte = () => {
     if (!nuevaParte.modelo) return;
     setForm(f => ({ ...f, partesDePago: [...f.partesDePago, { ...nuevaParte }] }));
-    setNuevaParte({ categoria: 'iPhone', modelo: '', gb: '', color: '', bateria: '', imei: '', costoUsd: '', pvUsd: '' });
+    setNuevaParte({ categoria: 'iPhone', modelo: '', gb: '', color: '', bateria: '', imei: '', costoMonto: '', costoMoneda: 'USD', pvMonto: '', pvMoneda: 'USD' });
   };
 
   const abrirComprobante = async (v) => {
@@ -133,8 +135,10 @@ export default function Ventas() {
       tipoCambio: v.tipoCambio || '',
       // El equipo de una venta ya hecha sale del stock "disponible" (queda vendido),
       // así que no aparece en `stock` para resolver el precio: se guarda acá aparte
-      // para que el resumen de pago (cobrado/saldo) siga funcionando al editar.
-      pvUsdVenta: v.pvUsd || '',
+      // para que el resumen de pago (cobrado/saldo) siga funcionando al editar. Las
+      // ventas viejas solo tienen el valor ya convertido a USD (pvUsd); las nuevas
+      // guardan también en qué moneda se cargó, para reabrir mostrando lo tipeado.
+      pvVentaMonto: v.pvVentaMonto ?? v.pvUsd ?? '', pvVentaMoneda: v.pvVentaMoneda || 'USD',
       cobros: v.cobros || [{ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS', cuotas: '', montoCuota: '', fechaInicio: '' }],
       partesDePago: v.partesDePago || [],
     });
@@ -146,7 +150,7 @@ export default function Ventas() {
     setEditando(null);
     setForm({
       equipoId: '', clienteId: '', cliente: '', telefono: '', vendedor: '', origen: '',
-      estado: 'pendiente', notas: '', tipoCambio: '', pvUsdVenta: '',
+      estado: 'pendiente', notas: '', tipoCambio: '', pvVentaMonto: '', pvVentaMoneda: 'USD',
       cobros: [{ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS', cuotas: '', montoCuota: '', fechaInicio: '' }],
       partesDePago: []
     });
@@ -157,6 +161,7 @@ export default function Ventas() {
     if (!editando && !form.equipoId) { alert('Elegí un equipo antes de guardar la venta.'); return; }
     setGuardando(true);
     const base = ['negocios', negocioId];
+    const tc = Number(form.tipoCambio || tipoCambioGlobal) || 0;
     try {
       if (editando) {
         await updateDoc(doc(db, ...base, 'ventas', editando), {
@@ -170,8 +175,11 @@ export default function Ventas() {
           cobros: form.cobros,
           // Antes no se guardaban acá: si el equipo se cargó al stock sin precio de venta,
           // la venta quedaba con pvUsd vacío para siempre y el resumen de pago (cobrado/saldo)
-          // no se podía mostrar nunca, ni corrigiéndolo desde este formulario.
-          pvUsd: form.pvUsdVenta || '',
+          // no se podía mostrar nunca, ni corrigiéndolo desde este formulario. pvUsd es el
+          // valor canónico en USD; pvVentaMonto/pvVentaMoneda respaldan lo tipeado realmente.
+          pvUsd: convertirMoneda(form.pvVentaMonto, form.pvVentaMoneda, 'USD', tc),
+          pvVentaMonto: Number(form.pvVentaMonto) || 0,
+          pvVentaMoneda: form.pvVentaMoneda,
           tipoCambio: form.tipoCambio || tipoCambioGlobal || '',
         });
         // Los cobros pudieron cambiar (monto, moneda, forma de pago): se regeneran
@@ -211,7 +219,7 @@ export default function Ventas() {
           bateria: equipo?.bateria || '',
           proveedor: equipo?.proveedor || '',
           costoUsd: equipo?.costoUsd || '',
-          pvUsd: form.pvUsdVenta || equipo?.pvUsd || '',
+          pvUsd: convertirMoneda(form.pvVentaMonto, form.pvVentaMoneda, 'USD', tc) || equipo?.pvUsd || '',
           equipoId: form.equipoId,
         };
         const ventaRef = doc(collection(db, ...base, 'ventas'));
@@ -235,8 +243,8 @@ export default function Ventas() {
             tipo: 'parte_de_pago',
             estado: 'disponible',
             fechaIngreso: serverTimestamp(),
-            costoUsd: parte.costoUsd || '',
-            pvUsd: parte.pvUsd || '',
+            costoUsd: convertirMoneda(parte.costoMonto, parte.costoMoneda, 'USD', tc),
+            pvUsd: convertirMoneda(parte.pvMonto, parte.pvMoneda, 'USD', tc),
             origen: {
               tipo: 'parte_de_pago',
               clienteId: form.clienteId || null,
@@ -258,6 +266,8 @@ export default function Ventas() {
   };
 
   if (loading) return <div style={{ color: 'var(--rv-text-dim)', padding: 40 }}>Cargando ventas...</div>;
+
+  const tcForm = Number(form.tipoCambio || tipoCambioGlobal) || 0;
 
   const hoyV = new Date();
   const primerDiaMesV = new Date(hoyV.getFullYear(), hoyV.getMonth(), 1);
@@ -341,7 +351,7 @@ export default function Ventas() {
                 <SelectorEquipoStock
                   stock={stock}
                   equipoId={form.equipoId}
-                  onSeleccionar={id => setForm({ ...form, equipoId: id, pvUsdVenta: stock.find(s => s.id === id)?.pvUsd || '' })}
+                  onSeleccionar={id => setForm({ ...form, equipoId: id, pvVentaMonto: stock.find(s => s.id === id)?.pvUsd || '', pvVentaMoneda: 'USD' })}
                 />
               )}
               {equipoSeleccionado && (
@@ -395,16 +405,12 @@ export default function Ventas() {
                     style={inputStyle}
                   />
                 </div>
-                <div>
-                  <label style={labelStyle}>Precio de venta (USD)</label>
-                  <input
-                    type="number"
-                    value={form.pvUsdVenta}
-                    onChange={e => setForm({ ...form, pvUsdVenta: e.target.value })}
-                    placeholder="500"
-                    style={inputStyle}
-                  />
-                </div>
+                <CampoPrecio
+                  label="Precio de venta"
+                  monto={form.pvVentaMonto} moneda={form.pvVentaMoneda}
+                  onChange={({ monto, moneda }) => setForm({ ...form, pvVentaMonto: monto, pvVentaMoneda: moneda })}
+                  tipoCambio={tcForm} placeholder="500"
+                />
                 <div style={{ gridColumn: '1/-1' }}>
                   <div style={{ fontSize: 11, color: 'var(--rv-text-dim)' }}>
                     Si no modificás el TC, se usa el tipo de cambio global de configuración.
@@ -421,7 +427,7 @@ export default function Ventas() {
                 </div>
                 {(() => {
                   const tc = Number(form.tipoCambio || tipoCambioGlobal) || 0;
-                  const pvUsd = Number(form.pvUsdVenta || equipoSeleccionado?.pvUsd) || 0;
+                  const pvUsd = convertirMoneda(form.pvVentaMonto, form.pvVentaMoneda, 'USD', tc) || Number(equipoSeleccionado?.pvUsd) || 0;
 
                   const cobradoUsd = form.cobros.reduce((sum, c) => {
                     if (c.tipo === 'Equipo como parte de pago') return sum;
@@ -430,7 +436,7 @@ export default function Ventas() {
                       : Number(c.monto) || 0;
                     return sum + (c.moneda === 'USD' ? monto : tc > 0 ? monto / tc : 0);
                   }, 0);
-                  const partesUsd = form.partesDePago.reduce((s, p) => s + (Number(p.costoUsd) || 0), 0);
+                  const partesUsd = form.partesDePago.reduce((s, p) => s + convertirMoneda(p.costoMonto, p.costoMoneda, 'USD', tc), 0);
                   const totalPagadoUsd = cobradoUsd + partesUsd;
                   const saldoUsd = pvUsd - totalPagadoUsd;
                   const saldoArs = tc > 0 ? saldoUsd * tc : 0;
@@ -538,7 +544,7 @@ export default function Ventas() {
                       <div>
                         <span style={{ color: 'var(--rv-accent)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}><IconArrowSwap size={13} />{p.modelo} {p.gb ? formatCapacidad(p.gb) : ''} {p.color}</span>
                         <div style={{ color: 'var(--rv-text-dim)', fontSize: 11, marginTop: 3 }}>
-                          Toma: USD {p.costoUsd} · Venta: USD {p.pvUsd}
+                          Toma: {p.costoMoneda === 'ARS' ? '$' : 'USD'} {p.costoMonto} · Venta: {p.pvMoneda === 'ARS' ? '$' : 'USD'} {p.pvMonto}
                         </div>
                       </div>
                       <button type="button" onClick={() => setForm(f => ({ ...f, partesDePago: f.partesDePago.filter((_, idx) => idx !== i) }))} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', display: 'flex' }}><IconX size={15} /></button>
@@ -556,13 +562,21 @@ export default function Ventas() {
                         <div style={{ color: 'var(--rv-accent)', fontSize: 11, fontWeight: 600, marginBottom: 8 }}>VALUACIÓN DEL EQUIPO RECIBIDO</div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                           <div>
-                            <label style={labelStyle}>Lo tomo a USD (costo)</label>
-                            <input type="number" value={nuevaParte.costoUsd} onChange={e => setNuevaParte({ ...nuevaParte, costoUsd: e.target.value })} placeholder="200" style={inputStyle} />
+                            <CampoPrecio
+                              label="Lo tomo a (costo)"
+                              monto={nuevaParte.costoMonto} moneda={nuevaParte.costoMoneda}
+                              onChange={({ monto, moneda }) => setNuevaParte({ ...nuevaParte, costoMonto: monto, costoMoneda: moneda })}
+                              tipoCambio={tcForm} placeholder="200"
+                            />
                             <div style={{ fontSize: 10, color: 'var(--rv-text-dim)', marginTop: 3 }}>Valor que le reconocés al cliente</div>
                           </div>
                           <div>
-                            <label style={labelStyle}>Lo vendo a USD (precio venta)</label>
-                            <input type="number" value={nuevaParte.pvUsd} onChange={e => setNuevaParte({ ...nuevaParte, pvUsd: e.target.value })} placeholder="280" style={inputStyle} />
+                            <CampoPrecio
+                              label="Lo vendo a (precio venta)"
+                              monto={nuevaParte.pvMonto} moneda={nuevaParte.pvMoneda}
+                              onChange={({ monto, moneda }) => setNuevaParte({ ...nuevaParte, pvMonto: monto, pvMoneda: moneda })}
+                              tipoCambio={tcForm} placeholder="280"
+                            />
                             <div style={{ fontSize: 10, color: 'var(--rv-text-dim)', marginTop: 3 }}>Se carga en stock como precio de venta</div>
                           </div>
                         </div>

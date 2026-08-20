@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy, doc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconWrench, IconEdit, IconTrash, IconX, IconCheckCircle, IconFile } from '../components/Icons';
 import { registrarMovimientoReparacion, registrarEgresoRepuestoReparacion, eliminarMovimientosReparacion } from '../lib/caja';
 import ComprobanteReparacion from '../components/ComprobanteReparacion';
 import SelectorCliente from '../components/SelectorCliente';
+import CampoPrecio from '../components/CampoPrecio';
+import { convertirMoneda } from '../lib/moneda';
 
 const ESTADOS = ['ingresado', 'diagnosticado', 'presupuestado', 'aprobado', 'en_reparacion', 'esperando_repuesto', 'listo', 'entregado', 'no_reparable', 'cancelado'];
 const ESTADO_LABEL = {
@@ -22,7 +24,10 @@ const ESTADO_COLOR = {
 const FORM_VACIO = {
   clienteId: '', cliente: '', telefono: '', modelo: '', color: '', imei: '', claveEquipo: '',
   fallaReportada: '', diagnostico: '', estado: 'ingresado',
-  costoRepuestoUsd: '', precioUsd: '', montoPagado: '', garantiaDias: '30',
+  costoRepuestoMonto: '', costoRepuestoMoneda: 'USD',
+  precioMonto: '', precioMoneda: 'USD',
+  pagadoMonto: '', pagadoMoneda: 'USD',
+  garantiaDias: '30',
   fechaEntregaManual: '', notas: '',
 };
 
@@ -43,15 +48,18 @@ export default function Reparaciones() {
   const [filtro, setFiltro] = useState('');
   const [form, setForm] = useState(FORM_VACIO);
   const [comprobanteDe, setComprobanteDe] = useState(null);
+  const [tipoCambio, setTipoCambio] = useState(0);
 
   const cargar = async () => {
     if (!negocioId) return;
-    const [snap, cliSnap] = await Promise.all([
+    const [snap, cliSnap, cfgSnap] = await Promise.all([
       getDocs(query(collection(db, ...base, 'reparaciones'), orderBy('fechaIngreso', 'desc'))),
       getDocs(query(collection(db, ...base, 'clientes'), orderBy('nombre'))),
+      getDoc(doc(db, ...base, 'config', 'general')),
     ]);
     setReparaciones(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     setClientes(cliSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    if (cfgSnap.data()?.tipoCambio) setTipoCambio(cfgSnap.data().tipoCambio);
     setLoading(false);
   };
 
@@ -73,8 +81,12 @@ export default function Reparaciones() {
       clienteId: rep.clienteId || '', cliente: rep.cliente || '', telefono: rep.telefono || '', modelo: rep.modelo || '',
       color: rep.color || '', imei: rep.imei || '', claveEquipo: rep.claveEquipo || '',
       fallaReportada: rep.fallaReportada || '', diagnostico: rep.diagnostico || '',
-      estado: rep.estado || 'ingresado', costoRepuestoUsd: rep.costoRepuestoUsd || '',
-      precioUsd: rep.precioUsd || '', montoPagado: rep.montoPagado || '',
+      estado: rep.estado || 'ingresado',
+      // Reparaciones viejas solo tienen el valor ya convertido a USD; las nuevas guardan
+      // también en qué moneda se cargó, para reabrir la edición con el mismo monto tipeado.
+      costoRepuestoMonto: rep.costoRepuestoMonto ?? rep.costoRepuestoUsd ?? '', costoRepuestoMoneda: rep.costoRepuestoMoneda || 'USD',
+      precioMonto: rep.precioMonto ?? rep.precioUsd ?? '', precioMoneda: rep.precioMoneda || 'USD',
+      pagadoMonto: rep.pagadoMonto ?? rep.montoPagado ?? '', pagadoMoneda: rep.pagadoMoneda || 'USD',
       garantiaDias: rep.garantiaDias ?? '30', fechaEntregaManual: '', notas: rep.notas || '',
     });
     setModal(true);
@@ -101,8 +113,15 @@ export default function Reparaciones() {
         clienteId: form.clienteId, cliente: form.cliente, telefono: form.telefono, modelo: form.modelo, color: form.color,
         imei: form.imei, claveEquipo: form.claveEquipo, fallaReportada: form.fallaReportada,
         diagnostico: form.diagnostico, estado: form.estado,
-        costoRepuestoUsd: Number(form.costoRepuestoUsd) || 0, precioUsd: Number(form.precioUsd) || 0,
-        montoPagado: Number(form.montoPagado) || 0, garantiaDias: Number(form.garantiaDias) || 0,
+        // costoRepuestoUsd/precioUsd/montoPagado quedan en USD (moneda que usa el resto de
+        // la pantalla y de Caja); los campos "Monto"/"Moneda" guardan lo tipeado realmente.
+        costoRepuestoUsd: convertirMoneda(form.costoRepuestoMonto, form.costoRepuestoMoneda, 'USD', tipoCambio),
+        precioUsd: convertirMoneda(form.precioMonto, form.precioMoneda, 'USD', tipoCambio),
+        montoPagado: convertirMoneda(form.pagadoMonto, form.pagadoMoneda, 'USD', tipoCambio),
+        costoRepuestoMonto: Number(form.costoRepuestoMonto) || 0, costoRepuestoMoneda: form.costoRepuestoMoneda,
+        precioMonto: Number(form.precioMonto) || 0, precioMoneda: form.precioMoneda,
+        pagadoMonto: Number(form.pagadoMonto) || 0, pagadoMoneda: form.pagadoMoneda,
+        garantiaDias: Number(form.garantiaDias) || 0,
         notas: form.notas,
       };
       if (form.fechaEntregaManual) datos.fechaEntrega = new Date(form.fechaEntregaManual);
@@ -215,20 +234,37 @@ export default function Reparaciones() {
                 <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>Diagnóstico técnico</label><textarea value={form.diagnostico} onChange={e => setForm({ ...form, diagnostico: e.target.value })} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
                 <div><label style={labelStyle}>Estado</label><select value={form.estado} onChange={e => setForm({ ...form, estado: e.target.value })} style={inputStyle}>{ESTADOS.map(s => <option key={s} value={s}>{ESTADO_LABEL[s]}</option>)}</select></div>
                 <div><label style={labelStyle}>Garantía (días)</label><input type="number" min="0" value={form.garantiaDias} onChange={e => setForm({ ...form, garantiaDias: e.target.value })} placeholder="30" style={inputStyle} /></div>
-                {esAdmin && <div><label style={labelStyle}>Costo repuesto USD</label><input type="number" value={form.costoRepuestoUsd} onChange={e => setForm({ ...form, costoRepuestoUsd: e.target.value })} placeholder="60" style={inputStyle} /></div>}
-                <div><label style={labelStyle}>Precio al cliente USD</label><input type="number" value={form.precioUsd} onChange={e => setForm({ ...form, precioUsd: e.target.value })} placeholder="90" style={inputStyle} /></div>
+                {esAdmin && (
+                  <CampoPrecio
+                    label="Costo repuesto"
+                    monto={form.costoRepuestoMonto} moneda={form.costoRepuestoMoneda}
+                    onChange={({ monto, moneda }) => setForm({ ...form, costoRepuestoMonto: monto, costoRepuestoMoneda: moneda })}
+                    tipoCambio={tipoCambio} placeholder="60"
+                  />
+                )}
+                <CampoPrecio
+                  label="Precio al cliente"
+                  monto={form.precioMonto} moneda={form.precioMoneda}
+                  onChange={({ monto, moneda }) => setForm({ ...form, precioMonto: monto, precioMoneda: moneda })}
+                  tipoCambio={tipoCambio} placeholder="90"
+                />
                 <div>
-                  <label style={labelStyle}>Monto ya cobrado USD</label>
-                  <input type="number" value={form.montoPagado} onChange={e => setForm({ ...form, montoPagado: e.target.value })} placeholder="0" style={inputStyle} />
+                  <CampoPrecio
+                    label="Monto ya cobrado"
+                    monto={form.pagadoMonto} moneda={form.pagadoMoneda}
+                    onChange={({ monto, moneda }) => setForm({ ...form, pagadoMonto: monto, pagadoMoneda: moneda })}
+                    tipoCambio={tipoCambio} placeholder="0"
+                  />
                   <div style={{ fontSize: 11, color: 'var(--rv-text-dim)', marginTop: 3 }}>Se carga solo a Caja al guardar.</div>
                 </div>
                 <div><label style={labelStyle}>Fecha de entrega</label><input type="date" value={form.fechaEntregaManual} onChange={e => setForm({ ...form, fechaEntregaManual: e.target.value })} style={inputStyle} /></div>
                 <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>Notas</label><textarea value={form.notas} onChange={e => setForm({ ...form, notas: e.target.value })} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
               </div>
 
-              {Number(form.precioUsd) > 0 && (() => {
-                const precio = Number(form.precioUsd) || 0;
-                const pagado = Number(form.montoPagado) || 0;
+              {(() => {
+                const precio = convertirMoneda(form.precioMonto, form.precioMoneda, 'USD', tipoCambio);
+                if (precio <= 0) return null;
+                const pagado = convertirMoneda(form.pagadoMonto, form.pagadoMoneda, 'USD', tipoCambio);
                 const saldo = precio - pagado;
                 return (
                   <div style={{ borderRadius: 10, border: '1px solid rgba(47,111,237,0.3)', background: 'var(--rv-accent-soft)', padding: 14 }}>
@@ -236,16 +272,16 @@ export default function Reparaciones() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                         <span style={{ color: 'var(--rv-text-dim)' }}>Precio al cliente</span>
-                        <span style={{ fontWeight: 700 }}>USD {precio}</span>
+                        <span style={{ fontWeight: 700 }}>USD {precio.toFixed(0)}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                         <span style={{ color: 'var(--rv-text-dim)' }}>Cobrado</span>
-                        <span style={{ fontWeight: 700 }}>USD {pagado}</span>
+                        <span style={{ fontWeight: 700 }}>USD {pagado.toFixed(0)}</span>
                       </div>
                       <div style={{ borderTop: '1px solid var(--rv-border)', paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
                         <span style={{ fontWeight: 700 }}>Saldo restante</span>
                         <span style={{ fontWeight: 800, color: saldo <= 0 ? 'var(--rv-text)' : 'var(--rv-text-mid)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                          {saldo <= 0 ? <><IconCheckCircle size={14} style={{ color: 'var(--rv-accent)' }} />Saldado</> : `USD ${saldo}`}
+                          {saldo <= 0 ? <><IconCheckCircle size={14} style={{ color: 'var(--rv-accent)' }} />Saldado</> : `USD ${saldo.toFixed(0)}`}
                         </span>
                       </div>
                     </div>

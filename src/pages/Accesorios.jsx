@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { IconBox, IconHash, IconCoin, IconEdit, IconCheck, IconX } from '../components/Icons';
 import { CATEGORIAS_STOCK, cargarModelosPorCategoria } from '../lib/categoriasProducto';
 import SelectorModelo from '../components/SelectorModelo';
+import CampoPrecio from '../components/CampoPrecio';
+import { convertirMoneda } from '../lib/moneda';
 
 const CATEGORIAS = ['Fundas', 'Vidrios templados', 'Cables', 'Cargadores', 'Adaptadores', 'Audio / AirPods', 'MagSafe', 'Power banks', 'Soportes', 'Otros'];
 
@@ -18,13 +20,14 @@ const labelStyle = {
   display: 'block', marginBottom: 4, textTransform: 'uppercase',
 };
 
-const FORM_VACIO = { nombre: '', categoria: 'Fundas', modelo: '', color: '', cantidad: '', precioCosto: '', precioVenta: '' };
+const FORM_VACIO = { nombre: '', categoria: 'Fundas', modelo: '', color: '', cantidad: '', costoMonto: '', costoMoneda: 'ARS', ventaMonto: '', ventaMoneda: 'ARS' };
 
 export default function Accesorios() {
   const { negocioId } = useAuth();
   const [accesorios, setAccesorios] = useState([]);
   const [modelosPorCategoria, setModelosPorCategoria] = useState({});
   const [categoriasProducto, setCategoriasProducto] = useState(CATEGORIAS_STOCK);
+  const [tipoCambio, setTipoCambio] = useState(0);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(FORM_VACIO);
   const [saving, setSaving] = useState(false);
@@ -45,6 +48,7 @@ export default function Accesorios() {
     const catsProducto = cfg.categoriasProducto?.length ? cfg.categoriasProducto : CATEGORIAS_STOCK;
     setCategoriasProducto(catsProducto);
     setModelosPorCategoria(await cargarModelosPorCategoria(negocioId, catsProducto, cfg.modelos));
+    if (cfg.tipoCambio) setTipoCambio(cfg.tipoCambio);
     setLoading(false);
   };
 
@@ -59,8 +63,13 @@ export default function Accesorios() {
       modelo: form.modelo,
       color: form.color.trim(),
       cantidad: Number(form.cantidad),
-      precioCosto: Number(form.precioCosto) || 0,
-      precioVenta: Number(form.precioVenta) || 0,
+      // precioCosto/precioVenta quedan en ARS (moneda que usa el resto de la pantalla:
+      // "Valor stock", tabla, etc.); costoMonto/costoMoneda guardan lo que se tipeó
+      // realmente, por si se cargó en USD.
+      precioCosto: convertirMoneda(form.costoMonto, form.costoMoneda, 'ARS', tipoCambio),
+      precioVenta: convertirMoneda(form.ventaMonto, form.ventaMoneda, 'ARS', tipoCambio),
+      costoMonto: Number(form.costoMonto) || 0, costoMoneda: form.costoMoneda,
+      ventaMonto: Number(form.ventaMonto) || 0, ventaMoneda: form.ventaMoneda,
       creadoEn: new Date(),
     });
     setForm(FORM_VACIO);
@@ -83,6 +92,14 @@ export default function Accesorios() {
     cargar();
   };
 
+  // El accesorio que se cargó en USD se traduce a pesos con el dólar de HOY, no con el
+  // que había el día que se cargó — así el valor en pesos sigue al dólar solo mientras
+  // no se vendió. Uno cargado directo en ARS no tiene de qué "seguir": queda como está.
+  const precioActual = (a, campoMonto, campoMoneda, campoFrozen) =>
+    a[campoMoneda] === 'USD' ? convertirMoneda(a[campoMonto], 'USD', 'ARS', tipoCambio) : (a[campoFrozen] || 0);
+  const costoActual = (a) => precioActual(a, 'costoMonto', 'costoMoneda', 'precioCosto');
+  const ventaActual = (a) => precioActual(a, 'ventaMonto', 'ventaMoneda', 'precioVenta');
+
   const filtrados = accesorios.filter(a => {
     // Búsqueda por palabras sueltas en cualquier orden ("fundas iphone 15" o "iphone 15 funda" matchean igual).
     const texto = `${a.nombre} ${a.categoria} ${a.modelo || ''} ${a.color || ''}`.toLowerCase();
@@ -93,7 +110,7 @@ export default function Accesorios() {
   });
 
   const totalUnidades = accesorios.reduce((s, a) => s + (a.cantidad || 0), 0);
-  const valorStock = accesorios.reduce((s, a) => s + ((a.cantidad || 0) * (a.precioCosto || 0)), 0);
+  const valorStock = accesorios.reduce((s, a) => s + ((a.cantidad || 0) * costoActual(a)), 0);
 
   if (loading) return <div style={{ color: 'var(--rv-text-dim)', padding: 40 }}>Cargando...</div>;
 
@@ -159,16 +176,18 @@ export default function Accesorios() {
               <input type="number" min="0" value={form.cantidad} onChange={e => setForm(f => ({ ...f, cantidad: e.target.value }))}
                 placeholder="0" style={inputStyle} />
             </div>
-            <div>
-              <label style={labelStyle}>PRECIO COSTO ($)</label>
-              <input type="number" min="0" value={form.precioCosto} onChange={e => setForm(f => ({ ...f, precioCosto: e.target.value }))}
-                placeholder="0" style={inputStyle} />
-            </div>
-            <div>
-              <label style={labelStyle}>PRECIO VENTA ($)</label>
-              <input type="number" min="0" value={form.precioVenta} onChange={e => setForm(f => ({ ...f, precioVenta: e.target.value }))}
-                placeholder="0" style={inputStyle} />
-            </div>
+            <CampoPrecio
+              label="Precio costo"
+              monto={form.costoMonto} moneda={form.costoMoneda}
+              onChange={({ monto, moneda }) => setForm(f => ({ ...f, costoMonto: monto, costoMoneda: moneda }))}
+              tipoCambio={tipoCambio} placeholder="0"
+            />
+            <CampoPrecio
+              label="Precio venta"
+              monto={form.ventaMonto} moneda={form.ventaMoneda}
+              onChange={({ monto, moneda }) => setForm(f => ({ ...f, ventaMonto: monto, ventaMoneda: moneda }))}
+              tipoCambio={tipoCambio} placeholder="0"
+            />
           </div>
           <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
             <button onClick={guardar} disabled={saving || !form.nombre.trim() || !form.cantidad}
@@ -255,10 +274,10 @@ export default function Accesorios() {
                 )}
               </div>
               <div style={{ color: 'var(--rv-text-dim)', fontSize: 14 }}>
-                {a.precioCosto ? `$${a.precioCosto.toLocaleString('es-AR')}` : '—'}
+                {costoActual(a) > 0 ? `$${costoActual(a).toLocaleString('es-AR')}` : '—'}
               </div>
               <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--rv-accent)' }}>
-                {a.precioVenta ? `$${a.precioVenta.toLocaleString('es-AR')}` : '—'}
+                {ventaActual(a) > 0 ? `$${ventaActual(a).toLocaleString('es-AR')}` : '—'}
               </div>
               <button onClick={() => eliminar(a.id)}
                 style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', padding: '0 4px', display: 'flex' }}>

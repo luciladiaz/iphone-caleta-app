@@ -2,10 +2,10 @@
 import { collection, getDocs, doc, setDoc, updateDoc } from 'firebase/firestore';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
-import { db, firebaseConfig } from '../firebase/config';
+import { auth, db, firebaseConfig } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
-import { IconUser, IconX, IconEdit } from '../components/Icons';
+import { IconUser, IconX, IconEdit, IconTrash } from '../components/Icons';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -44,6 +44,7 @@ export default function Usuarios() {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState(FORM_VACIO);
+  const [filtroEstado, setFiltroEstado] = useState('todos');
 
   const cargar = async () => {
     if (!negocioId) return;
@@ -106,9 +107,35 @@ export default function Usuarios() {
   };
 
   const toggleActivo = async (u) => {
-    await updateDoc(doc(db, 'usuarios', u.id), { activo: !u.activo });
-    await updateDoc(doc(db, ...base, 'usuarios', u.id), { activo: !u.activo });
-    cargar();
+    try {
+      // setDoc con merge en vez de updateDoc: si por lo que sea uno de los dos
+      // documentos (global o del negocio) no existiera, esto lo crea en vez de
+      // fallar — antes un solo doc faltante dejaba el toggle trabado sin aviso.
+      await setDoc(doc(db, 'usuarios', u.id), { activo: !u.activo }, { merge: true });
+      await setDoc(doc(db, ...base, 'usuarios', u.id), { activo: !u.activo }, { merge: true });
+      cargar();
+    } catch (err) {
+      console.error('Error cambiando activo/inactivo:', err);
+      alert(`No se pudo cambiar el estado de ${u.nombre}: ${err.message}`);
+    }
+  };
+
+  const eliminarUsuario = async (u) => {
+    if (!window.confirm(`¿Eliminar a ${u.nombre} definitivamente? Esto borra su acceso y su login — no se puede deshacer. Si solo querés bloquearlo temporalmente, usá "Inactivo" en vez de esto.`)) return;
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      const res = await fetch('/api/eliminar-usuario', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+        body: JSON.stringify({ uid: u.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error desconocido');
+      cargar();
+    } catch (err) {
+      console.error('Error eliminando usuario:', err);
+      alert(`No se pudo eliminar a ${u.nombre}: ${err.message}`);
+    }
   };
 
   return (
@@ -125,8 +152,24 @@ export default function Usuarios() {
         >+ Nuevo usuario</button>
       </div>
 
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        {[
+          { key: 'todos', label: 'Todos' },
+          { key: 'activos', label: 'Activos' },
+          { key: 'inactivos', label: 'Inactivos' },
+        ].map(f => (
+          <button key={f.key} onClick={() => setFiltroEstado(f.key)} style={{ background: filtroEstado === f.key ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: filtroEstado === f.key ? '#fff' : 'var(--rv-text-mid)', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {usuarios.map(u => (
+        {usuarios.filter(u => {
+          if (filtroEstado === 'activos') return u.rol === 'admin' || u.activo !== false;
+          if (filtroEstado === 'inactivos') return u.rol !== 'admin' && u.activo === false;
+          return true;
+        }).map(u => (
           <div key={u.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             <div>
               <div style={{ fontWeight: 700, fontSize: 15 }}>{u.nombre}</div>
@@ -148,14 +191,24 @@ export default function Usuarios() {
               {u.rol === 'admin' ? (
                 <span style={{ color: 'var(--rv-text-dim)', fontSize: 12, fontWeight: 600, padding: '6px 14px' }}>Admin</span>
               ) : (
-                <button onClick={() => toggleActivo(u)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text-mid)', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                  {u.activo ? 'Activo' : 'Inactivo'}
-                </button>
+                <>
+                  <button onClick={() => toggleActivo(u)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text-mid)', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                    {u.activo ? 'Activo' : 'Inactivo'}
+                  </button>
+                  <button onClick={() => eliminarUsuario(u)} title="Eliminar definitivamente" style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', color: 'var(--rv-danger)', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', display: 'flex' }}>
+                    <IconTrash size={13} />
+                  </button>
+                </>
               )}
             </div>
           </div>
         ))}
         {usuarios.length === 0 && <p style={{ color: 'var(--rv-text-dim)' }}>No hay usuarios creados.</p>}
+        {usuarios.length > 0 && usuarios.filter(u => {
+          if (filtroEstado === 'activos') return u.rol === 'admin' || u.activo !== false;
+          if (filtroEstado === 'inactivos') return u.rol !== 'admin' && u.activo === false;
+          return true;
+        }).length === 0 && <p style={{ color: 'var(--rv-text-dim)' }}>No hay usuarios {filtroEstado} en esta vista.</p>}
       </div>
 
       {modalLimite && (

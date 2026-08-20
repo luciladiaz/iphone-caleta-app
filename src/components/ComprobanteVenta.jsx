@@ -2,8 +2,21 @@ import { useRef, useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import html2canvas from 'html2canvas';
 import { db } from '../firebase/config';
-import { IconFile, IconX, IconCheck, IconDownload, IconSave, IconTrash } from './Icons';
+import { IconFile, IconX, IconCheck, IconDownload, IconSave, IconTrash, IconShare } from './Icons';
 import { formatCapacidad } from '../lib/categoriasProducto';
+
+// Normaliza un teléfono argentino cargado en cualquier formato común al formato
+// que WhatsApp necesita en el link wa.me: 549 + código de área + número.
+function numeroWhatsapp(telefono) {
+  if (!telefono) return null;
+  let n = telefono.replace(/\D/g, '');
+  if (!n) return null;
+  if (n.startsWith('0')) n = n.slice(1);
+  if (n.startsWith('15')) n = n.slice(2);
+  if (n.startsWith('54')) n = n.slice(2);
+  if (n.startsWith('9')) n = n.slice(1);
+  return `549${n}`;
+}
 
 const GARANTIA_TEXTO_DEFAULT = `Este equipo cuenta con garantía de 90 días corridos desde la fecha de entrega (mínimo legal: 3 meses para bienes usados, según el Art. 11 de la Ley 24.240 de Defensa del Consumidor).
 
@@ -46,6 +59,7 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
   const [modoFirma, setModoFirma] = useState(!yaExiste);
   const [firmaVacia, setFirmaVacia] = useState(true);
   const [guardando, setGuardando] = useState(false);
+  const [enviandoWA, setEnviandoWA] = useState(false);
   const canvasRef = useRef(null);
   const dibujando = useRef(false);
   const reciboRef = useRef(null);
@@ -119,37 +133,84 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
 
   const todoTildado = items.length > 0 && items.every(it => it.checked && it.label.trim());
 
-  const generarImagen = async (dataUrlFirma) => {
+  const nombreArchivo = () => `comprobante-${(venta.cliente || 'venta').replace(/\s+/g, '_')}-${venta.id}.png`;
+
+  const renderizarRecibo = async (dataUrlFirma) => {
     setFirmaParaRecibo(dataUrlFirma);
     // Espera al próximo frame para asegurarse de que el DOM del recibo ya está pintado con la firma nueva
     await new Promise(r => setTimeout(r, 50));
-    const canvas = await html2canvas(reciboRef.current, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+    return html2canvas(reciboRef.current, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+  };
+
+  const generarImagen = async (dataUrlFirma) => {
+    const canvas = await renderizarRecibo(dataUrlFirma);
     const link = document.createElement('a');
-    link.download = `comprobante-${(venta.cliente || 'venta').replace(/\s+/g, '_')}-${venta.id}.png`;
+    link.download = nombreArchivo();
     link.href = canvas.toDataURL('image/png');
     link.click();
   };
 
+  // En el celular usa el selector nativo para compartir el PNG directo por WhatsApp
+  // (con WhatsApp entre las opciones y el archivo ya adjunto). Los links wa.me no
+  // permiten adjuntar archivos, así que en desktop (o si el navegador no soporta
+  // compartir archivos) se descarga el PNG y se abre el chat para adjuntarlo a mano.
+  const enviarPorWhatsapp = async (dataUrlFirma) => {
+    const canvas = await renderizarRecibo(dataUrlFirma);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    const archivo = nombreArchivo();
+    const mensaje = `Hola${venta.cliente ? ' ' + venta.cliente : ''}! Te paso el comprobante de tu compra.`;
+
+    const file = new File([blob], archivo, { type: 'image/png' });
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], text: mensaje });
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    const link = document.createElement('a');
+    link.download = archivo;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    const numero = numeroWhatsapp(venta.telefono);
+    const url = numero
+      ? `https://wa.me/${numero}?text=${encodeURIComponent(mensaje + ' Un segundo que te adjunto la imagen que se acaba de descargar.')}`
+      : `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+    window.open(url, '_blank');
+  };
+
+  const guardarComprobante = async () => {
+    const firma = canvasRef.current.toDataURL('image/png');
+    const comprobante = {
+      checklist: items,
+      garantiaTexto,
+      firma,
+      fecha: serverTimestamp(),
+      generadoPor: vendedorNombre || 'Vendedor',
+    };
+    await updateDoc(doc(db, 'negocios', negocioId, 'ventas', venta.id), { comprobante });
+    // Esta versión del checklist y de la garantía (con lo agregado/editado) queda como
+    // la default del negocio para la próxima venta. No se espera ni se deja que una
+    // falla acá tire abajo todo el flujo: el comprobante ya quedó guardado y el
+    // vendedor necesita el PNG igual.
+    setDoc(doc(db, 'negocios', negocioId, 'config', 'general'), { checklistVenta: items.map(it => it.label), garantiaTextoVenta: garantiaTexto }, { merge: true })
+      .catch(err => console.error('Error guardando checklist/garantía default:', err));
+    return { comprobante, firma };
+  };
+
+  const validarAntesDeGuardar = () => {
+    if (!todoTildado) { alert('Tildá todos los puntos del checklist antes de generar el comprobante.'); return false; }
+    if (firmaVacia) { alert('Falta la firma del cliente.'); return false; }
+    return true;
+  };
+
   const guardarYGenerar = async () => {
-    if (!todoTildado) { alert('Tildá todos los puntos del checklist antes de generar el comprobante.'); return; }
-    if (firmaVacia) { alert('Falta la firma del cliente.'); return; }
+    if (!validarAntesDeGuardar()) return;
     setGuardando(true);
     try {
-      const firma = canvasRef.current.toDataURL('image/png');
-      const comprobante = {
-        checklist: items,
-        garantiaTexto,
-        firma,
-        fecha: serverTimestamp(),
-        generadoPor: vendedorNombre || 'Vendedor',
-      };
-      await updateDoc(doc(db, 'negocios', negocioId, 'ventas', venta.id), { comprobante });
-      // Esta versión del checklist y de la garantía (con lo agregado/editado) queda como
-      // la default del negocio para la próxima venta. No se espera ni se deja que una
-      // falla acá tire abajo todo el flujo: el comprobante ya quedó guardado y el
-      // vendedor necesita el PNG igual.
-      setDoc(doc(db, 'negocios', negocioId, 'config', 'general'), { checklistVenta: items.map(it => it.label), garantiaTextoVenta: garantiaTexto }, { merge: true })
-        .catch(err => console.error('Error guardando checklist/garantía default:', err));
+      const { comprobante, firma } = await guardarComprobante();
       await generarImagen(firma);
       onGuardado({ ...comprobante, fecha: new Date().toISOString() });
     } catch (err) {
@@ -160,10 +221,31 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
     }
   };
 
+  const guardarYEnviarWhatsapp = async () => {
+    if (!validarAntesDeGuardar()) return;
+    setEnviandoWA(true);
+    try {
+      const { comprobante, firma } = await guardarComprobante();
+      await enviarPorWhatsapp(firma);
+      onGuardado({ ...comprobante, fecha: new Date().toISOString() });
+    } catch (err) {
+      console.error(err);
+      alert('Error al guardar el comprobante. Probá de nuevo.');
+    } finally {
+      setEnviandoWA(false);
+    }
+  };
+
   const volverADescargar = async () => {
     setGuardando(true);
     try { await generarImagen(venta.comprobante.firma); }
     finally { setGuardando(false); }
+  };
+
+  const volverAEnviarWhatsapp = async () => {
+    setEnviandoWA(true);
+    try { await enviarPorWhatsapp(venta.comprobante.firma); }
+    finally { setEnviandoWA(false); }
   };
 
   const c = venta.comprobante;
@@ -195,14 +277,17 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
             <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginBottom: 20 }}>
               Generado por {c.generadoPor}
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={volverADescargar} disabled={guardando} style={{ flex: 1, background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '12px', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: guardando ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                {guardando ? 'Generando...' : <><IconDownload size={15} />Volver a descargar</>}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+              <button onClick={volverADescargar} disabled={guardando || enviandoWA} style={{ flex: 1, background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '12px', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: guardando ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                {guardando ? 'Generando...' : <><IconDownload size={15} />Descargar</>}
               </button>
               <button onClick={() => setModoFirma(true)} style={{ background: 'var(--rv-surface-alt)', color: 'var(--rv-text-mid)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '12px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                 Rehacer
               </button>
             </div>
+            <button onClick={volverAEnviarWhatsapp} disabled={guardando || enviandoWA} style={{ width: '100%', background: '#25D366', color: '#fff', border: 'none', borderRadius: 10, padding: '12px', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: enviandoWA ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              {enviandoWA ? 'Preparando...' : <><IconShare size={15} />Enviar por WhatsApp</>}
+            </button>
           </>
         ) : (
           <>
@@ -262,19 +347,34 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
               Borrar y firmar de nuevo
             </button>
 
-            <button
-              onClick={guardarYGenerar}
-              disabled={guardando || !todoTildado || firmaVacia}
-              style={{
-                width: '100%', background: (!todoTildado || firmaVacia) ? 'var(--rv-surface-alt)' : 'var(--rv-accent)',
-                color: (!todoTildado || firmaVacia) ? 'var(--rv-text-dim)' : '#fff',
-                border: (!todoTildado || firmaVacia) ? '1px solid var(--rv-border)' : 'none', borderRadius: 10, padding: '13px', fontSize: 14, fontWeight: 700,
-                cursor: (guardando || !todoTildado || firmaVacia) ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              }}
-            >
-              {guardando ? 'Guardando...' : <><IconSave size={15} />Guardar y generar comprobante</>}
-            </button>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={guardarYGenerar}
+                disabled={guardando || enviandoWA || !todoTildado || firmaVacia}
+                style={{
+                  flex: 1, background: (!todoTildado || firmaVacia) ? 'var(--rv-surface-alt)' : 'var(--rv-accent)',
+                  color: (!todoTildado || firmaVacia) ? 'var(--rv-text-dim)' : '#fff',
+                  border: (!todoTildado || firmaVacia) ? '1px solid var(--rv-border)' : 'none', borderRadius: 10, padding: '13px', fontSize: 14, fontWeight: 700,
+                  cursor: (guardando || enviandoWA || !todoTildado || firmaVacia) ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                }}
+              >
+                {guardando ? 'Guardando...' : <><IconSave size={15} />Guardar</>}
+              </button>
+              <button
+                onClick={guardarYEnviarWhatsapp}
+                disabled={guardando || enviandoWA || !todoTildado || firmaVacia}
+                style={{
+                  flex: 1, background: (!todoTildado || firmaVacia) ? 'var(--rv-surface-alt)' : '#25D366',
+                  color: (!todoTildado || firmaVacia) ? 'var(--rv-text-dim)' : '#fff',
+                  border: (!todoTildado || firmaVacia) ? '1px solid var(--rv-border)' : 'none', borderRadius: 10, padding: '13px', fontSize: 14, fontWeight: 700,
+                  cursor: (guardando || enviandoWA || !todoTildado || firmaVacia) ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                }}
+              >
+                {enviandoWA ? 'Preparando...' : <><IconShare size={15} />WhatsApp</>}
+              </button>
+            </div>
           </>
         )}
       </div>

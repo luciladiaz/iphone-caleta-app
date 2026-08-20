@@ -168,6 +168,11 @@ export default function Ventas() {
           estado: form.estado,
           notas: form.notas,
           cobros: form.cobros,
+          // Antes no se guardaban acá: si el equipo se cargó al stock sin precio de venta,
+          // la venta quedaba con pvUsd vacío para siempre y el resumen de pago (cobrado/saldo)
+          // no se podía mostrar nunca, ni corrigiéndolo desde este formulario.
+          pvUsd: form.pvUsdVenta || '',
+          tipoCambio: form.tipoCambio || tipoCambioGlobal || '',
         });
         // Los cobros pudieron cambiar (monto, moneda, forma de pago): se regeneran
         // los ingresos de caja de esta venta para que la caja quede al día.
@@ -206,7 +211,7 @@ export default function Ventas() {
           bateria: equipo?.bateria || '',
           proveedor: equipo?.proveedor || '',
           costoUsd: equipo?.costoUsd || '',
-          pvUsd: equipo?.pvUsd || '',
+          pvUsd: form.pvUsdVenta || equipo?.pvUsd || '',
           equipoId: form.equipoId,
         };
         const ventaRef = doc(collection(db, ...base, 'ventas'));
@@ -333,7 +338,11 @@ export default function Ventas() {
             <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Equipo */}
               {!editando && (
-                <SelectorEquipoStock stock={stock} equipoId={form.equipoId} onSeleccionar={id => setForm({ ...form, equipoId: id })} />
+                <SelectorEquipoStock
+                  stock={stock}
+                  equipoId={form.equipoId}
+                  onSeleccionar={id => setForm({ ...form, equipoId: id, pvUsdVenta: stock.find(s => s.id === id)?.pvUsd || '' })}
+                />
               )}
               {equipoSeleccionado && (
                 <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--rv-accent)', display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -386,9 +395,20 @@ export default function Ventas() {
                     style={inputStyle}
                   />
                 </div>
+                <div>
+                  <label style={labelStyle}>Precio de venta (USD)</label>
+                  <input
+                    type="number"
+                    value={form.pvUsdVenta}
+                    onChange={e => setForm({ ...form, pvUsdVenta: e.target.value })}
+                    placeholder="500"
+                    style={inputStyle}
+                  />
+                </div>
                 <div style={{ gridColumn: '1/-1' }}>
                   <div style={{ fontSize: 11, color: 'var(--rv-text-dim)' }}>
                     Si no modificás el TC, se usa el tipo de cambio global de configuración.
+                    {' '}El precio de venta se toma del equipo elegido; si quedó vacío ahí, cargalo acá para que se calcule el saldo.
                   </div>
                 </div>
               </div>
@@ -401,7 +421,7 @@ export default function Ventas() {
                 </div>
                 {(() => {
                   const tc = Number(form.tipoCambio || tipoCambioGlobal) || 0;
-                  const pvUsd = Number(equipoSeleccionado?.pvUsd || form.pvUsdVenta) || 0;
+                  const pvUsd = Number(form.pvUsdVenta || equipoSeleccionado?.pvUsd) || 0;
 
                   const cobradoUsd = form.cobros.reduce((sum, c) => {
                     if (c.tipo === 'Equipo como parte de pago') return sum;

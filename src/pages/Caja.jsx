@@ -4,6 +4,8 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconWallet, IconCoin, IconPlus, IconTrash, IconX, IconTrendUp, IconTrendDown, IconCalendar, IconRefresh, IconLock, IconCheckCircle, IconWarning, IconChart, IconDownload } from '../components/Icons';
 import { reconciliarCaja, calcularVentasDelDia, obtenerCierre, listarCierres, cerrarCajaDelDia, fechaKey, fechaDeMovimiento, CATEGORIAS_INGRESO as CATEGORIAS_INGRESO_DEFAULT, CATEGORIAS_EGRESO as CATEGORIAS_EGRESO_DEFAULT } from '../lib/caja';
+import { mesKey, mesLabel } from '../lib/fechas';
+import { descargarExcel } from '../lib/excel';
 import GraficoIngresosEgresos from '../components/GraficoIngresosEgresos';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
@@ -48,35 +50,38 @@ function agruparPorDia(movimientos, moneda, dias) {
   return Object.values(mapa).sort((a, b) => a.fecha.localeCompare(b.fecha));
 }
 
-// CSV con separador ";" y coma decimal (no ",", no "."): es la convención con la que
-// Excel en configuración regional Argentina abre un .csv directo con doble clic y
-// reconoce los montos como números (con separador ",", Excel-AR los toma como texto
-// o rompe columnas si el concepto tiene una coma adentro).
-function csvEscape(valor) {
-  const texto = valor === null || valor === undefined ? '' : String(valor);
-  if (/[;"\n\r]/.test(texto)) return `"${texto.replace(/"/g, '""')}"`;
-  return texto;
-}
-function csvMonto(n) {
-  return typeof n === 'number' ? n.toFixed(2).replace('.', ',') : '';
+// Agrupa movimientos por día o por mes (según `claveDe`) en filas { periodo, cantidad,
+// ingresoARS, egresoARS, netoARS, ingresoUSD, egresoUSD, netoUSD }, ordenadas de la más
+// reciente a la más vieja (para revisar rápido "cómo vino el mes/el día").
+function resumenPorPeriodo(movimientos, claveDe) {
+  const mapa = {};
+  for (const m of movimientos) {
+    const periodo = claveDe(fechaDeMovimiento(m));
+    if (!mapa[periodo]) mapa[periodo] = { periodo, cantidad: 0, ingresoARS: 0, egresoARS: 0, ingresoUSD: 0, egresoUSD: 0 };
+    const monto = Number(m.monto) || 0;
+    const esUSD = m.moneda === 'USD';
+    const esIngreso = m.tipo === 'ingreso';
+    mapa[periodo].cantidad++;
+    mapa[periodo][`${esIngreso ? 'ingreso' : 'egreso'}${esUSD ? 'USD' : 'ARS'}`] += monto;
+  }
+  return Object.values(mapa)
+    .map(r => ({ ...r, netoARS: r.ingresoARS - r.egresoARS, netoUSD: r.ingresoUSD - r.egresoUSD }))
+    .sort((a, b) => b.periodo.localeCompare(a.periodo));
 }
 
-// Arma el detalle completo de la caja para exportar: TODOS los movimientos (no solo
-// los que están filtrados en pantalla), ordenados del más viejo al más nuevo, con
-// saldo acumulado por moneda calculado sobre esa misma lista completa — así la última
-// fila siempre da exactamente igual al saldo que se ve arriba en pantalla, sin importar
-// qué filtro esté activo en el momento de exportar.
-function exportarCajaCSV(movimientos, negocioId) {
+// Arma el Excel completo de la caja: detalle día por día (con saldo acumulado por
+// moneda, calculado sobre TODOS los movimientos sin importar qué filtro esté activo
+// en pantalla, para que la última fila dé siempre igual al saldo que se ve arriba) más
+// un resumen por día y un resumen por mes, cada uno en su propia hoja.
+function exportarCajaExcel(movimientos, negocioId) {
   const ordenados = [...movimientos].sort((a, b) => fechaDeMovimiento(a) - fechaDeMovimiento(b));
 
-  const encabezado = [
+  const filasDetalle = [[
     'Fecha', 'Hora', 'Tipo', 'Categoría', 'Concepto', 'Moneda',
     'Ingreso ARS', 'Egreso ARS', 'Ingreso USD', 'Egreso USD',
     'Saldo ARS acumulado', 'Saldo USD acumulado',
     'Origen', 'Automático', 'ID de referencia',
-  ];
-
-  const filas = [encabezado];
+  ]];
   let saldoARS = 0, saldoUSD = 0;
   for (const m of ordenados) {
     const monto = Number(m.monto) || 0;
@@ -86,35 +91,35 @@ function exportarCajaCSV(movimientos, negocioId) {
     else saldoARS += esIngreso ? monto : -monto;
 
     const fecha = fechaDeMovimiento(m);
-    filas.push([
+    filasDetalle.push([
       fecha.toLocaleDateString('es-AR'),
       fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
       esIngreso ? 'Ingreso' : 'Egreso',
       categoriaDe(m),
       m.concepto || '',
       esUSD ? 'USD' : 'ARS',
-      !esUSD && esIngreso ? csvMonto(monto) : '',
-      !esUSD && !esIngreso ? csvMonto(monto) : '',
-      esUSD && esIngreso ? csvMonto(monto) : '',
-      esUSD && !esIngreso ? csvMonto(monto) : '',
-      csvMonto(saldoARS),
-      csvMonto(saldoUSD),
+      !esUSD && esIngreso ? monto : '',
+      !esUSD && !esIngreso ? monto : '',
+      esUSD && esIngreso ? monto : '',
+      esUSD && !esIngreso ? monto : '',
+      saldoARS,
+      saldoUSD,
       ORIGEN_LABEL[m.origen] || 'Otro',
       m.automatico ? 'Sí' : 'No',
       m.ventaId || '',
     ]);
   }
 
-  const csv = filas.map(fila => fila.map(csvEscape).join(';')).join('\r\n');
-  // El BOM UTF-8 es necesario para que Excel muestre bien las tildes/ñ en vez de
-  // caracteres corridos al abrir el archivo directo (sin BOM, Excel asume ANSI).
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `caja-${negocioId}-${fechaKey(new Date())}.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
+  const filasPeriodo = (resumen, etiquetaPeriodo) => [
+    [etiquetaPeriodo, 'Movimientos', 'Ingreso ARS', 'Egreso ARS', 'Neto ARS', 'Ingreso USD', 'Egreso USD', 'Neto USD'],
+    ...resumen.map(r => [r.periodo, r.cantidad, r.ingresoARS, r.egresoARS, r.netoARS, r.ingresoUSD, r.egresoUSD, r.netoUSD]),
+  ];
+
+  descargarExcel(`caja-${negocioId}-${fechaKey(new Date())}.xlsx`, [
+    { nombre: 'Detalle', filas: filasDetalle, anchoColumnas: [11, 7, 9, 16, 40, 7, 12, 12, 12, 12, 16, 16, 16, 11, 20] },
+    { nombre: 'Por día', filas: filasPeriodo(resumenPorPeriodo(movimientos, fechaKey), 'Día'), anchoColumnas: [12, 12, 12, 12, 12, 12, 12, 12] },
+    { nombre: 'Por mes', filas: filasPeriodo(resumenPorPeriodo(movimientos, mesKey).map(r => ({ ...r, periodo: mesLabel(r.periodo) })), 'Mes'), anchoColumnas: [16, 12, 12, 12, 12, 12, 12, 12] },
+  ]);
 }
 
 export default function Caja() {
@@ -127,6 +132,7 @@ export default function Caja() {
   const [filtroMoneda, setFiltroMoneda] = useState('todas');
   const [filtroTipo, setFiltroTipo] = useState('todos');
   const [filtroCategoria, setFiltroCategoria] = useState('todas');
+  const [vistaListado, setVistaListado] = useState('movimientos');
   const [periodoReporte, setPeriodoReporte] = useState(14);
   const [modal, setModal] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -297,6 +303,12 @@ export default function Caja() {
   const serieARS = agruparPorDia(movimientos, 'ARS', periodoReporte);
   const serieUSD = agruparPorDia(movimientos, 'USD', periodoReporte);
 
+  // Los resúmenes "por día"/"por mes" respetan los mismos filtros de moneda/tipo/categoría
+  // que la lista de movimientos, para poder ver por ejemplo solo los egresos en dólares
+  // agrupados por mes.
+  const resumenDia = resumenPorPeriodo(movimientosFiltrados, fechaKey);
+  const resumenMes = resumenPorPeriodo(movimientosFiltrados, mesKey);
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
@@ -308,8 +320,8 @@ export default function Caja() {
           <button onClick={recalcular} disabled={reconciliando} title="Busca ventas, cuotas cobradas y pagos a proveedores que todavía no tengan su movimiento de caja y lo crea" style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text)', borderRadius: 10, padding: '10px 16px', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>
             <IconRefresh size={14} />{reconciliando ? 'Recalculando...' : 'Recalcular desde ventas'}
           </button>
-          <button onClick={() => exportarCajaCSV(movimientos, negocioId)} disabled={movimientos.length === 0} title="Descarga el detalle completo de la caja (todos los movimientos, con saldo acumulado por moneda) en un CSV" style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text)', borderRadius: 10, padding: '10px 16px', fontSize: 14, fontWeight: 700, cursor: movimientos.length === 0 ? 'not-allowed' : 'pointer', opacity: movimientos.length === 0 ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 7 }}>
-            <IconDownload size={14} />Exportar CSV
+          <button onClick={() => exportarCajaExcel(movimientos, negocioId)} disabled={movimientos.length === 0} title="Descarga un Excel con el detalle completo de la caja, más resúmenes por día y por mes" style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text)', borderRadius: 10, padding: '10px 16px', fontSize: 14, fontWeight: 700, cursor: movimientos.length === 0 ? 'not-allowed' : 'pointer', opacity: movimientos.length === 0 ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 7 }}>
+            <IconDownload size={14} />Exportar Excel
           </button>
           <button onClick={abrirModal} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>
             <IconPlus size={14} />Movimiento manual
@@ -483,6 +495,43 @@ export default function Caja() {
       )}
 
       {/* Listado */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        {[{ key: 'movimientos', label: 'Movimientos' }, { key: 'dia', label: 'Por día' }, { key: 'mes', label: 'Por mes' }].map(v => (
+          <button key={v.key} onClick={() => setVistaListado(v.key)} style={{ background: vistaListado === v.key ? 'var(--rv-accent)' : 'var(--rv-surface-alt)', color: vistaListado === v.key ? '#fff' : 'var(--rv-text-mid)', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{v.label}</button>
+        ))}
+      </div>
+
+      {(vistaListado === 'dia' || vistaListado === 'mes') && (
+        <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, overflow: 'hidden', marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.7fr 1fr 1fr 1fr 1fr 1fr 1fr', gap: 8, padding: '10px 16px', background: 'var(--rv-surface-alt)', fontSize: 11, fontWeight: 700, color: 'var(--rv-text-dim)', textTransform: 'uppercase' }}>
+            <span>{vistaListado === 'dia' ? 'Día' : 'Mes'}</span>
+            <span>Mov.</span>
+            <span>Ingreso ARS</span>
+            <span>Egreso ARS</span>
+            <span>Neto ARS</span>
+            <span>Ingreso USD</span>
+            <span>Egreso USD</span>
+            <span>Neto USD</span>
+          </div>
+          {(vistaListado === 'dia' ? resumenDia : resumenMes).map((r, i) => (
+            <div key={r.periodo} style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.7fr 1fr 1fr 1fr 1fr 1fr 1fr', gap: 8, padding: '10px 16px', fontSize: 13, alignItems: 'center', borderTop: i === 0 ? 'none' : '1px solid var(--rv-border)' }}>
+              <span style={{ fontWeight: 600 }}>{vistaListado === 'dia' ? new Date(r.periodo + 'T00:00:00').toLocaleDateString('es-AR', { weekday: 'short', day: '2-digit', month: 'short' }) : mesLabel(r.periodo)}</span>
+              <span style={{ color: 'var(--rv-text-dim)' }}>{r.cantidad}</span>
+              <span>${r.ingresoARS.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span>
+              <span>${r.egresoARS.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span>
+              <span style={{ fontWeight: 700, color: r.netoARS >= 0 ? 'var(--rv-accent)' : 'var(--rv-danger)' }}>${r.netoARS.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span>
+              <span>USD {r.ingresoUSD.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span>
+              <span>USD {r.egresoUSD.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span>
+              <span style={{ fontWeight: 700, color: r.netoUSD >= 0 ? 'var(--rv-accent)' : 'var(--rv-danger)' }}>USD {r.netoUSD.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span>
+            </div>
+          ))}
+          {(vistaListado === 'dia' ? resumenDia : resumenMes).length === 0 && (
+            <div style={{ textAlign: 'center', padding: 40, color: 'var(--rv-text-dim)', fontSize: 13 }}>No hay movimientos con estos filtros</div>
+          )}
+        </div>
+      )}
+
+      {vistaListado === 'movimientos' && (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {movimientosFiltrados.map(m => {
           const fechaMov = fechaDeMovimiento(m);
@@ -523,6 +572,7 @@ export default function Caja() {
           </div>
         )}
       </div>
+      )}
 
       {modal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>

@@ -4,13 +4,15 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
 import ComprobanteVenta from '../components/ComprobanteVenta';
-import { IconUser, IconPhone, IconX, IconEdit, IconTrash, IconFile, IconWallet, IconBox, IconArrowSwap, IconCheckCircle } from '../components/Icons';
-import { registrarMovimientosVenta, eliminarMovimientosVenta } from '../lib/caja';
+import { IconUser, IconPhone, IconX, IconEdit, IconTrash, IconFile, IconWallet, IconBox, IconArrowSwap, IconCheckCircle, IconDownload } from '../components/Icons';
+import { registrarMovimientosVenta, eliminarMovimientosVenta, montoCobro, fechaKey } from '../lib/caja';
 import SelectorCliente from '../components/SelectorCliente';
 import SelectorEquipoStock from '../components/SelectorEquipoStock';
 import { CATEGORIAS_STOCK, formatCapacidad } from '../lib/categoriasProducto';
 import CampoPrecio from '../components/CampoPrecio';
 import { convertirMoneda } from '../lib/moneda';
+import { mesKey, mesLabel } from '../lib/fechas';
+import { descargarExcel } from '../lib/excel';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -18,6 +20,83 @@ const estadoColor = { pendiente: 'var(--rv-text-mid)', entregado: 'var(--rv-text
 
 const ORIGENES = ['Instagram ReventApp', 'WhatsApp', 'Local físico', 'Referido', 'Facebook', 'TikTok', 'Otro'];
 const FORMAS_PAGO = ['Efectivo ARS', 'Efectivo USD', 'Transferencia ARS', 'Transferencia USD', 'Cuotas personales', 'Equipo como parte de pago'];
+
+const fechaDeVenta = (v) => v.fecha?.toDate ? v.fecha.toDate() : new Date(v.fecha);
+
+// Cobrado real de una venta, separado por moneda (sin mezclar ARS y USD), más el
+// crédito recibido en equipos tomados como parte de pago (siempre en su USD canónico)
+// y el saldo resultante contra el precio de venta. Es la misma cuenta que ya se muestra
+// en el "Resumen de pago" del formulario, reusada acá para el Excel y las tarjetas.
+function resumenVenta(venta) {
+  const cobros = venta.cobros || [];
+  let cobradoARS = 0, cobradoUSD = 0;
+  const formasPago = [];
+  for (const c of cobros) {
+    const monto = montoCobro(c);
+    if (c.tipo === 'Equipo como parte de pago' || c.tipo === 'iPhone como parte de pago') {
+      formasPago.push(c.tipo);
+      continue;
+    }
+    if (monto <= 0) continue;
+    if (c.moneda === 'USD') cobradoUSD += monto; else cobradoARS += monto;
+    formasPago.push(`${c.tipo}: ${c.moneda === 'USD' ? 'USD' : '$'} ${monto}`);
+  }
+  const tc = Number(venta.tipoCambio) || 0;
+  const partesUSD = (venta.partesDePago || []).reduce((s, p) => s + convertirMoneda(p.costoMonto, p.costoMoneda, 'USD', tc), 0);
+  const totalPagadoUSD = cobradoUSD + (tc > 0 ? cobradoARS / tc : 0) + partesUSD;
+  const pvUsd = Number(venta.pvUsd) || 0;
+  const saldoUSD = pvUsd - totalPagadoUSD;
+  const partesTexto = (venta.partesDePago || []).map(p => `${p.modelo || ''}${p.gb ? ' ' + p.gb : ''} (${p.costoMoneda === 'ARS' ? '$' : 'USD'} ${p.costoMonto})`).join('; ');
+  return { cobradoARS, cobradoUSD, partesUSD, totalPagadoUSD, saldoUSD, formasPagoTexto: formasPago.join('; '), partesTexto };
+}
+
+// Excel con el detalle completo de ventas (una fila por venta, ordenadas de la más
+// vieja a la más nueva) más un resumen por mes — misma lógica de agrupación que se ve
+// en pantalla, para que cuadre exacto con lo que la usuaria ve arriba.
+function exportarVentasExcel(ventas, negocioId) {
+  const ordenadas = [...ventas].sort((a, b) => fechaDeVenta(a) - fechaDeVenta(b));
+
+  const filasDetalle = [[
+    'Fecha', 'Cliente', 'Teléfono', 'Vendedor', 'Origen', 'Estado',
+    'Categoría', 'Modelo', 'Capacidad', 'Color', 'IMEI', 'Batería %',
+    'Costo USD', 'Precio venta USD', 'Tipo de cambio',
+    'Cobrado ARS', 'Cobrado USD', 'Crédito partes de pago USD', 'Total pagado USD', 'Saldo USD',
+    'Formas de pago', 'Equipos recibidos como parte de pago', 'Notas', 'Comprobante generado',
+  ]];
+  for (const v of ordenadas) {
+    const r = resumenVenta(v);
+    filasDetalle.push([
+      fechaDeVenta(v).toLocaleDateString('es-AR'),
+      v.cliente || '', v.telefono || '', v.vendedor || '', v.origen || '', v.estado || '',
+      v.categoria || '', v.modelo || '', v.gb ? formatCapacidad(v.gb) : '', v.color || '', v.imei || '', v.bateria || '',
+      Number(v.costoUsd) || '', Number(v.pvUsd) || '', Number(v.tipoCambio) || '',
+      r.cobradoARS || '', r.cobradoUSD || '', r.partesUSD || '', r.totalPagadoUSD || '', r.saldoUSD,
+      r.formasPagoTexto, r.partesTexto, v.notas || '', v.comprobante ? 'Sí' : 'No',
+    ]);
+  }
+
+  const porMes = {};
+  for (const v of ordenadas) {
+    const key = mesKey(fechaDeVenta(v));
+    if (!porMes[key]) porMes[key] = { mes: key, cantidad: 0, pvUsdTotal: 0, cobradoARS: 0, cobradoUSD: 0, saldoUSD: 0 };
+    const r = resumenVenta(v);
+    porMes[key].cantidad++;
+    porMes[key].pvUsdTotal += Number(v.pvUsd) || 0;
+    porMes[key].cobradoARS += r.cobradoARS;
+    porMes[key].cobradoUSD += r.cobradoUSD;
+    porMes[key].saldoUSD += r.saldoUSD;
+  }
+  const filasMes = [
+    ['Mes', 'Ventas', 'Total facturado USD', 'Cobrado ARS', 'Cobrado USD', 'Saldo pendiente USD'],
+    ...Object.values(porMes).sort((a, b) => b.mes.localeCompare(a.mes))
+      .map(r => [mesLabel(r.mes), r.cantidad, r.pvUsdTotal, r.cobradoARS, r.cobradoUSD, r.saldoUSD]),
+  ];
+
+  descargarExcel(`ventas-${negocioId}-${fechaKey(new Date())}.xlsx`, [
+    { nombre: 'Ventas', filas: filasDetalle, anchoColumnas: [11, 18, 14, 14, 16, 11, 10, 16, 10, 10, 16, 9, 10, 14, 12, 12, 12, 16, 14, 10, 30, 30, 24, 12] },
+    { nombre: 'Resumen mensual', filas: filasMes, anchoColumnas: [16, 9, 16, 14, 14, 16] },
+  ]);
+}
 
 export default function Ventas() {
   const { perfil, negocioId, negocio, plan, limitesPlan } = useAuth();
@@ -284,6 +363,15 @@ export default function Ventas() {
     setModal(true);
   };
 
+  // Ventas agrupadas por mes calendario (más reciente primero); dentro de cada mes
+  // se mantiene el orden que ya trae `ventas` (más nueva primero, por la query a Firestore).
+  const ventasPorMes = {};
+  for (const v of ventas) {
+    const key = mesKey(fechaDeVenta(v));
+    (ventasPorMes[key] ||= []).push(v);
+  }
+  const mesesOrdenados = Object.keys(ventasPorMes).sort((a, b) => b.localeCompare(a));
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
@@ -291,52 +379,71 @@ export default function Ventas() {
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Ventas</h1>
           <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, margin: '4px 0 0' }}>{ventas.length} ventas registradas</p>
         </div>
-        <button onClick={handleNuevaVenta} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-          + Nueva venta
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={() => exportarVentasExcel(ventas, negocioId)} disabled={ventas.length === 0} title="Descarga un Excel con el detalle completo de las ventas, más un resumen por mes" style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text)', borderRadius: 10, padding: '10px 16px', fontSize: 14, fontWeight: 700, cursor: ventas.length === 0 ? 'not-allowed' : 'pointer', opacity: ventas.length === 0 ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 7 }}>
+            <IconDownload size={14} />Exportar Excel
+          </button>
+          <button onClick={handleNuevaVenta} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+            + Nueva venta
+          </button>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {ventas.map(v => (
-          <div key={v.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>{v.modelo}{v.gb ? ` ${formatCapacidad(v.gb)}` : ''} {v.color}</div>
-              <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-                <IconUser size={11} />{v.cliente || 'Sin cliente'}
-                {v.telefono ? (
-                  <a href={`tel:${v.telefono}`} style={{ color: 'var(--rv-accent)', marginLeft: 4, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <IconPhone size={11} />{v.telefono}
-                  </a>
-                ) : (
-                  <span title="Sin teléfono — editá la venta para agregarlo" style={{ marginLeft: 4, opacity: 0.5, cursor: 'help', display: 'inline-flex' }}><IconPhone size={11} /></span>
-                )}
-                <span>· {v.vendedor || '-'} · {v.origen || '-'}</span>
-                {v.tipoCambio && <span style={{ color: 'var(--rv-accent)', marginLeft: 6 }}>· TC ${v.tipoCambio}</span>}
+      {mesesOrdenados.map(mes => {
+        const ventasDelMes = ventasPorMes[mes];
+        const totalPvUsd = ventasDelMes.reduce((s, v) => s + (Number(v.pvUsd) || 0), 0);
+        return (
+        <div key={mes} style={{ marginBottom: 28 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid var(--rv-border)' }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, textTransform: 'capitalize' }}>{mesLabel(mes)}</h2>
+            <span style={{ color: 'var(--rv-text-dim)', fontSize: 12 }}>
+              {ventasDelMes.length} venta{ventasDelMes.length === 1 ? '' : 's'}{totalPvUsd > 0 ? ` · USD ${totalPvUsd.toLocaleString('es-AR', { maximumFractionDigits: 0 })} facturado` : ''}
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {ventasDelMes.map(v => (
+              <div key={v.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>{v.modelo}{v.gb ? ` ${formatCapacidad(v.gb)}` : ''} {v.color}</div>
+                  <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                    <IconUser size={11} />{v.cliente || 'Sin cliente'}
+                    {v.telefono ? (
+                      <a href={`tel:${v.telefono}`} style={{ color: 'var(--rv-accent)', marginLeft: 4, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <IconPhone size={11} />{v.telefono}
+                      </a>
+                    ) : (
+                      <span title="Sin teléfono — editá la venta para agregarlo" style={{ marginLeft: 4, opacity: 0.5, cursor: 'help', display: 'inline-flex' }}><IconPhone size={11} /></span>
+                    )}
+                    <span>· {v.vendedor || '-'} · {v.origen || '-'}</span>
+                    {v.tipoCambio && <span style={{ color: 'var(--rv-accent)', marginLeft: 6 }}>· TC ${v.tipoCambio}</span>}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 99, border: '1px solid var(--rv-border)', color: estadoColor[v.estado] }}>
+                    {v.estado}
+                  </span>
+                  <button onClick={() => abrirComprobante(v)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: v.comprobante ? 'var(--rv-text)' : 'var(--rv-text-mid)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <IconFile size={13} />{v.comprobante ? 'Ver comprobante' : 'Comprobante'}
+                  </button>
+                  <button onClick={() => abrirEditar(v)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-accent)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <IconEdit size={13} />Editar
+                  </button>
+                  <button onClick={() => eliminarVenta(v)} style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', color: 'var(--rv-danger)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex' }}>
+                    <IconTrash size={13} />
+                  </button>
+                </div>
               </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 99, border: '1px solid var(--rv-border)', color: estadoColor[v.estado] }}>
-                {v.estado}
-              </span>
-              <button onClick={() => abrirComprobante(v)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: v.comprobante ? 'var(--rv-text)' : 'var(--rv-text-mid)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <IconFile size={13} />{v.comprobante ? 'Ver comprobante' : 'Comprobante'}
-              </button>
-              <button onClick={() => abrirEditar(v)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-accent)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <IconEdit size={13} />Editar
-              </button>
-              <button onClick={() => eliminarVenta(v)} style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', color: 'var(--rv-danger)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex' }}>
-                <IconTrash size={13} />
-              </button>
-            </div>
+            ))}
           </div>
-        ))}
-        {ventas.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 60, color: 'var(--rv-text-dim)' }}>
-            <IconWallet size={36} style={{ marginBottom: 12 }} />
-            <p>No hay ventas registradas</p>
-          </div>
-        )}
-      </div>
+        </div>
+        );
+      })}
+      {ventas.length === 0 && (
+        <div style={{ textAlign: 'center', padding: 60, color: 'var(--rv-text-dim)' }}>
+          <IconWallet size={36} style={{ marginBottom: 12 }} />
+          <p>No hay ventas registradas</p>
+        </div>
+      )}
 
       {modal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>

@@ -4,6 +4,7 @@ import html2canvas from 'html2canvas';
 import { db } from '../firebase/config';
 import { IconFile, IconX, IconCheck, IconDownload, IconSave, IconTrash, IconShare } from './Icons';
 import { formatCapacidad } from '../lib/categoriasProducto';
+import { canvasAPdfBlob } from '../lib/pdf';
 
 // Normaliza un teléfono argentino cargado en cualquier formato común al formato
 // que WhatsApp necesita en el link wa.me: 549 + código de área + número.
@@ -138,7 +139,7 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
 
   const todoTildado = items.length > 0 && items.every(it => it.checked && it.label.trim());
 
-  const nombreArchivo = () => `comprobante-${(venta.cliente || 'venta').replace(/\s+/g, '_')}-${venta.id}.png`;
+  const nombreArchivo = () => `comprobante-${(venta.cliente || 'venta').replace(/\s+/g, '_')}-${venta.id}.pdf`;
 
   const renderizarRecibo = async (dataUrlFirma) => {
     setFirmaParaRecibo(dataUrlFirma);
@@ -149,23 +150,25 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
 
   const generarImagen = async (dataUrlFirma) => {
     const canvas = await renderizarRecibo(dataUrlFirma);
+    const blob = canvasAPdfBlob(canvas);
     const link = document.createElement('a');
     link.download = nombreArchivo();
-    link.href = canvas.toDataURL('image/png');
+    link.href = URL.createObjectURL(blob);
     link.click();
   };
 
-  // En el celular usa el selector nativo para compartir el PNG directo por WhatsApp
-  // (con WhatsApp entre las opciones y el archivo ya adjunto). Los links wa.me no
-  // permiten adjuntar archivos, así que en desktop (o si el navegador no soporta
-  // compartir archivos) se descarga el PNG y se abre el chat para adjuntarlo a mano.
+  // En el celular usa el selector nativo para compartir el PDF directo por WhatsApp
+  // (con WhatsApp entre las opciones y el archivo ya adjunto). En desktop no existe forma
+  // de que un link/página web adjunte un archivo solo: ni wa.me ni la app de escritorio de
+  // WhatsApp tienen una API pública para eso — ahí se descarga el PDF y se abre el chat
+  // para adjuntarlo a mano (arrastrándolo o con el clip), que es el único camino posible.
   const enviarPorWhatsapp = async (dataUrlFirma) => {
     const canvas = await renderizarRecibo(dataUrlFirma);
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    const blob = canvasAPdfBlob(canvas);
     const archivo = nombreArchivo();
     const mensaje = `Hola${venta.cliente ? ' ' + venta.cliente : ''}! Te paso el comprobante de tu compra.`;
 
-    const file = new File([blob], archivo, { type: 'image/png' });
+    const file = new File([blob], archivo, { type: 'application/pdf' });
     if (esMobile && navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({ files: [file], text: mensaje });
@@ -181,7 +184,7 @@ export default function ComprobanteVenta({ venta, negocioId, negocioNombre, vend
     link.click();
     const numero = numeroWhatsapp(venta.telefono);
     const url = numero
-      ? `https://wa.me/${numero}?text=${encodeURIComponent(mensaje + ' Un segundo que te adjunto la imagen que se acaba de descargar.')}`
+      ? `https://wa.me/${numero}?text=${encodeURIComponent(mensaje + ' Un segundo que te adjunto el PDF que se acaba de descargar.')}`
       : `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
     window.open(url, '_blank');
   };

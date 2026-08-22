@@ -1,7 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
 import { PLANES } from '../config/planes';
 import PlanCanjeModal from '../components/PlanCanjeModal';
 import { IconWarning, IconArrowSwap, IconBox } from '../components/Icons';
@@ -37,22 +35,20 @@ export default function CatalogoPublico() {
   useEffect(() => {
     const cargar = async () => {
       try {
-        const base = ['negocios', negocioId];
-        const [negSnap, stockSnap, cfgSnap] = await Promise.all([
-          getDoc(doc(db, 'negocios', negocioId, 'publico', 'info')),
-          getDocs(collection(db, ...base, 'stock')),
-          getDoc(doc(db, ...base, 'config', 'general')),
-        ]);
-        const negData = negSnap.data();
-        setNegocio(negData);
-        const plan = negData?.plan === 'agencia' ? 'promax' : (negData?.plan || 'trial');
+        // El catálogo se arma en el servidor (api/catalogo.js), no leyendo Firestore
+        // directo desde acá: así nunca viaja al navegador de un visitante anónimo un
+        // campo que no debería ser público (costo, IMEI, proveedor, datos de un cliente).
+        const r = await fetch(`/api/catalogo?negocioId=${encodeURIComponent(negocioId)}`);
+        if (!r.ok) { setLoading(false); return; }
+        const data = await r.json();
+        setNegocio(data.negocio);
+        const plan = data.negocio?.plan === 'agencia' ? 'promax' : (data.negocio?.plan || 'trial');
         const planConfig = PLANES[plan];
         setCatalogoHabilitado(planConfig?.features?.catalogoPublico === true);
-        setEquipos(stockSnap.docs.map(d => ({ id: d.id, ...d.data() }))
-          .filter(e => e.estado === 'disponible')
+        setEquipos((data.equipos || [])
           .filter(e => categoriasFiltro.length === 0 || categoriasFiltro.includes(e.categoria)));
-        setTipoCambio(cfgSnap.data()?.tipoCambio || 0);
-        setListaCanje(cfgSnap.data()?.listaCanje || []);
+        setTipoCambio(data.tipoCambio || 0);
+        setListaCanje(data.listaCanje || []);
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     };

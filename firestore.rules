@@ -57,21 +57,24 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('activo', true) != false;
     }
 
-    // Catálogo público: cualquiera puede leer el stock disponible
-    match /negocios/{negocioId}/stock/{equipoId} {
-      allow read: if true;
-    }
+    // El catálogo público (CatalogoPublico.jsx) ya NO lee stock/config directo de acá —
+    // llama a api/catalogo.js, que arma la respuesta en el servidor con el Admin SDK
+    // (no depende de estas reglas) y devuelve SOLO los campos seguros de los equipos
+    // disponibles. Antes `stock` tenía "allow read: if true" para esto y exponía a
+    // cualquiera en internet, sin login, el costoUsd/IMEI/proveedor de TODOS los
+    // equipos (vendidos incluidos) y el nombre/teléfono de clientes que entregaron un
+    // equipo como parte de pago — Firestore no permite exponer "algunos campos sí,
+    // otros no" de un mismo documento, así que la única forma correcta de tener un
+    // catálogo público es armar la respuesta a mano en el servidor, no abrir la
+    // colección entera.
 
-    // Info pública del negocio: SOLO nombre y plan, en un doc aparte del principal.
-    // El doc negocios/{negocioId} en sí (teléfono, datos de MercadoPago, fechas de
-    // vencimiento) NUNCA debe ser público — Firestore no permite exponer "algunos
-    // campos sí, otros no" de un mismo documento.
+    // Info pública del negocio: SOLO nombre, plan y teléfono, en un doc aparte del
+    // principal (lo usa api/catalogo.js con el Admin SDK, no depende de esta regla,
+    // pero se deja legible por si se necesita consumir directo en el futuro). El doc
+    // negocios/{negocioId} en sí (datos de MercadoPago, fechas de vencimiento) NUNCA
+    // debe ser público — Firestore no permite exponer "algunos campos sí, otros no" de
+    // un mismo documento.
     match /negocios/{negocioId}/publico/info {
-      allow read: if true;
-    }
-
-    // Config pública del negocio (tipo de cambio, para mostrar precio en ARS en el catálogo)
-    match /negocios/{negocioId}/config/general {
       allow read: if true;
     }
 

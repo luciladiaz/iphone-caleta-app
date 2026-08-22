@@ -1,8 +1,37 @@
-﻿import { adminDb } from './_firebase.js';
+﻿import { createHmac, timingSafeEqual } from 'crypto';
+import { adminDb } from './_firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+const MP_WEBHOOK_SECRET = process.env.MP_WEBHOOK_SECRET;
 const PLANES_VALIDOS = new Set(['promax']); // ReventApp: un solo plan pago
+
+// Confirma que la notificación realmente vino de Mercado Pago (y no de cualquiera que
+// le pegue a esta URL a mano) verificando la firma HMAC que manda en el header
+// x-signature, según el algoritmo documentado por MP. Mientras no esté configurado
+// MP_WEBHOOK_SECRET (falta cargarlo en Vercel con la clave secreta del webhook, que se
+// obtiene desde el panel de Mercado Pago → Tus integraciones → Webhooks) esto no bloquea
+// nada — se sigue confiando en que después el handler re-consulta el pago real contra la
+// API de MP antes de activar cualquier plan, que es la protección de fondo.
+function firmaValida(req) {
+  if (!MP_WEBHOOK_SECRET) return true;
+  const firma = req.headers['x-signature'];
+  const requestId = req.headers['x-request-id'];
+  const dataId = req.query?.['data.id'];
+  if (!firma || !requestId || !dataId) return false;
+
+  const partes = Object.fromEntries(firma.split(',').map(p => p.trim().split('=').map(s => s.trim())));
+  const ts = partes.ts;
+  const v1 = partes.v1;
+  if (!ts || !v1) return false;
+
+  const manifest = `id:${String(dataId).toLowerCase()};request-id:${requestId};ts:${ts};`;
+  const esperada = createHmac('sha256', MP_WEBHOOK_SECRET).update(manifest).digest('hex');
+
+  const a = Buffer.from(v1, 'hex');
+  const b = Buffer.from(esperada, 'hex');
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 async function fetchMP(path) {
   const r = await fetch(`https://api.mercadopago.com${path}`, {
@@ -92,6 +121,11 @@ async function logPagoRechazado(negocioId, mpId) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
+
+  if (!firmaValida(req)) {
+    console.error('[Webhook MP] Firma inválida — notificación rechazada');
+    return res.status(401).json({ error: 'Firma inválida' });
+  }
 
   const { type, data } = req.body || {};
   if (!type || !data?.id) return res.status(200).json({ ok: true, msg: 'Notificación ignorada' });

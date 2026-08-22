@@ -65,9 +65,13 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* Rutas de desarrollo */}
-      <Route path="/dev/seed" element={<DevSeed />} />
-      <Route path="/test" element={<AppTest />} />
+      {/* Rutas de desarrollo: SOLO existen en `npm run dev` local. import.meta.env.DEV es
+          false en el build de producción, así que ni siquiera quedan estas rutas armadas
+          (antes /dev/seed y /test estaban vivas en reventapp.com.ar sin ningún login —
+          /dev/seed crea cuentas reales en la base de producción con contraseñas
+          hardcodeadas en el código fuente que se manda al navegador). */}
+      {import.meta.env.DEV && <Route path="/dev/seed" element={<DevSeed />} />}
+      {import.meta.env.DEV && <Route path="/test" element={<AppTest />} />}
 
       {/* Rutas públicas */}
       <Route path="/landing" element={<Landing />} />

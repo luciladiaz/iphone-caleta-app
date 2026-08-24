@@ -1,9 +1,10 @@
 ﻿import { useEffect, useState } from 'react';
-import { collection, getDocs, query, orderBy, limit, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconCoin, IconBox, IconClock, IconWarning, IconBell, IconCheckCircle, IconCheck } from '../components/Icons';
 import { formatCapacidad } from '../lib/categoriasProducto';
+import { fechaLocalDesdeInput } from '../lib/fechas';
 
 function StatCard({ Icon, label, value, sub, urgente }) {
   return (
@@ -23,7 +24,7 @@ function StatCard({ Icon, label, value, sub, urgente }) {
 }
 
 function fechaCuotaCalc(fechaInicio, idx) {
-  const d = new Date(fechaInicio);
+  const d = fechaLocalDesdeInput(fechaInicio);
   d.setMonth(d.getMonth() + idx);
   return d;
 }
@@ -48,9 +49,12 @@ export default function Dashboard() {
     const cargar = async () => {
       try {
         const base = ['negocios', negocioId];
+        // Sin límite: "Deudores urgentes" y "Ventas pendientes" tienen que mirar TODAS las
+        // ventas, no solo las últimas 200 — si no, un cliente viejo con una cuota vencida
+        // deja de aparecer acá (aunque Cobros.jsx, que sí trae todas, lo siga mostrando).
         const [stockSnap, ventasSnap, cfgSnap] = await Promise.all([
           getDocs(collection(db, ...base, 'stock')),
-          getDocs(query(collection(db, ...base, 'ventas'), orderBy('fecha', 'desc'), limit(200))),
+          getDocs(query(collection(db, ...base, 'ventas'), orderBy('fecha', 'desc'))),
           getDoc(doc(db, ...base, 'config', 'general')),
         ]);
 

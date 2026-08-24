@@ -10,7 +10,7 @@ import SelectorCliente from '../components/SelectorCliente';
 import SelectorEquipoStock from '../components/SelectorEquipoStock';
 import { CATEGORIAS_STOCK, formatCapacidad } from '../lib/categoriasProducto';
 import CampoPrecio from '../components/CampoPrecio';
-import { convertirMoneda } from '../lib/moneda';
+import { convertirMoneda, faltaTipoCambio } from '../lib/moneda';
 import { mesKey, mesLabel } from '../lib/fechas';
 import { descargarExcel } from '../lib/excel';
 
@@ -22,6 +22,16 @@ const ORIGENES = ['Instagram ReventApp', 'WhatsApp', 'Local físico', 'Referido'
 const FORMAS_PAGO = ['Efectivo ARS', 'Efectivo USD', 'Transferencia ARS', 'Transferencia USD', 'Cuotas personales', 'Equipo como parte de pago'];
 
 const fechaDeVenta = (v) => v.fecha?.toDate ? v.fecha.toDate() : new Date(v.fecha);
+
+// Compara si dos arrays de cobros representan la misma forma de pago real (ignora
+// cuotasPagadas, que lo actualiza Cobros.jsx aparte y no debería disparar una
+// regeneración de los movimientos de caja de esta venta).
+function cobrosIguales(a, b) {
+  const campos = ['tipo', 'monto', 'moneda', 'cuotas', 'montoCuota', 'fechaInicio'];
+  const listaA = a || [], listaB = b || [];
+  if (listaA.length !== listaB.length) return false;
+  return listaA.every((c, i) => campos.every(k => String(c[k] ?? '') === String(listaB[i]?.[k] ?? '')));
+}
 
 // Cobrado real de una venta, separado por moneda (sin mezclar ARS y USD), más el
 // crédito recibido en equipos tomados como parte de pago (siempre en su USD canónico)
@@ -193,7 +203,11 @@ export default function Ventas() {
     if (!window.confirm(`¿Eliminás la venta de ${v.modelo}${v.gb ? ' ' + formatCapacidad(v.gb) : ''}? Esta acción no se puede deshacer.`)) return;
     const base = ['negocios', negocioId];
     await deleteDoc(doc(db, ...base, 'ventas', v.id));
-    if (v.equipoId) {
+    // Si la venta ya estaba cancelada, el equipo ya había vuelto a "disponible" en ese
+    // momento (ver guardar() más abajo) y pudo haberse revendido después en una venta
+    // real y vigente. Forzarlo acá de nuevo a "disponible" le robaría el equipo a esa
+    // venta — solo se libera si esta venta que se borra todavía lo tenía como vendido.
+    if (v.equipoId && v.estado !== 'cancelado') {
       try { await updateDoc(doc(db, ...base, 'stock', v.equipoId), { estado: 'disponible' }); } catch (err) { console.error('Error devolviendo el equipo al stock:', err); }
     }
     try { await eliminarMovimientosVenta(negocioId, v.id); } catch (err) { console.error('Error borrando movimientos de caja de la venta:', err); }
@@ -238,9 +252,25 @@ export default function Ventas() {
   const guardar = async (e) => {
     e.preventDefault();
     if (!editando && !form.equipoId) { alert('Elegí un equipo antes de guardar la venta.'); return; }
-    setGuardando(true);
     const base = ['negocios', negocioId];
     const tc = Number(form.tipoCambio || tipoCambioGlobal) || 0;
+    // Si el precio se cargó en pesos y no hay tipo de cambio (ni en esta venta ni en
+    // Configuración), convertirMoneda() da 0 — guardar así perdería el precio sin avisar.
+    // Se frena acá en vez de dejar que se guarde con USD 0.
+    if (faltaTipoCambio(form.pvVentaMonto, form.pvVentaMoneda, 'USD', tc)) {
+      alert('Cargaste el precio de venta en pesos pero no hay tipo de cambio disponible (ni en esta venta ni en Configuración) — se perdería el valor. Cargá un tipo de cambio o ingresá el precio directamente en USD.');
+      return;
+    }
+    if (!editando) {
+      const parteConProblema = form.partesDePago.find(p =>
+        faltaTipoCambio(p.costoMonto, p.costoMoneda, 'USD', tc) || faltaTipoCambio(p.pvMonto, p.pvMoneda, 'USD', tc)
+      );
+      if (parteConProblema) {
+        alert(`El equipo recibido como parte de pago "${parteConProblema.modelo || 'sin modelo'}" está cargado en pesos sin tipo de cambio disponible — se perdería su valor. Cargá un tipo de cambio o ingresá esos montos directamente en USD.`);
+        return;
+      }
+    }
+    setGuardando(true);
     try {
       if (editando) {
         await updateDoc(doc(db, ...base, 'ventas', editando), {
@@ -261,16 +291,25 @@ export default function Ventas() {
           pvVentaMoneda: form.pvVentaMoneda,
           tipoCambio: form.tipoCambio || tipoCambioGlobal || '',
         });
-        // Los cobros pudieron cambiar (monto, moneda, forma de pago): se regeneran
-        // los ingresos de caja de esta venta para que la caja quede al día.
+        // Solo se regeneran los ingresos de caja si el cobro (o el nombre del cliente,
+        // que forma parte del concepto) realmente cambió — si no, cada edición de una
+        // venta vieja (aunque sea corregir el vendedor o una nota) borraba y recreaba
+        // el movimiento de caja con la fecha de HOY en vez de la fecha real de la venta,
+        // corriendo esa plata de mes en los reportes de Caja. Cuando sí hace falta
+        // regenerar, se le pasa la fecha original de la venta para que el movimiento
+        // nuevo quede fechado igual que el que reemplaza.
         const ventaOriginal = ventas.find(v => v.id === editando);
-        await eliminarMovimientosVenta(negocioId, editando, 'venta');
-        await registrarMovimientosVenta(negocioId, editando, {
-          modelo: ventaOriginal?.modelo,
-          gb: ventaOriginal?.gb,
-          cliente: form.cliente,
-          cobros: form.cobros,
-        });
+        const cobrosCambiaron = !cobrosIguales(ventaOriginal?.cobros, form.cobros) || (ventaOriginal?.cliente || '') !== (form.cliente || '');
+        if (cobrosCambiaron) {
+          await eliminarMovimientosVenta(negocioId, editando, 'venta');
+          await registrarMovimientosVenta(negocioId, editando, {
+            modelo: ventaOriginal?.modelo,
+            gb: ventaOriginal?.gb,
+            cliente: form.cliente,
+            cobros: form.cobros,
+            fecha: ventaOriginal?.fecha,
+          });
+        }
         // Cancelar una venta libera el equipo de vuelta al stock (si no, desaparece del
         // negocio para siempre sin haberse vendido realmente). Si se "descancela", vuelve
         // a marcarse vendido.
@@ -278,7 +317,18 @@ export default function Ventas() {
           if (form.estado === 'cancelado' && ventaOriginal.estado !== 'cancelado') {
             try { await updateDoc(doc(db, ...base, 'stock', ventaOriginal.equipoId), { estado: 'disponible' }); } catch (err) { console.error('Error devolviendo el equipo al stock al cancelar:', err); }
           } else if (ventaOriginal.estado === 'cancelado' && form.estado !== 'cancelado') {
-            try { await updateDoc(doc(db, ...base, 'stock', ventaOriginal.equipoId), { estado: 'vendido' }); } catch (err) { console.error('Error volviendo a marcar el equipo como vendido:', err); }
+            // Al "descancelar", el equipo pudo haberse revendido mientras tanto en otra
+            // venta real (quedó "vendido" u "asignado" ahí) — solo se lo vuelve a marcar
+            // vendido acá si sigue "disponible"; si no, se avisa en vez de pisarlo.
+            try {
+              const stockRef = doc(db, ...base, 'stock', ventaOriginal.equipoId);
+              const stockSnap = await getDoc(stockRef);
+              if (stockSnap.exists() && stockSnap.data().estado === 'disponible') {
+                await updateDoc(stockRef, { estado: 'vendido' });
+              } else {
+                alert('La venta se descanceló, pero el equipo ya no figura como disponible en Stock (puede que se haya vendido en otra operación mientras esta venta estaba cancelada). Revisá el estado del equipo en Stock.');
+              }
+            } catch (err) { console.error('Error volviendo a marcar el equipo como vendido:', err); }
           }
         }
       } else {

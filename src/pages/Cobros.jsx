@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { IconWallet, IconBell, IconCheck, IconCheckCircle, IconWarning, IconPhone } from '../components/Icons';
 import { registrarMovimientoCuota, eliminarMovimientoCuota, montoCobro } from '../lib/caja';
 import { formatCapacidad } from '../lib/categoriasProducto';
+import { fechaLocalDesdeInput } from '../lib/fechas';
 
 function diasDesde(fecha) {
   const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -14,7 +15,7 @@ function diasDesde(fecha) {
 
 function fechaCuota(fechaInicio, idx) {
   if (!fechaInicio) return null;
-  const d = new Date(fechaInicio);
+  const d = fechaLocalDesdeInput(fechaInicio);
   d.setMonth(d.getMonth() + idx);
   return d;
 }

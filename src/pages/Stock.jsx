@@ -8,7 +8,8 @@ import { IconCalculator, IconLink, IconShare, IconEdit, IconTrash, IconCheck, Ic
 import { CATEGORIAS_STOCK, ETIQUETA_ID_POR_CATEGORIA, SUGERENCIAS_CAPACIDAD_POR_CATEGORIA, EMOJI_POR_CATEGORIA, formatCapacidad, cargarModelosPorCategoria } from '../lib/categoriasProducto';
 import SelectorModelo from '../components/SelectorModelo';
 import CampoPrecio from '../components/CampoPrecio';
-import { convertirMoneda } from '../lib/moneda';
+import { convertirMoneda, faltaTipoCambio } from '../lib/moneda';
+import { fechaLocalDesdeInput } from '../lib/fechas';
 
 const COLORES = ['Negro','Blanco','Azul','Natural','Desert','Desert Titanium','Natural Titanium','Naranja','Rosa','Verde','Morado','Rojo','Gris','Plata','Dorado'];
 const TIPOS = ['compra','consignacion'];
@@ -114,6 +115,12 @@ export default function Stock() {
     // SelectorModelo es un combobox propio, no un <select> nativo, así que el
     // "required" del HTML no lo cubre — se valida acá.
     if (!form.modelo.trim()) { alert('Elegí o escribí un modelo antes de guardar.'); return; }
+    // Si el costo o el precio de venta se cargaron en pesos y no hay tipo de cambio en
+    // Configuración, convertirMoneda() da 0 — guardar así perdería el valor sin avisar.
+    if (faltaTipoCambio(form.costoMonto, form.costoMoneda, 'USD', tipoCambio) || faltaTipoCambio(form.pvMonto, form.pvMoneda, 'USD', tipoCambio)) {
+      alert('Cargaste un precio en pesos pero no hay tipo de cambio configurado — se perdería el valor (quedaría en USD 0). Cargá el tipo de cambio en Configuración, o ingresá el precio directamente en USD.');
+      return;
+    }
     setGuardando(true);
     try {
       // costoUsd/pvUsd son el valor canónico en USD que usa el resto de la app (Ventas,
@@ -125,7 +132,7 @@ export default function Stock() {
         const { fechaManual, ...datos } = form;
         datos.costoUsd = costoUsd;
         datos.pvUsd = pvUsd;
-        if (fechaManual) datos.fechaIngreso = new Date(fechaManual);
+        if (fechaManual) datos.fechaIngreso = fechaLocalDesdeInput(fechaManual);
         // Un equipo recibido como parte de pago ya trae su origen (cliente + venta)
         // desde Ventas — no se pisa acá al editar otros campos del equipo.
         if (form.tipo !== 'parte_de_pago') {
@@ -133,7 +140,7 @@ export default function Stock() {
         }
         await updateDoc(doc(db, ...base, 'stock', editandoId), datos);
       } else {
-        const fechaIngreso = form.fechaManual ? new Date(form.fechaManual) : serverTimestamp();
+        const fechaIngreso = form.fechaManual ? fechaLocalDesdeInput(form.fechaManual) : serverTimestamp();
         const origen = form.proveedor ? { tipo: form.tipo, proveedorNombre: form.proveedor } : null;
         await addDoc(collection(db, ...base, 'stock'), { ...form, costoUsd, pvUsd, fechaIngreso, origen });
       }

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, getDoc, runTransaction } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
-import { IconBox, IconHash, IconCoin, IconEdit, IconCheck, IconX } from '../components/Icons';
+import { IconBox, IconHash, IconCoin, IconEdit, IconCheck, IconX, IconWallet } from '../components/Icons';
 import { CATEGORIAS_STOCK, cargarModelosPorCategoria } from '../lib/categoriasProducto';
 import SelectorModelo from '../components/SelectorModelo';
 import CampoPrecio from '../components/CampoPrecio';
-import { convertirMoneda } from '../lib/moneda';
+import { convertirMoneda, faltaTipoCambio } from '../lib/moneda';
+import { registrarVentaAccesorio } from '../lib/caja';
 
 const CATEGORIAS = ['Fundas', 'Vidrios templados', 'Cables', 'Cargadores', 'Adaptadores', 'Audio / AirPods', 'MagSafe', 'Power banks', 'Soportes', 'Otros'];
 
@@ -36,6 +37,9 @@ export default function Accesorios() {
   const [filtro, setFiltro] = useState('');
   const [categoriaFiltro, setCategoriaFiltro] = useState('Todas');
   const [mostrarForm, setMostrarForm] = useState(false);
+  const [modalVenta, setModalVenta] = useState(null);
+  const [formVenta, setFormVenta] = useState({ cantidad: '1', monto: '', moneda: 'ARS' });
+  const [vendiendo, setVendiendo] = useState(false);
 
   const cargar = async () => {
     if (!negocioId) return;
@@ -56,6 +60,13 @@ export default function Accesorios() {
 
   const guardar = async () => {
     if (!form.nombre.trim() || !form.cantidad) return;
+    // Acá el campo canónico queda en ARS (a diferencia de Stock/Ventas/Reparaciones, que
+    // usan USD): si el costo o el precio de venta se cargaron en dólares y no hay tipo de
+    // cambio, convertirMoneda() da 0 y se perdería el valor sin avisar.
+    if (faltaTipoCambio(form.costoMonto, form.costoMoneda, 'ARS', tipoCambio) || faltaTipoCambio(form.ventaMonto, form.ventaMoneda, 'ARS', tipoCambio)) {
+      alert('Cargaste un precio en dólares pero no hay tipo de cambio configurado — se perdería el valor (quedaría en $0). Cargá el tipo de cambio en Configuración, o ingresá el precio directamente en pesos.');
+      return;
+    }
     setSaving(true);
     await addDoc(collection(db, 'negocios', negocioId, 'accesorios'), {
       nombre: form.nombre.trim(),
@@ -90,6 +101,44 @@ export default function Accesorios() {
     await updateDoc(doc(db, 'negocios', negocioId, 'accesorios', id), { cantidad: n });
     setEditandoId(null);
     cargar();
+  };
+
+  const abrirVenta = (a) => {
+    setModalVenta(a);
+    setFormVenta({ cantidad: '1', monto: ventaActual(a) || '', moneda: 'ARS' });
+  };
+
+  // Vender un accesorio bajaba la cantidad a mano acá y el ingreso había que cargarlo
+  // aparte en Caja — sin ninguna relación entre las dos cosas, era fácil hacer una y
+  // olvidarse de la otra (o que quedaran descuadradas si alguien vendía dos veces la
+  // última unidad al mismo tiempo). Ahora la baja de stock va en una transacción (relee
+  // la cantidad justo antes de confirmar, igual que al vender un equipo en Ventas.jsx) y
+  // el ingreso a Caja se genera solo, en el mismo paso.
+  const confirmarVenta = async (e) => {
+    e.preventDefault();
+    const cantidadVendida = parseInt(formVenta.cantidad);
+    if (!modalVenta || isNaN(cantidadVendida) || cantidadVendida <= 0) return;
+    setVendiendo(true);
+    try {
+      const ref = doc(db, 'negocios', negocioId, 'accesorios', modalVenta.id);
+      await runTransaction(db, async (transaction) => {
+        const snap = await transaction.get(ref);
+        const cantidadActual = snap.exists() ? Number(snap.data().cantidad) || 0 : 0;
+        if (cantidadActual < cantidadVendida) {
+          throw new Error(`Solo quedan ${cantidadActual} unidades disponibles (puede que se haya vendido stock en otra operación mientras tenías esto abierto).`);
+        }
+        transaction.update(ref, { cantidad: cantidadActual - cantidadVendida });
+      });
+      await registrarVentaAccesorio(negocioId, modalVenta.id, {
+        nombre: modalVenta.nombre, cantidad: cantidadVendida,
+        monto: formVenta.monto, moneda: formVenta.moneda,
+      });
+      setModalVenta(null);
+      cargar();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'No se pudo registrar la venta. Probá de nuevo.');
+    } finally { setVendiendo(false); }
   };
 
   // El accesorio que se cargó en USD se traduce a pesos con el dólar de HOY, no con el
@@ -279,12 +328,54 @@ export default function Accesorios() {
               <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--rv-accent)' }}>
                 {ventaActual(a) > 0 ? `$${ventaActual(a).toLocaleString('es-AR')}` : '—'}
               </div>
-              <button onClick={() => eliminar(a.id)}
-                style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', padding: '0 4px', display: 'flex' }}>
-                <IconX size={15} />
-              </button>
+              <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                <button onClick={() => abrirVenta(a)} disabled={!a.cantidad}
+                  title={!a.cantidad ? 'Sin stock disponible' : 'Registrar una venta'}
+                  style={{ background: 'var(--rv-accent-soft)', border: '1px solid rgba(47,111,237,0.3)', color: 'var(--rv-accent)', borderRadius: 6, padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: a.cantidad ? 'pointer' : 'not-allowed', opacity: a.cantidad ? 1 : 0.4, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <IconWallet size={12} />Vender
+                </button>
+                <button onClick={() => eliminar(a.id)}
+                  style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', padding: '0 4px', display: 'flex' }}>
+                  <IconX size={15} />
+                </button>
+              </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {modalVenta && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 400 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><IconWallet size={16} />Vender accesorio</h2>
+              <button onClick={() => setModalVenta(null)} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
+            </div>
+            <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: '10px 14px', marginBottom: 18, fontSize: 13, color: 'var(--rv-accent)' }}>
+              {modalVenta.nombre}{modalVenta.modelo || modalVenta.color ? ` · ${[modalVenta.modelo, modalVenta.color].filter(Boolean).join(' ')}` : ''}
+              <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 2 }}>{modalVenta.cantidad} unidades disponibles</div>
+            </div>
+            <form onSubmit={confirmarVenta} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={labelStyle}>Cantidad</label>
+                <input type="number" min="1" max={modalVenta.cantidad} value={formVenta.cantidad}
+                  onChange={e => setFormVenta(f => ({ ...f, cantidad: e.target.value }))} style={inputStyle} required />
+              </div>
+              <CampoPrecio
+                label="Precio cobrado"
+                monto={formVenta.monto} moneda={formVenta.moneda}
+                onChange={({ monto, moneda }) => setFormVenta(f => ({ ...f, monto, moneda }))}
+                tipoCambio={tipoCambio} placeholder="0"
+              />
+              <p style={{ color: 'var(--rv-text-dim)', fontSize: 11, margin: 0 }}>Descuenta la cantidad del stock y carga el ingreso en Caja automáticamente.</p>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
+                <button type="button" onClick={() => setModalVenta(null)} style={{ padding: '10px 18px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
+                <button type="submit" disabled={vendiendo} style={{ padding: '10px 22px', background: 'var(--rv-accent)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                  {vendiendo ? 'Registrando...' : 'Confirmar venta'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

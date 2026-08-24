@@ -1,3 +1,14 @@
+// Convierte un string "YYYY-MM-DD" (el que devuelve un <input type="date">) a medianoche
+// en hora LOCAL. `new Date("YYYY-MM-DD")` se interpreta como medianoche UTC — en Argentina
+// (UTC-3) eso cae el día anterior a las 21hs, así que una fecha cargada a mano como "hoy"
+// terminaba agrupada como "ayer" en los reportes de Caja, o una cuota vencía un día antes
+// de lo real. Se usa en todo lado donde se lee un <input type="date"> a mano.
+export function fechaLocalDesdeInput(str) {
+  if (!str) return null;
+  const [anio, mes, dia] = str.split('-').map(Number);
+  return new Date(anio, mes - 1, dia);
+}
+
 // Clave de mes en horario local (no UTC) — "2026-08" — usada para agrupar por mes
 // tanto en Caja como en Ventas.
 export function mesKey(date) {

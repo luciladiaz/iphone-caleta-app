@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { IconTruck, IconGear, IconCheckCircle, IconWarning, IconBox, IconPlus, IconTrash, IconX, IconCalendar, IconCard } from '../components/Icons';
 import { registrarPagoProveedorCC, eliminarMovimientoPagoProveedorCC } from '../lib/caja';
 import { formatCapacidad } from '../lib/categoriasProducto';
+import { fechaLocalDesdeInput } from '../lib/fechas';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -71,7 +72,7 @@ export default function Proveedores() {
       const montoUsd = formPago.moneda === 'ARS' ? (tc > 0 ? montoNum / tc : 0) : montoNum;
       const pagoData = {
         proveedor: modalPago.nombre,
-        fecha: new Date(formPago.fecha),
+        fecha: fechaLocalDesdeInput(formPago.fecha),
         moneda: formPago.moneda,
         monto: montoNum,
         tipoCambio: formPago.moneda === 'ARS' ? tc : null,

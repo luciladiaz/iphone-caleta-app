@@ -7,7 +7,8 @@ import { registrarMovimientoReparacion, registrarEgresoRepuestoReparacion, elimi
 import ComprobanteReparacion from '../components/ComprobanteReparacion';
 import SelectorCliente from '../components/SelectorCliente';
 import CampoPrecio from '../components/CampoPrecio';
-import { convertirMoneda } from '../lib/moneda';
+import { convertirMoneda, faltaTipoCambio } from '../lib/moneda';
+import { fechaLocalDesdeInput } from '../lib/fechas';
 
 const ESTADOS = ['ingresado', 'diagnosticado', 'presupuestado', 'aprobado', 'en_reparacion', 'esperando_repuesto', 'listo', 'entregado', 'no_reparable', 'cancelado'];
 const ESTADO_LABEL = {
@@ -107,6 +108,18 @@ export default function Reparaciones() {
 
   const guardar = async (e) => {
     e.preventDefault();
+    // Si alguno de estos se cargó en pesos y no hay tipo de cambio, convertirMoneda() da
+    // 0 y se perdería el valor sin avisar — se frena acá en vez de guardar así.
+    const camposPrecio = [
+      ['costoRepuestoMonto', 'costoRepuestoMoneda', 'costo del repuesto'],
+      ['precioMonto', 'precioMoneda', 'precio al cliente'],
+      ['pagadoMonto', 'pagadoMoneda', 'monto ya cobrado'],
+    ];
+    const campoConProblema = camposPrecio.find(([m, mo]) => faltaTipoCambio(form[m], form[mo], 'USD', tipoCambio));
+    if (campoConProblema) {
+      alert(`Cargaste el ${campoConProblema[2]} en pesos pero no hay tipo de cambio configurado — se perdería el valor. Cargá el tipo de cambio en Configuración, o ingresá el monto directamente en USD.`);
+      return;
+    }
     setGuardando(true);
     try {
       const datos = {
@@ -124,20 +137,34 @@ export default function Reparaciones() {
         garantiaDias: Number(form.garantiaDias) || 0,
         notas: form.notas,
       };
-      if (form.fechaEntregaManual) datos.fechaEntrega = new Date(form.fechaEntregaManual);
+      if (form.fechaEntregaManual) datos.fechaEntrega = fechaLocalDesdeInput(form.fechaEntregaManual);
 
       let idReparacion = editandoId;
+      const original = editandoId ? reparaciones.find(r => r.id === editandoId) : null;
       if (editandoId) {
         await updateDoc(doc(db, ...base, 'reparaciones', editandoId), datos);
       } else {
         const repRef = await addDoc(collection(db, ...base, 'reparaciones'), { ...datos, fechaIngreso: serverTimestamp() });
         idReparacion = repRef.id;
       }
-      // El monto cobrado y/o el costo del repuesto pudieron cambiar (o recién cargarse):
-      // se regeneran los movimientos de caja de esta reparación, tanto en alta como en edición.
-      await eliminarMovimientosReparacion(negocioId, idReparacion);
-      await registrarMovimientoReparacion(negocioId, idReparacion, datos);
-      await registrarEgresoRepuestoReparacion(negocioId, idReparacion, datos);
+      // Los movimientos de caja de una reparación no tienen una fecha "real" propia más
+      // que hoy (a diferencia de una venta, acá no se guarda un historial de cuándo se
+      // cobró cada parte) — por eso se regeneran con la fecha de HOY. El problema es que,
+      // si se regenerara en cada guardado, cada edición de estado/diagnóstico/notas —sin
+      // tocar un solo peso— iba a correr el ingreso y el egreso al día de hoy y descuadrar
+      // los reportes de Caja de días pasados. Por eso el ingreso y el egreso se regeneran
+      // cada uno por separado, y solo cuando el monto que le da origen realmente cambió
+      // (o es una reparación nueva).
+      const cobradoCambio = !original || (Number(original.montoPagado) || 0) !== (Number(datos.montoPagado) || 0);
+      const repuestoCambio = !original || (Number(original.costoRepuestoUsd) || 0) !== (Number(datos.costoRepuestoUsd) || 0);
+      if (cobradoCambio) {
+        await eliminarMovimientosReparacion(negocioId, idReparacion, 'reparacion');
+        await registrarMovimientoReparacion(negocioId, idReparacion, datos);
+      }
+      if (repuestoCambio) {
+        await eliminarMovimientosReparacion(negocioId, idReparacion, 'reparacion_costo');
+        await registrarEgresoRepuestoReparacion(negocioId, idReparacion, datos);
+      }
       cerrarModal();
       cargar();
     } catch (err) { console.error(err); }

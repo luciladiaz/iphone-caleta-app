@@ -4,7 +4,7 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconWallet, IconCoin, IconPlus, IconTrash, IconX, IconTrendUp, IconTrendDown, IconCalendar, IconRefresh, IconLock, IconCheckCircle, IconWarning, IconChart, IconDownload } from '../components/Icons';
 import { reconciliarCaja, calcularVentasDelDia, obtenerCierre, listarCierres, cerrarCajaDelDia, fechaKey, fechaDeMovimiento, CATEGORIAS_INGRESO as CATEGORIAS_INGRESO_DEFAULT, CATEGORIAS_EGRESO as CATEGORIAS_EGRESO_DEFAULT } from '../lib/caja';
-import { mesKey, mesLabel } from '../lib/fechas';
+import { mesKey, mesLabel, fechaLocalDesdeInput } from '../lib/fechas';
 import { descargarExcel } from '../lib/excel';
 import GraficoIngresosEgresos from '../components/GraficoIngresosEgresos';
 
@@ -197,7 +197,7 @@ export default function Caja() {
     setGuardando(true);
     try {
       await addDoc(collection(db, ...base, 'caja'), {
-        fecha: form.fecha ? new Date(form.fecha) : serverTimestamp(),
+        fecha: form.fecha ? fechaLocalDesdeInput(form.fecha) : serverTimestamp(),
         tipo: form.tipo,
         categoria: form.categoria,
         moneda: form.moneda,

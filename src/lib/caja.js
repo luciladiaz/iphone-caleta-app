@@ -53,6 +53,10 @@ async function movimientosDeVenta(negocioId, ventaId) {
 }
 
 // Crea un ingreso de caja por cada forma de pago "en mano" (efectivo/transferencia) de la venta.
+// Si `venta.fecha` viene cargado (venta ya existente, p.ej. al regenerar tras una edición)
+// se usa esa fecha real en vez de "ahora" — si no, cada edición de una venta vieja (aunque
+// sea corregir el vendedor) iba a mover su ingreso de caja al día de hoy y descuadrar los
+// reportes de Caja por día/mes de los meses ya pasados.
 export async function registrarMovimientosVenta(negocioId, ventaId, venta) {
   const base = ['negocios', negocioId];
   const cobros = venta.cobros || [];
@@ -62,7 +66,7 @@ export async function registrarMovimientosVenta(negocioId, ventaId, venta) {
     const monto = Number(cobro.monto) || 0;
     if (monto <= 0) continue;
     await addDoc(collection(db, ...base, 'caja'), {
-      fecha: serverTimestamp(),
+      fecha: venta.fecha || serverTimestamp(),
       tipo: 'ingreso',
       moneda: cobro.moneda === 'USD' ? 'USD' : 'ARS',
       monto,
@@ -139,7 +143,12 @@ export async function registrarPagoProveedorCC(negocioId, pagoId, pago) {
   const monto = Number(pago.monto) || 0;
   if (monto <= 0) return;
   await addDoc(collection(db, ...base, 'caja'), {
-    fecha: pago.fecha ? new Date(pago.fecha) : serverTimestamp(),
+    // pago.fecha puede llegar como Date (recién guardado desde Proveedores.jsx) o como
+    // Timestamp de Firestore (al reconstruir desde reconciliarCaja, más abajo) — Firestore
+    // acepta los dos tal cual. Envolverlo en `new Date(...)` rompía este segundo caso: un
+    // Timestamp no es una fecha "parseable" para el constructor de Date y el movimiento
+    // quedaba con fecha inválida (desaparecía de los reportes por día/mes).
+    fecha: pago.fecha || serverTimestamp(),
     tipo: 'egreso',
     moneda: pago.moneda === 'ARS' ? 'ARS' : 'USD',
     monto,
@@ -201,10 +210,36 @@ export async function registrarEgresoRepuestoReparacion(negocioId, reparacionId,
   });
 }
 
-// Borra TODOS los movimientos de caja ligados a una reparación (el ingreso del cobro
-// y el egreso del repuesto), sin filtrar por origen — se usa antes de regenerarlos.
-export async function eliminarMovimientosReparacion(negocioId, reparacionId) {
-  await eliminarMovimientosVenta(negocioId, reparacionId);
+// Borra los movimientos de caja ligados a una reparación: el ingreso del cobro y el
+// egreso del repuesto. Si se pasa `origen` ('reparacion' o 'reparacion_costo'), borra
+// solo ese — así Reparaciones.jsx puede regenerar el ingreso y el egreso cada uno por
+// separado, y solo el que realmente cambió, en vez de los dos juntos siempre.
+export async function eliminarMovimientosReparacion(negocioId, reparacionId, origen = null) {
+  await eliminarMovimientosVenta(negocioId, reparacionId, origen);
+}
+
+// Ingreso de caja por la venta de un accesorio (Accesorios.jsx). A diferencia de una
+// venta de equipo, acá no hay un documento de "venta" propio para editar/borrar más
+// adelante y regenerar este movimiento a partir de él — por eso se guarda como
+// movimiento manual (automatico: false), así se puede corregir o borrar directo desde
+// Caja si hace falta (la baja de stock del accesorio no se deshace sola).
+export async function registrarVentaAccesorio(negocioId, accesorioId, detalle) {
+  const base = ['negocios', negocioId];
+  const monto = Number(detalle.monto) || 0;
+  if (monto <= 0) return;
+  await addDoc(collection(db, ...base, 'caja'), {
+    fecha: serverTimestamp(),
+    tipo: 'ingreso',
+    moneda: detalle.moneda === 'USD' ? 'USD' : 'ARS',
+    monto,
+    concepto: `Venta accesorio · ${detalle.nombre}${Number(detalle.cantidad) > 1 ? ` x${detalle.cantidad}` : ''}`,
+    origen: 'accesorio',
+    categoria: 'Venta accesorio',
+    ventaId: accesorioId,
+    cobroIdx: null,
+    cuotaIdx: null,
+    automatico: false,
+  });
 }
 
 // Reconstruye los movimientos de caja faltantes a partir de las ventas ya cargadas:

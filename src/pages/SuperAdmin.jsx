@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   IconChart, IconUser, IconClock, IconWarning, IconCheckCircle, IconXCircle,
-  IconLock, IconBell, IconWallet, IconSearch, IconRefresh, IconMail, IconPhone,
+  IconLock, IconBell, IconWallet, IconSearch, IconRefresh, IconMail, IconPhone, IconCheck,
 } from '../components/Icons';
 
 const EMAIL_SUPERADMIN = 'luucila20@gmail.com';
@@ -75,6 +75,58 @@ const FILTROS = [
 
 const COL_HEADERS = ['Negocio', 'Dueño', 'Email', 'Plan', 'Salud', 'Inicio', 'Vence trial', 'Próx. cobro', 'Auto-renov.', 'Último pago'];
 
+const DIA_LABEL = { 1: 'Día 1', 4: 'Día 4', 6: 'Día 6' };
+const DIA_COLOR = { 1: '#2f6fed', 4: '#c8790a', 6: '#d43d3d' };
+
+function PendientesContacto({ negocios, onMarcar, marcando }) {
+  const pendientes = negocios.filter(n => n.pendienteContacto);
+  if (pendientes.length === 0) return null;
+
+  return (
+    <div style={{ marginBottom: 26 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <h2 style={{ fontSize: 15, fontWeight: 800 }}>Mensajes de seguimiento pendientes</h2>
+        <span style={{ background: 'var(--rv-danger-soft)', color: 'var(--rv-danger)', fontSize: 11.5, fontWeight: 800, borderRadius: 99, padding: '2px 9px' }}>{pendientes.length}</span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {pendientes.map(n => {
+          const dia = n.diaActualContacto;
+          const soloDigitos = (n.telefono || '').replace(/\D/g, '');
+          const linkWhatsapp = soloDigitos ? `https://wa.me/${soloDigitos}?text=${encodeURIComponent(n.mensajeSugerido || '')}` : null;
+          return (
+            <div key={`${n.id}-${dia}`} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: '14px 16px', display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+              <Avatar nombre={n.nombre} color={DIA_COLOR[dia]} />
+              <div style={{ flex: '1 1 260px', minWidth: 220 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                  <span style={{ fontWeight: 700 }}>{n.nombre}</span>
+                  <span style={{ color: 'var(--rv-text-dim)', fontSize: 12.5 }}>{n.nombreDueño || 'sin dueño registrado'}</span>
+                  <span style={{ background: `${DIA_COLOR[dia]}18`, color: DIA_COLOR[dia], fontSize: 11, fontWeight: 800, borderRadius: 99, padding: '2px 9px' }}>{DIA_LABEL[dia]} de trial</span>
+                </div>
+                <p style={{ color: 'var(--rv-text-mid)', fontSize: 12.5, lineHeight: 1.5 }}>{n.mensajeSugerido}</p>
+                {!n.telefono && <p style={{ color: 'var(--rv-text-dim)', fontSize: 11.5, marginTop: 4 }}>Sin teléfono cargado — se le manda el mail automático del día correspondiente.</p>}
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                {linkWhatsapp && (
+                  <a href={linkWhatsapp} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#22c55e18', color: '#16a34a', border: '1px solid #22c55e35', borderRadius: 9, padding: '8px 13px', fontSize: 12.5, fontWeight: 700 }}>
+                    <IconPhone size={13} /> WhatsApp
+                  </a>
+                )}
+                <button
+                  onClick={() => onMarcar(n.id, dia, true)}
+                  disabled={marcando.has(`${n.id}-${dia}`)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, cursor: marcando.has(`${n.id}-${dia}`) ? 'default' : 'pointer', opacity: marcando.has(`${n.id}-${dia}`) ? 0.6 : 1 }}
+                >
+                  <IconCheck size={13} /> Ya le escribí
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function SuperAdmin() {
   const { user } = useAuth();
   const [datos, setDatos] = useState(null);
@@ -82,6 +134,7 @@ export default function SuperAdmin() {
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('todos');
   const [busqueda, setBusqueda] = useState('');
+  const [marcando, setMarcando] = useState(new Set());
 
   useEffect(() => {
     if (!user || user.email !== EMAIL_SUPERADMIN) { setLoading(false); return; }
@@ -101,6 +154,25 @@ export default function SuperAdmin() {
       setError(e.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const marcarContacto = async (negocioId, dia, contactado) => {
+    const clave = `${negocioId}-${dia}`;
+    setMarcando(prev => new Set(prev).add(clave));
+    try {
+      const idToken = await user.getIdToken();
+      const res = await fetch('/api/superadmin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ negocioId, dia, contactado }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || `Error ${res.status}`);
+      await cargar();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setMarcando(prev => { const s = new Set(prev); s.delete(clave); return s; });
     }
   };
 
@@ -190,6 +262,8 @@ export default function SuperAdmin() {
               <KPI icon={<IconBell size={14} />} label="Vencen en 7 días" valor={datos.resumen.proximosAVencer} color="#c8790a" />
               <KPI icon={<IconWallet size={15} />} label="MRR estimado" valor={fmtMoneda(datos.resumen.mrrEstimado)} color="#1a9c6b" destacado />
             </div>
+
+            <PendientesContacto negocios={datos.negocios} onMarcar={marcarContacto} marcando={marcando} />
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 18, alignItems: 'center' }}>
               <div style={{ position: 'relative', flex: '1 1 240px', minWidth: 220 }}>

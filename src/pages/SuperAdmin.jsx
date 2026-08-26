@@ -135,6 +135,7 @@ export default function SuperAdmin() {
   const [filtro, setFiltro] = useState('todos');
   const [busqueda, setBusqueda] = useState('');
   const [marcando, setMarcando] = useState(new Set());
+  const [vista, setVista] = useState('resumen');
 
   useEffect(() => {
     if (!user || user.email !== EMAIL_SUPERADMIN) { setLoading(false); return; }
@@ -252,6 +253,37 @@ export default function SuperAdmin() {
 
         {datos && (
           <>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 22, borderBottom: '1px solid var(--rv-border)' }}>
+              {[
+                { key: 'resumen', label: 'Resumen' },
+                { key: 'seguimiento', label: 'Seguimiento de trial', badge: datos.resumen.pendientesContacto },
+              ].map(t => (
+                <button
+                  key={t.key}
+                  onClick={() => setVista(t.key)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 7,
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    padding: '10px 4px', marginRight: 22,
+                    color: vista === t.key ? 'var(--rv-accent)' : 'var(--rv-text-dim)',
+                    fontSize: 14, fontWeight: 700,
+                    borderBottom: vista === t.key ? '2px solid var(--rv-accent)' : '2px solid transparent',
+                  }}
+                >
+                  {t.label}
+                  {!!t.badge && (
+                    <span style={{ background: vista === t.key ? 'var(--rv-accent)' : 'var(--rv-danger-soft)', color: vista === t.key ? '#fff' : 'var(--rv-danger)', fontSize: 11, fontWeight: 800, borderRadius: 99, padding: '1px 8px' }}>{t.badge}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {vista === 'seguimiento' && (
+              <PendientesContacto negocios={datos.negocios} onMarcar={marcarContacto} marcando={marcando} />
+            )}
+
+            {vista === 'resumen' && (
+              <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 26 }}>
               <KPI icon={<IconUser size={14} />} label="Total negocios" valor={datos.resumen.total} color="#45505f" />
               <KPI icon={<IconClock size={14} />} label="Trial activo" valor={datos.resumen.trialActivo} color="#2f6fed" />
@@ -262,8 +294,6 @@ export default function SuperAdmin() {
               <KPI icon={<IconBell size={14} />} label="Vencen en 7 días" valor={datos.resumen.proximosAVencer} color="#c8790a" />
               <KPI icon={<IconWallet size={15} />} label="MRR estimado" valor={fmtMoneda(datos.resumen.mrrEstimado)} color="#1a9c6b" destacado />
             </div>
-
-            <PendientesContacto negocios={datos.negocios} onMarcar={marcarContacto} marcando={marcando} />
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 18, alignItems: 'center' }}>
               <div style={{ position: 'relative', flex: '1 1 240px', minWidth: 220 }}>
@@ -376,6 +406,8 @@ export default function SuperAdmin() {
                 </table>
               </div>
             </div>
+              </>
+            )}
           </>
         )}
       </div>

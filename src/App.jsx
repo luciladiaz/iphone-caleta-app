@@ -20,6 +20,7 @@ import ReporteVendedores from './pages/ReporteVendedores';
 import DevSeed from './pages/DevSeed';
 import AppTest from './pages/AppTest';
 import Studio from './pages/Studio';
+import SuperAdmin from './pages/SuperAdmin';
 import Accesorios from './pages/Accesorios';
 import Reparaciones from './pages/Reparaciones';
 
@@ -90,6 +91,10 @@ function AppRoutes() {
 
       {/* /studio — privado, acceso solo al owner. El componente hace la verificación de email. */}
       <Route path="/studio" element={<Studio />} />
+
+      {/* /superadmin — privado, acceso solo al owner. El componente y el endpoint /api/superadmin
+          verifican el email por separado (nunca confiar solo en el chequeo del cliente). */}
+      <Route path="/superadmin" element={<SuperAdmin />} />
 
       {/* Rutas privadas */}
       <Route path="/" element={<PrivateRoute modulo="dashboard"><Layout><Dashboard /></Layout></PrivateRoute>} />

@@ -42,7 +42,12 @@ export default async function handler(req, res) {
 
   try {
     const mpBody = {
-      reason: `ReventApp — ${planInfo.nombre}`,
+      // Ojo: antes tenía un guión largo "—" (em dash, no un guión común "-"). La API de
+      // Mercado Pago viene rechazando la creación de la suscripción con un 400 genérico
+      // "Parameters passed are invalid" para TODOS los clientes — se reprodujo en vivo
+      // contra la API real y se aisló a este campo. Con texto simple (sin ese carácter)
+      // la misma llamada, con el mismo token y los mismos datos, sí funciona.
+      reason: `ReventApp - ${planInfo.nombre}`,
       external_reference: `${negocioId}___${plan}`,
       payer_email: email,
       back_url: `${APP_URL}/planes?pago=exitoso`,

@@ -163,11 +163,35 @@ async function accionTestMailNurture(req, res) {
   return res.status(200).json({ ok: true, enviados: resultados });
 }
 
+// Limpieza puntual del bug de crear-suscripcion.js: seteaba renovacionAutomatica=true
+// apenas se CREABA el preapproval en MP (status "pending"), antes de que se cobrara
+// nada. Un negocio que sigue en plan trial nunca debería tener esa bandera en true —
+// si la tiene, es un checkout que se inició y nunca se llegó a aprobar/cobrar.
+async function accionFixRenovacionPrematura(req, res) {
+  const snap = await adminDb.collection('negocios')
+    .where('plan', '==', 'trial')
+    .where('renovacionAutomatica', '==', true)
+    .get();
+
+  if (snap.empty) return res.status(200).json({ ok: true, corregidos: 0 });
+
+  const batch = adminDb.batch();
+  const corregidos = [];
+  for (const doc of snap.docs) {
+    batch.update(doc.ref, { renovacionAutomatica: false });
+    corregidos.push({ id: doc.id, nombre: doc.data().nombre || '(sin nombre)' });
+  }
+  await batch.commit();
+
+  return res.status(200).json({ ok: true, corregidos: corregidos.length, detalle: corregidos });
+}
+
 const ACCIONES = {
   'reseed-modelos': accionReseedModelos,
   'migrar-doc-publico': accionMigrarDocPublico,
   'setup-demo-catalogo': accionSetupDemoCatalogo,
   'test-mail-nurture': accionTestMailNurture,
+  'fix-renovacion-prematura': accionFixRenovacionPrematura,
 };
 
 export default async function handler(req, res) {

@@ -78,12 +78,16 @@ export default async function handler(req, res) {
       return res.status(502).json({ error: `MP ${response.status}: ${data.message || data.error || JSON.stringify(data)}` });
     }
 
-    // Guardar el preapprovalId en Firestore para poder verificar el pago después
+    // Guardar el preapprovalId en Firestore para poder verificar el pago después.
+    // OJO: acá el preapproval recién se creó en MP con status "pending" — todavía no
+    // se cobró nada. renovacionAutomatica=true solo lo pone activarPlan() en
+    // webhook-mp.js, cuando MP confirma que el pago realmente se aprobó. Ponerlo acá
+    // (como estaba antes) hacía que un negocio que ni siquiera terminó de pagar
+    // apareciera con "renovación automática activa" sin que se le haya cobrado nada.
     try {
       await adminDb.doc(`negocios/${negocioId}`).update({
         preapprovalId: data.id,
         planSolicitado: plan,
-        renovacionAutomatica: true,
         ultimoCheckout: FieldValue.serverTimestamp(),
       });
     } catch (e) {

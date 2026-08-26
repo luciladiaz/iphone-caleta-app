@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   IconChart, IconUser, IconClock, IconWarning, IconCheckCircle, IconXCircle,
   IconLock, IconBell, IconWallet, IconSearch, IconRefresh, IconMail, IconPhone, IconCheck,
+  IconX, IconReceipt, IconEdit, IconTrendUp,
 } from '../components/Icons';
 
 const EMAIL_SUPERADMIN = 'luucila20@gmail.com';
@@ -127,6 +128,72 @@ function PendientesContacto({ negocios, onMarcar, marcando }) {
   );
 }
 
+const ESTADO_PAGO_COLOR = {
+  exitoso: '#1a9c6b', cancelado_voluntario: '#6b7686', cancelado_sin_pago: '#d43d3d', reintentando: '#c8790a',
+};
+
+function DetalleModal({ negocio, data, loading, notaEditada, setNotaEditada, guardando, onGuardarNota, onCerrar }) {
+  return (
+    <div onClick={onCerrar} style={{ position: 'fixed', inset: 0, background: 'rgba(15,20,32,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--rv-surface)', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.25)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', borderBottom: '1px solid var(--rv-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Avatar nombre={negocio.nombre} color="#2f6fed" />
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 15 }}>{negocio.nombre}</div>
+              <div style={{ color: 'var(--rv-text-dim)', fontSize: 12 }}>{negocio.nombreDueño || 'sin dueño'} {negocio.email ? `· ${negocio.email}` : ''}</div>
+            </div>
+          </div>
+          <button onClick={onCerrar} style={{ background: 'var(--rv-surface-alt)', border: 'none', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--rv-text-dim)' }}>
+            <IconX size={15} />
+          </button>
+        </div>
+
+        <div style={{ padding: '18px 22px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+            <IconEdit size={14} style={{ color: 'var(--rv-text-dim)' }} />
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--rv-text-dim)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Nota</span>
+          </div>
+          <textarea
+            value={notaEditada}
+            onChange={e => setNotaEditada(e.target.value)}
+            placeholder="Ej: ya hablé, dijo que necesita tiempo para decidir…"
+            rows={3}
+            style={{ width: '100%', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: 12, color: 'var(--rv-text)', fontSize: 13, fontFamily: 'inherit', resize: 'vertical' }}
+          />
+          <button
+            onClick={onGuardarNota}
+            disabled={guardando}
+            style={{ marginTop: 8, background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 12.5, fontWeight: 700, cursor: guardando ? 'default' : 'pointer', opacity: guardando ? 0.6 : 1 }}
+          >
+            {guardando ? 'Guardando…' : 'Guardar nota'}
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, margin: '24px 0 10px' }}>
+            <IconReceipt size={14} style={{ color: 'var(--rv-text-dim)' }} />
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--rv-text-dim)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Historial de pagos</span>
+          </div>
+          {loading && <p style={{ color: 'var(--rv-text-dim)', fontSize: 13 }}>Cargando…</p>}
+          {!loading && data?.historial?.length === 0 && <p style={{ color: 'var(--rv-text-dim)', fontSize: 13 }}>Sin movimientos registrados.</p>}
+          {!loading && data?.historial?.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {data.historial.map(p => (
+                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: 'var(--rv-surface-alt)', borderRadius: 9, fontSize: 12.5 }}>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{p.tipo || '—'}</div>
+                    <div style={{ color: 'var(--rv-text-dim)', fontSize: 11.5 }}>{fmtFecha(p.fecha)}</div>
+                  </div>
+                  <span style={{ color: ESTADO_PAGO_COLOR[p.estado] || 'var(--rv-text-dim)', fontWeight: 700, fontSize: 11.5 }}>{p.estado || '—'}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SuperAdmin() {
   const { user } = useAuth();
   const [datos, setDatos] = useState(null);
@@ -136,6 +203,11 @@ export default function SuperAdmin() {
   const [busqueda, setBusqueda] = useState('');
   const [marcando, setMarcando] = useState(new Set());
   const [vista, setVista] = useState('resumen');
+  const [detalleId, setDetalleId] = useState(null);
+  const [detalleData, setDetalleData] = useState(null);
+  const [detalleLoading, setDetalleLoading] = useState(false);
+  const [notaEditada, setNotaEditada] = useState('');
+  const [guardandoNota, setGuardandoNota] = useState(false);
 
   useEffect(() => {
     if (!user || user.email !== EMAIL_SUPERADMIN) { setLoading(false); return; }
@@ -176,6 +248,46 @@ export default function SuperAdmin() {
       setMarcando(prev => { const s = new Set(prev); s.delete(clave); return s; });
     }
   };
+
+  const abrirDetalle = async (n) => {
+    setDetalleId(n.id);
+    setNotaEditada(n.notaAdmin || '');
+    setDetalleData(null);
+    setDetalleLoading(true);
+    try {
+      const idToken = await user.getIdToken();
+      const res = await fetch(`/api/superadmin?detalle=${encodeURIComponent(n.id)}`, { headers: { Authorization: `Bearer ${idToken}` } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+      setDetalleData(data);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setDetalleLoading(false);
+    }
+  };
+
+  const cerrarDetalle = () => { setDetalleId(null); setDetalleData(null); };
+
+  const guardarNota = async () => {
+    setGuardandoNota(true);
+    try {
+      const idToken = await user.getIdToken();
+      const res = await fetch('/api/superadmin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ negocioId: detalleId, nota: notaEditada }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || `Error ${res.status}`);
+      setDatos(prev => ({ ...prev, negocios: prev.negocios.map(n => n.id === detalleId ? { ...n, notaAdmin: notaEditada } : n) }));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setGuardandoNota(false);
+    }
+  };
+
+  const negocioDetalle = datos?.negocios.find(n => n.id === detalleId) || null;
 
   const negociosFiltrados = useMemo(() => {
     if (!datos) return [];
@@ -293,7 +405,19 @@ export default function SuperAdmin() {
               <KPI icon={<IconLock size={14} />} label="Suspendidos" valor={datos.resumen.suspendido} color="#d43d3d" />
               <KPI icon={<IconBell size={14} />} label="Vencen en 7 días" valor={datos.resumen.proximosAVencer} color="#c8790a" />
               <KPI icon={<IconWallet size={15} />} label="MRR estimado" valor={fmtMoneda(datos.resumen.mrrEstimado)} color="#1a9c6b" destacado />
+              <KPI
+                icon={<IconTrendUp size={14} />}
+                label="Conversión trial → pago"
+                valor={datos.resumen.tasaConversion !== null ? `${datos.resumen.tasaConversion}%` : '—'}
+                color="#2f6fed"
+                destacado
+              />
             </div>
+            {datos.resumen.tasaConversion !== null && (
+              <p style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: -16, marginBottom: 20 }}>
+                {datos.resumen.convertidos} de {datos.resumen.decididos} negocios con trial ya decidido llegaron a pagar.
+              </p>
+            )}
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 18, alignItems: 'center' }}>
               <div style={{ position: 'relative', flex: '1 1 240px', minWidth: 220 }}>
@@ -323,7 +447,7 @@ export default function SuperAdmin() {
             </div>
 
             <div style={{ color: 'var(--rv-text-dim)', fontSize: 12.5, marginBottom: 10, fontWeight: 600 }}>
-              {negociosFiltrados.length} {negociosFiltrados.length === 1 ? 'negocio' : 'negocios'}
+              {negociosFiltrados.length} {negociosFiltrados.length === 1 ? 'negocio' : 'negocios'} · click en una fila para ver notas e historial de pagos
             </div>
 
             <div style={{ border: '1px solid var(--rv-border)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 3px rgba(16,24,40,0.04)' }}>
@@ -340,7 +464,7 @@ export default function SuperAdmin() {
                     {negociosFiltrados.map(n => {
                       const color = (SALUD[n.salud] || {}).color;
                       return (
-                        <tr key={n.id} className="sa-row" style={{ borderTop: '1px solid var(--rv-border)' }}>
+                        <tr key={n.id} className="sa-row" onClick={() => abrirDetalle(n)} style={{ borderTop: '1px solid var(--rv-border)', cursor: 'pointer' }}>
                           <td style={{ padding: '11px 14px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <Avatar nombre={n.nombre} color={color} />
@@ -348,6 +472,7 @@ export default function SuperAdmin() {
                                 <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
                                   {n.nombre}
                                   {n.esDemo && <span style={{ fontSize: 9.5, color: 'var(--rv-text-dim)', fontWeight: 700, border: '1px solid var(--rv-border)', borderRadius: 5, padding: '1px 5px' }}>DEMO</span>}
+                                  {n.notaAdmin && <span title="Tiene nota"><IconEdit size={11} style={{ color: 'var(--rv-text-dim)' }} /></span>}
                                 </div>
                                 {n.telefono && (
                                   <div style={{ fontSize: 11.5, color: 'var(--rv-text-dim)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
@@ -409,6 +534,19 @@ export default function SuperAdmin() {
               </>
             )}
           </>
+        )}
+
+        {negocioDetalle && (
+          <DetalleModal
+            negocio={negocioDetalle}
+            data={detalleData}
+            loading={detalleLoading}
+            notaEditada={notaEditada}
+            setNotaEditada={setNotaEditada}
+            guardando={guardandoNota}
+            onGuardarNota={guardarNota}
+            onCerrar={cerrarDetalle}
+          />
         )}
       </div>
     </div>

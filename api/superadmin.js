@@ -39,7 +39,33 @@ function calcularSalud(n) {
   return 'pago_activo';
 }
 
+// Historial completo de pagos + nota manual de un negocio puntual, para el modal de
+// detalle. Se pide aparte (no en el listado general) para no traer todo el historial
+// de pagos de todos los negocios en cada carga del panel.
+async function manejarDetalle(req, res, negocioId) {
+  try {
+    const [negSnap, pagosSnap] = await Promise.all([
+      adminDb.doc(`negocios/${negocioId}`).get(),
+      adminDb.collection(`negocios/${negocioId}/pagos`).orderBy('fecha', 'desc').get(),
+    ]);
+    if (!negSnap.exists) return res.status(404).json({ error: 'Negocio no encontrado' });
+
+    const historial = pagosSnap.docs.map(d => {
+      const p = d.data();
+      return { id: d.id, tipo: p.tipo || null, estado: p.estado || null, mpId: p.mpId || null, fecha: aFecha(p.fecha)?.toISOString() || null };
+    });
+
+    return res.status(200).json({ ok: true, nota: negSnap.data().notaAdmin || '', historial });
+  } catch (err) {
+    console.error('[superadmin] Error en detalle:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
 async function manejarGet(req, res) {
+  const detalleId = req.query?.detalle;
+  if (detalleId) return manejarDetalle(req, res, detalleId);
+
   try {
     const negociosSnap = await adminDb.collection('negocios').get();
 
@@ -115,6 +141,7 @@ async function manejarGet(req, res) {
         diaActualContacto,
         pendienteContacto,
         mensajeSugerido,
+        notaAdmin: n.notaAdmin || '',
       };
 
       return { ...base, salud: calcularSalud(base) };
@@ -139,6 +166,16 @@ async function manejarGet(req, res) {
       pendientesContacto: negocios.filter(n => n.pendienteContacto).length,
     };
 
+    // Conversión trial → pago: de los negocios cuyo trial ya está "decidido" (o ya
+    // pasaron a plan pago, o su trial ya venció sin que hayan pagado), qué % efectivamente
+    // llegó a pagar alguna vez. plan queda en 'promax' aunque después se suspenda o
+    // cancele, así que sigue contando como conversión (no como reversión).
+    const decididos = negocios.filter(n => !n.esDemo && (n.plan !== 'trial' || (n.diasTrialRestantes !== null && n.diasTrialRestantes <= 0)));
+    const convertidos = decididos.filter(n => n.plan !== 'trial');
+    resumen.tasaConversion = decididos.length > 0 ? Math.round((convertidos.length / decididos.length) * 1000) / 10 : null;
+    resumen.decididos = decididos.length;
+    resumen.convertidos = convertidos.length;
+
     return res.status(200).json({ ok: true, resumen, negocios });
   } catch (err) {
     console.error('[superadmin] Error:', err.message);
@@ -149,7 +186,7 @@ async function manejarGet(req, res) {
 // Marca (o desmarca) que ya se le mandó el mensaje de seguimiento del día indicado a
 // un negocio puntual. Se guarda como mapa en el propio doc del negocio
 // (contactosTrial.{dia}) para no sumar otra colección ni otra función serverless.
-async function manejarPost(req, res) {
+async function manejarMarcarContacto(req, res) {
   const { negocioId, dia, contactado } = req.body || {};
   if (!negocioId || !DIAS_CONTACTO.includes(Number(dia)) || typeof contactado !== 'boolean')
     return res.status(400).json({ error: 'Faltan o son inválidos: negocioId, dia, contactado' });
@@ -163,6 +200,28 @@ async function manejarPost(req, res) {
     console.error('[superadmin] Error marcando contacto:', err.message);
     return res.status(500).json({ error: err.message });
   }
+}
+
+// Nota libre por negocio (mini-CRM: "ya hablé, dijo que necesita tiempo", etc.).
+async function manejarGuardarNota(req, res) {
+  const { negocioId, nota } = req.body || {};
+  if (!negocioId || typeof nota !== 'string')
+    return res.status(400).json({ error: 'Faltan o son inválidos: negocioId, nota' });
+
+  try {
+    await adminDb.doc(`negocios/${negocioId}`).update({ notaAdmin: nota.slice(0, 2000) });
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error('[superadmin] Error guardando nota:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+async function manejarPost(req, res) {
+  const { dia, nota } = req.body || {};
+  if (dia !== undefined) return manejarMarcarContacto(req, res);
+  if (nota !== undefined) return manejarGuardarNota(req, res);
+  return res.status(400).json({ error: 'Body inválido' });
 }
 
 export default async function handler(req, res) {

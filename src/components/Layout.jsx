@@ -120,7 +120,14 @@ export default function Layout({ children }) {
     return true;
   });
 
-  const SidebarContent = () => (
+  // onClose: solo se pasa en el overlay de mobile (para mostrar la "X" que lo cierra).
+  // Antes esa "X" vivía en una fila aparte, ENCIMA de este componente, sin que el resto
+  // del menú se achicara para hacerle lugar — con la cantidad de secciones que ve un
+  // admin, el contenido no entraba en la pantalla y el botón de "Cerrar sesión" (al
+  // final de todo) quedaba empujado fuera de la vista, sin scroll para llegar a él.
+  // Poniendo la "X" adentro de este mismo layout (que si tiene height:100% correcto)
+  // se soluciona de raíz.
+  const SidebarContent = ({ onClose }) => (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ padding: '20px 20px', borderBottom: '1px solid var(--rv-border-soft)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -128,7 +135,7 @@ export default function Layout({ children }) {
             ? <img src={negocio.logoUrl} alt="logo" style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover', flexShrink: 0, border: '1px solid var(--rv-border)' }} />
             : <svg viewBox="0 0 24 24" style={{ width: 26, height: 26, fill: 'var(--rv-accent)', flexShrink: 0 }}><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
           }
-          <div style={{ overflow: 'hidden' }}>
+          <div style={{ overflow: 'hidden', flex: 1 }}>
             <div style={{ color: 'var(--rv-text)', fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {negocio?.nombre || 'ReventApp'}
             </div>
@@ -136,6 +143,11 @@ export default function Layout({ children }) {
               {perfil?.rol === 'admin' ? 'Administrador' : 'Vendedor'}
             </div>
           </div>
+          {onClose && (
+            <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex', flexShrink: 0 }}>
+              <IconX size={20} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -219,13 +231,11 @@ export default function Layout({ children }) {
 
       {/* Mobile menu overlay */}
       {menuOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'var(--rv-surface)' }}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: 16 }}>
-            <button onClick={() => setMenuOpen(false)} style={{
-              background: 'none', border: 'none', color: 'var(--rv-text)', cursor: 'pointer', display: 'flex',
-            }}><IconX size={22} /></button>
-          </div>
-          <SidebarContent />
+        // overflowY: 'auto' es un resguardo — aunque el layout de SidebarContent ya
+        // debería entrar bien en la pantalla, si algún día hay tantas secciones que ni
+        // así entra, se puede hacer scroll en vez de perder acceso a lo de más abajo.
+        <div style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'var(--rv-surface)', overflowY: 'auto' }}>
+          <SidebarContent onClose={() => setMenuOpen(false)} />
         </div>
       )}
 

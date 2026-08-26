@@ -6,6 +6,7 @@ import { auth, db, firebaseConfig } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
 import { IconUser, IconX, IconEdit, IconTrash } from '../components/Icons';
+import { errorPassword } from '../lib/validacion';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -84,6 +85,8 @@ export default function Usuarios() {
         await updateDoc(doc(db, 'usuarios', editandoId), cambios);
         await updateDoc(doc(db, ...base, 'usuarios', editandoId), cambios);
       } else {
+        const passwordError = errorPassword(form.password);
+        if (passwordError) { setError(passwordError); setGuardando(false); return; }
         // App secundaria para no cerrar la sesión del admin al crear el usuario
         const tempApp = initializeApp(firebaseConfig, `crear-usuario-${Date.now()}`);
         const tempAuth = getAuth(tempApp);
@@ -230,7 +233,7 @@ export default function Usuarios() {
               {!editandoId && (
                 <>
                   <div><label style={labelStyle}>Email</label><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required style={inputStyle} /></div>
-                  <div><label style={labelStyle}>Contraseña</label><input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required minLength={6} style={inputStyle} /></div>
+                  <div><label style={labelStyle}>Contraseña</label><input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required minLength={8} placeholder="Mínimo 8 caracteres, con letras y números" style={inputStyle} /></div>
                 </>
               )}
               <div>

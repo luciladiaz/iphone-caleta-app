@@ -1,4 +1,5 @@
 import { adminDb } from './_firebase.js';
+import { limitado } from './_rateLimit.js';
 
 // Endpoint público (sin login) para el catálogo compartible. Antes CatalogoPublico.jsx
 // leía la colección `stock` entera directo desde el cliente con el SDK de Firestore —
@@ -10,6 +11,10 @@ import { adminDb } from './_firebase.js';
 // mano, con el Admin SDK (que no depende de las reglas) y devolver SOLO lo que un
 // cliente necesita ver.
 export default async function handler(req, res) {
+  if (limitado(req, { ventanaMs: 60_000, maximo: 60 })) {
+    return res.status(429).json({ error: 'Demasiados pedidos. Probá de nuevo en un minuto.' });
+  }
+
   const negocioId = req.query?.negocioId;
   if (!negocioId) return res.status(400).json({ error: 'Falta negocioId' });
 

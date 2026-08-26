@@ -3,6 +3,13 @@ import { adminAuth, usuarioDeRequest } from './_firebase.js';
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const APP_URL = 'https://reventapp.com.ar';
 
+// El nombre lo tipea la usuaria en Registro.jsx y llega acá tal cual — antes de meterlo
+// en el HTML del mail hay que escapar las entidades básicas, si no cualquier cosa que
+// haya puesto en ese campo (incluido HTML) se inyecta tal cual en el email.
+function escaparHtml(str) {
+  return String(str || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 function botonWhatsapp(mensaje) {
   const WHATSAPP_SOPORTE = '5493364400111';
   const url = `https://wa.me/${WHATSAPP_SOPORTE}?text=${encodeURIComponent(mensaje)}`;
@@ -27,8 +34,9 @@ export default async function handler(req, res) {
       handleCodeInApp: false,
     });
 
+    const nombreSeguro = escaparHtml(nombre);
     const html = `
-      <p>Hola${nombre ? ' ' + nombre : ''} 👋</p>
+      <p>Hola${nombreSeguro ? ' ' + nombreSeguro : ''} 👋</p>
       <p>Gracias por crear tu cuenta en ReventApp. Confirmá tu email para poder ingresar:</p>
       <p><a href="${link}" style="display:inline-block;background:#2f6fed;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Verificar mi email →</a></p>
       <p style="color:#888;font-size:13px">Si el botón no funciona, copiá y pegá este link en tu navegador:<br/>${link}</p>

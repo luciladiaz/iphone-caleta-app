@@ -4,6 +4,7 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { IconMail } from '../components/Icons';
+import { errorPassword } from '../lib/validacion';
 
 export default function Registro() {
   const navigate = useNavigate();
@@ -17,7 +18,8 @@ export default function Registro() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (form.password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres'); return; }
+    const passwordError = errorPassword(form.password);
+    if (passwordError) { setError(passwordError); return; }
     setLoading(true);
     try {
       const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);
@@ -153,7 +155,7 @@ export default function Registro() {
           </div>
           <div>
             <label style={{ color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>Contraseña</label>
-            <input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} required placeholder="Mínimo 6 caracteres"
+            <input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} required minLength={8} placeholder="Mínimo 8 caracteres, con letras y números"
               style={{ width: '100%', padding: '12px 14px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 10, color: 'var(--rv-text)', fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
           </div>
 

@@ -123,8 +123,10 @@ export default function Ventas() {
   const [editando, setEditando] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [modalLimite, setModalLimite] = useState(false);
+  const [accesorios, setAccesorios] = useState([]);
   const [form, setForm] = useState({
-    equipoId: '', clienteId: '', cliente: '', telefono: '', vendedor: '', origen: '',
+    tipo: 'equipo', equipoId: '', accesorioId: '', cantidadAccesorio: '1',
+    clienteId: '', cliente: '', telefono: '', vendedor: '', origen: '',
     estado: 'pendiente', notas: '', tipoCambio: '', pvVentaMonto: '', pvVentaMoneda: 'USD',
     cobros: [{ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS', cuotas: '', montoCuota: '', fechaInicio: '' }],
     partesDePago: []
@@ -134,15 +136,17 @@ export default function Ventas() {
   const cargar = async () => {
     if (!negocioId) return;
     const base = ['negocios', negocioId];
-    const [vSnap, sSnap, vendSnap, cliSnap, cfgSnap] = await Promise.all([
+    const [vSnap, sSnap, aSnap, vendSnap, cliSnap, cfgSnap] = await Promise.all([
       getDocs(query(collection(db, ...base, 'ventas'), orderBy('fecha', 'desc'))),
       getDocs(collection(db, ...base, 'stock')),
+      getDocs(collection(db, ...base, 'accesorios')),
       getDocs(collection(db, ...base, 'vendedores')),
       getDocs(query(collection(db, ...base, 'clientes'), orderBy('nombre'))),
       getDoc(doc(db, ...base, 'config', 'general')),
     ]);
     setVentas(vSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     setStock(sSnap.docs.filter(d => d.data().estado === 'disponible').map(d => ({ id: d.id, ...d.data() })));
+    setAccesorios(aSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(a => (a.cantidad || 0) > 0));
     setVendedores(vendSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     setClientes(cliSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     const cfg = cfgSnap.data() || {};
@@ -158,6 +162,7 @@ export default function Ventas() {
   }, [negocioId]);
 
   const equipoSeleccionado = stock.find(s => s.id === form.equipoId);
+  const accesorioSeleccionado = accesorios.find(a => a.id === form.accesorioId);
 
   const seleccionarCliente = (c) => {
     setForm(f => ({ ...f, clienteId: c?.id || '', cliente: c?.nombre || '', telefono: c?.telefono || '' }));
@@ -200,14 +205,26 @@ export default function Ventas() {
   };
 
   const eliminarVenta = async (v) => {
-    if (!window.confirm(`¿Eliminás la venta de ${v.modelo}${v.gb ? ' ' + formatCapacidad(v.gb) : ''}? Esta acción no se puede deshacer.`)) return;
+    const nombreItem = v.tipo === 'accesorio' ? v.modelo : `${v.modelo}${v.gb ? ' ' + formatCapacidad(v.gb) : ''}`;
+    if (!window.confirm(`¿Eliminás la venta de ${nombreItem}? Esta acción no se puede deshacer.`)) return;
     const base = ['negocios', negocioId];
     await deleteDoc(doc(db, ...base, 'ventas', v.id));
-    // Si la venta ya estaba cancelada, el equipo ya había vuelto a "disponible" en ese
-    // momento (ver guardar() más abajo) y pudo haberse revendido después en una venta
-    // real y vigente. Forzarlo acá de nuevo a "disponible" le robaría el equipo a esa
-    // venta — solo se libera si esta venta que se borra todavía lo tenía como vendido.
-    if (v.equipoId && v.estado !== 'cancelado') {
+    // Igual criterio que con un equipo: si la venta ya estaba cancelada, el stock del
+    // accesorio ya había vuelto (ver guardar() más abajo) y pudo haberse revendido en
+    // otra operación — solo se repone acá si esta venta que se borra seguía vigente.
+    if (v.tipo === 'accesorio') {
+      if (v.accesorioId && v.estado !== 'cancelado') {
+        try {
+          const accRef = doc(db, ...base, 'accesorios', v.accesorioId);
+          const accSnap = await getDoc(accRef);
+          if (accSnap.exists()) await updateDoc(accRef, { cantidad: (Number(accSnap.data().cantidad) || 0) + (Number(v.cantidad) || 0) });
+        } catch (err) { console.error('Error devolviendo el accesorio al stock:', err); }
+      }
+    } else if (v.equipoId && v.estado !== 'cancelado') {
+      // Si la venta ya estaba cancelada, el equipo ya había vuelto a "disponible" en ese
+      // momento (ver guardar() más abajo) y pudo haberse revendido después en una venta
+      // real y vigente. Forzarlo acá de nuevo a "disponible" le robaría el equipo a esa
+      // venta — solo se libera si esta venta que se borra todavía lo tenía como vendido.
       try { await updateDoc(doc(db, ...base, 'stock', v.equipoId), { estado: 'disponible' }); } catch (err) { console.error('Error devolviendo el equipo al stock:', err); }
     }
     try { await eliminarMovimientosVenta(negocioId, v.id); } catch (err) { console.error('Error borrando movimientos de caja de la venta:', err); }
@@ -217,7 +234,10 @@ export default function Ventas() {
   const abrirEditar = (v) => {
     setEditando(v.id);
     setForm({
+      tipo: v.tipo === 'accesorio' ? 'accesorio' : 'equipo',
       equipoId: v.equipoId || '',
+      accesorioId: v.accesorioId || '',
+      cantidadAccesorio: v.cantidad ? String(v.cantidad) : '1',
       clienteId: v.clienteId || '',
       cliente: v.cliente || '',
       telefono: v.telefono || '',
@@ -242,7 +262,8 @@ export default function Ventas() {
     setModal(false);
     setEditando(null);
     setForm({
-      equipoId: '', clienteId: '', cliente: '', telefono: '', vendedor: '', origen: '',
+      tipo: 'equipo', equipoId: '', accesorioId: '', cantidadAccesorio: '1',
+      clienteId: '', cliente: '', telefono: '', vendedor: '', origen: '',
       estado: 'pendiente', notas: '', tipoCambio: '', pvVentaMonto: '', pvVentaMoneda: 'USD',
       cobros: [{ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS', cuotas: '', montoCuota: '', fechaInicio: '' }],
       partesDePago: []
@@ -251,17 +272,25 @@ export default function Ventas() {
 
   const guardar = async (e) => {
     e.preventDefault();
-    if (!editando && !form.equipoId) { alert('Elegí un equipo antes de guardar la venta.'); return; }
+    if (!editando) {
+      if (form.tipo === 'equipo' && !form.equipoId) { alert('Elegí un equipo antes de guardar la venta.'); return; }
+      if (form.tipo === 'accesorio' && (!form.accesorioId || !form.cantidadAccesorio || Number(form.cantidadAccesorio) <= 0)) {
+        alert('Elegí un accesorio y una cantidad antes de guardar la venta.');
+        return;
+      }
+    }
     const base = ['negocios', negocioId];
     const tc = Number(form.tipoCambio || tipoCambioGlobal) || 0;
     // Si el precio se cargó en pesos y no hay tipo de cambio (ni en esta venta ni en
     // Configuración), convertirMoneda() da 0 — guardar así perdería el precio sin avisar.
-    // Se frena acá en vez de dejar que se guarde con USD 0.
-    if (faltaTipoCambio(form.pvVentaMonto, form.pvVentaMoneda, 'USD', tc)) {
+    // Se frena acá en vez de dejar que se guarde con USD 0. No aplica a accesorios: esos
+    // no usan pvVentaMonto/tipoCambio, el monto cobrado sale directo de "cobros".
+    const esVentaEquipo = (editando ? ventas.find(v => v.id === editando)?.tipo !== 'accesorio' : form.tipo === 'equipo');
+    if (esVentaEquipo && faltaTipoCambio(form.pvVentaMonto, form.pvVentaMoneda, 'USD', tc)) {
       alert('Cargaste el precio de venta en pesos pero no hay tipo de cambio disponible (ni en esta venta ni en Configuración) — se perdería el valor. Cargá un tipo de cambio o ingresá el precio directamente en USD.');
       return;
     }
-    if (!editando) {
+    if (!editando && form.tipo === 'equipo') {
       const parteConProblema = form.partesDePago.find(p =>
         faltaTipoCambio(p.costoMonto, p.costoMoneda, 'USD', tc) || faltaTipoCambio(p.pvMonto, p.pvMoneda, 'USD', tc)
       );
@@ -273,7 +302,7 @@ export default function Ventas() {
     setGuardando(true);
     try {
       if (editando) {
-        await updateDoc(doc(db, ...base, 'ventas', editando), {
+        const camposComunes = {
           clienteId: form.clienteId,
           cliente: form.cliente,
           telefono: form.telefono,
@@ -282,6 +311,11 @@ export default function Ventas() {
           estado: form.estado,
           notas: form.notas,
           cobros: form.cobros,
+        };
+        // pvUsd/tipoCambio solo aplican a ventas de equipo (para el saldo restante en
+        // USD) — una venta de accesorio no los usa, el monto cobrado sale de "cobros".
+        await updateDoc(doc(db, ...base, 'ventas', editando), esVentaEquipo ? {
+          ...camposComunes,
           // Antes no se guardaban acá: si el equipo se cargó al stock sin precio de venta,
           // la venta quedaba con pvUsd vacío para siempre y el resumen de pago (cobrado/saldo)
           // no se podía mostrar nunca, ni corrigiéndolo desde este formulario. pvUsd es el
@@ -290,7 +324,7 @@ export default function Ventas() {
           pvVentaMonto: Number(form.pvVentaMonto) || 0,
           pvVentaMoneda: form.pvVentaMoneda,
           tipoCambio: form.tipoCambio || tipoCambioGlobal || '',
-        });
+        } : camposComunes);
         // Solo se regeneran los ingresos de caja si el cobro (o el nombre del cliente,
         // que forma parte del concepto) realmente cambió — si no, cada edición de una
         // venta vieja (aunque sea corregir el vendedor o una nota) borraba y recreaba
@@ -309,6 +343,29 @@ export default function Ventas() {
             cobros: form.cobros,
             fecha: ventaOriginal?.fecha,
           });
+        }
+        // Mismo criterio que con un equipo, pero sobre el stock de accesorios: cancelar
+        // devuelve la cantidad vendida, descancelar la vuelve a descontar (si sigue
+        // habiendo stock suficiente).
+        if (ventaOriginal?.tipo === 'accesorio' && ventaOriginal.accesorioId && ventaOriginal.estado !== form.estado) {
+          const accRef = doc(db, ...base, 'accesorios', ventaOriginal.accesorioId);
+          const cantidadVendida = Number(ventaOriginal.cantidad) || 0;
+          if (form.estado === 'cancelado' && ventaOriginal.estado !== 'cancelado') {
+            try {
+              const accSnap = await getDoc(accRef);
+              if (accSnap.exists()) await updateDoc(accRef, { cantidad: (Number(accSnap.data().cantidad) || 0) + cantidadVendida });
+            } catch (err) { console.error('Error devolviendo el accesorio al stock:', err); }
+          } else if (ventaOriginal.estado === 'cancelado' && form.estado !== 'cancelado') {
+            try {
+              const accSnap = await getDoc(accRef);
+              const cantidadActual = accSnap.exists() ? Number(accSnap.data().cantidad) || 0 : 0;
+              if (cantidadActual >= cantidadVendida) {
+                await updateDoc(accRef, { cantidad: cantidadActual - cantidadVendida });
+              } else {
+                alert('La venta se descanceló, pero no hay stock suficiente del accesorio (puede haberse vendido en otra operación mientras estaba cancelada). Revisá el stock en Accesorios.');
+              }
+            } catch (err) { console.error('Error volviendo a descontar el accesorio del stock:', err); }
+          }
         }
         // Cancelar una venta libera el equipo de vuelta al stock (si no, desaparece del
         // negocio para siempre sin haberse vendido realmente). Si se "descancela", vuelve
@@ -331,6 +388,42 @@ export default function Ventas() {
             } catch (err) { console.error('Error volviendo a marcar el equipo como vendido:', err); }
           }
         }
+      } else if (form.tipo === 'accesorio') {
+        const cantidadNum = parseInt(form.cantidadAccesorio) || 0;
+        const ventaData = {
+          tipo: 'accesorio',
+          accesorioId: form.accesorioId,
+          // Reusa los campos categoria/modelo/color (pensados para equipos) para que la
+          // venta de accesorio se vea bien en la lista y en el Excel sin duplicar columnas.
+          categoria: accesorioSeleccionado?.categoria || '',
+          modelo: accesorioSeleccionado?.nombre || '',
+          color: [accesorioSeleccionado?.modelo, accesorioSeleccionado?.color].filter(Boolean).join(' · '),
+          cantidad: cantidadNum,
+          clienteId: form.clienteId,
+          cliente: form.cliente,
+          telefono: form.telefono,
+          vendedor: form.vendedor,
+          origen: form.origen,
+          estado: form.estado,
+          notas: form.notas,
+          cobros: form.cobros,
+          fecha: serverTimestamp(),
+        };
+        const ventaRef = doc(collection(db, ...base, 'ventas'));
+        // Misma garantía que al vender un equipo: la transacción relee el stock del
+        // accesorio justo antes de confirmar, así dos ventas abiertas a la vez sobre la
+        // última unidad no pueden vender las dos.
+        await runTransaction(db, async (transaction) => {
+          const accRef = doc(db, ...base, 'accesorios', form.accesorioId);
+          const accSnap = await transaction.get(accRef);
+          const cantidadActual = accSnap.exists() ? Number(accSnap.data().cantidad) || 0 : 0;
+          if (cantidadActual < cantidadNum) {
+            throw new Error(`Solo quedan ${cantidadActual} unidades disponibles (puede que se haya vendido stock en otra operación mientras tenías esto abierto).`);
+          }
+          transaction.set(ventaRef, ventaData);
+          transaction.update(accRef, { cantidad: cantidadActual - cantidadNum });
+        });
+        await registrarMovimientosVenta(negocioId, ventaRef.id, ventaData);
       } else {
         const equipo = stock.find(s => s.id === form.equipoId);
         const ventaData = {
@@ -397,6 +490,10 @@ export default function Ventas() {
   if (loading) return <div style={{ color: 'var(--rv-text-dim)', padding: 40 }}>Cargando ventas...</div>;
 
   const tcForm = Number(form.tipoCambio || tipoCambioGlobal) || 0;
+  // Al editar, el tipo lo define la venta original (no se puede cambiar después de
+  // creada); al crear, lo define el toggle "Equipo / Accesorio" recién elegido.
+  const ventaEnEdicion = editando ? ventas.find(v => v.id === editando) : null;
+  const esVentaEquipoActual = ventaEnEdicion ? ventaEnEdicion.tipo !== 'accesorio' : form.tipo === 'equipo';
 
   const hoyV = new Date();
   const primerDiaMesV = new Date(hoyV.getFullYear(), hoyV.getMonth(), 1);
@@ -454,7 +551,14 @@ export default function Ventas() {
             {ventasDelMes.map(v => (
               <div key={v.id} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>{v.modelo}{v.gb ? ` ${formatCapacidad(v.gb)}` : ''} {v.color}</div>
+                  <div style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {v.modelo}{v.gb ? ` ${formatCapacidad(v.gb)}` : ''} {v.color}
+                    {v.tipo === 'accesorio' && (
+                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--rv-accent)', background: 'var(--rv-accent-soft)', borderRadius: 6, padding: '2px 7px' }}>
+                        Accesorio{v.cantidad > 1 ? ` ×${v.cantidad}` : ''}
+                      </span>
+                    )}
+                  </div>
                   <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                     <IconUser size={11} />{v.cliente || 'Sin cliente'}
                     {v.telefono ? (
@@ -503,8 +607,28 @@ export default function Ventas() {
               <button onClick={cerrarModal} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
             </div>
             <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* Equipo */}
+              {/* Tipo de venta */}
               {!editando && (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {[{ key: 'equipo', label: 'Equipo' }, { key: 'accesorio', label: 'Accesorio' }].map(t => (
+                    <button
+                      key={t.key} type="button"
+                      onClick={() => setForm(f => ({ ...f, tipo: t.key }))}
+                      style={{
+                        flex: 1, padding: '10px', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                        border: `1px solid ${form.tipo === t.key ? 'var(--rv-accent)' : 'var(--rv-border)'}`,
+                        background: form.tipo === t.key ? 'var(--rv-accent-soft)' : 'var(--rv-surface-alt)',
+                        color: form.tipo === t.key ? 'var(--rv-accent)' : 'var(--rv-text-dim)',
+                      }}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Equipo */}
+              {!editando && form.tipo === 'equipo' && (
                 <SelectorEquipoStock
                   stock={stock}
                   equipoId={form.equipoId}
@@ -514,6 +638,44 @@ export default function Ventas() {
               {equipoSeleccionado && (
                 <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--rv-accent)', display: 'flex', alignItems: 'center', gap: 7 }}>
                   <IconBox size={13} />{equipoSeleccionado.modelo}{equipoSeleccionado.gb ? ` · ${formatCapacidad(equipoSeleccionado.gb)}` : ''} · {equipoSeleccionado.color}{equipoSeleccionado.bateria ? ` · Bat ${equipoSeleccionado.bateria}%` : ''} · Costo USD {equipoSeleccionado.costoUsd}
+                </div>
+              )}
+
+              {/* Accesorio */}
+              {!editando && form.tipo === 'accesorio' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
+                  <div>
+                    <label style={labelStyle}>Accesorio *</label>
+                    <select
+                      value={form.accesorioId}
+                      onChange={e => setForm(f => ({ ...f, accesorioId: e.target.value, cantidadAccesorio: '1' }))}
+                      style={inputStyle}
+                    >
+                      <option value="">Elegir...</option>
+                      {accesorios.map(a => (
+                        <option key={a.id} value={a.id}>
+                          {a.nombre}{a.modelo || a.color ? ` · ${[a.modelo, a.color].filter(Boolean).join(' ')}` : ''} (stock: {a.cantidad})
+                        </option>
+                      ))}
+                    </select>
+                    {accesorios.length === 0 && (
+                      <div style={{ fontSize: 11, color: 'var(--rv-text-dim)', marginTop: 4 }}>No hay accesorios con stock disponible.</div>
+                    )}
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Cantidad *</label>
+                    <input
+                      type="number" min="1" max={accesorioSeleccionado?.cantidad || 1}
+                      value={form.cantidadAccesorio}
+                      onChange={e => setForm(f => ({ ...f, cantidadAccesorio: e.target.value }))}
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+              )}
+              {accesorioSeleccionado && (
+                <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--rv-accent)' }}>
+                  {accesorioSeleccionado.cantidad} unidades disponibles
                 </div>
               )}
 
@@ -549,31 +711,35 @@ export default function Ventas() {
                     <option value="cancelado">Cancelado</option>
                   </select>
                 </div>
-                <div>
-                  <label style={labelStyle}>
-                    Tipo de cambio (ARS/USD)
-                    {tipoCambioGlobal && <span style={{ color: 'var(--rv-text-dim)', fontWeight: 400, marginLeft: 6 }}>— Global: ${tipoCambioGlobal}</span>}
-                  </label>
-                  <input
-                    type="number"
-                    value={form.tipoCambio}
-                    onChange={e => setForm({ ...form, tipoCambio: e.target.value })}
-                    placeholder={tipoCambioGlobal || '1430'}
-                    style={inputStyle}
-                  />
-                </div>
-                <CampoPrecio
-                  label="Precio de venta"
-                  monto={form.pvVentaMonto} moneda={form.pvVentaMoneda}
-                  onChange={({ monto, moneda }) => setForm({ ...form, pvVentaMonto: monto, pvVentaMoneda: moneda })}
-                  tipoCambio={tcForm} placeholder="500"
-                />
-                <div style={{ gridColumn: '1/-1' }}>
-                  <div style={{ fontSize: 11, color: 'var(--rv-text-dim)' }}>
-                    Si no modificás el TC, se usa el tipo de cambio global de configuración.
-                    {' '}El precio de venta se toma del equipo elegido; si quedó vacío ahí, cargalo acá para que se calcule el saldo.
-                  </div>
-                </div>
+                {esVentaEquipoActual && (
+                  <>
+                    <div>
+                      <label style={labelStyle}>
+                        Tipo de cambio (ARS/USD)
+                        {tipoCambioGlobal && <span style={{ color: 'var(--rv-text-dim)', fontWeight: 400, marginLeft: 6 }}>— Global: ${tipoCambioGlobal}</span>}
+                      </label>
+                      <input
+                        type="number"
+                        value={form.tipoCambio}
+                        onChange={e => setForm({ ...form, tipoCambio: e.target.value })}
+                        placeholder={tipoCambioGlobal || '1430'}
+                        style={inputStyle}
+                      />
+                    </div>
+                    <CampoPrecio
+                      label="Precio de venta"
+                      monto={form.pvVentaMonto} moneda={form.pvVentaMoneda}
+                      onChange={({ monto, moneda }) => setForm({ ...form, pvVentaMonto: monto, pvVentaMoneda: moneda })}
+                      tipoCambio={tcForm} placeholder="500"
+                    />
+                    <div style={{ gridColumn: '1/-1' }}>
+                      <div style={{ fontSize: 11, color: 'var(--rv-text-dim)' }}>
+                        Si no modificás el TC, se usa el tipo de cambio global de configuración.
+                        {' '}El precio de venta se toma del equipo elegido; si quedó vacío ahí, cargalo acá para que se calcule el saldo.
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Cobros */}
@@ -693,7 +859,7 @@ export default function Ventas() {
               </div>
 
               {/* Partes de pago (equipos recibidos) */}
-              {!editando && (
+              {!editando && form.tipo === 'equipo' && (
                 <div style={{ borderTop: '1px solid var(--rv-border)', paddingTop: 16 }}>
                   <label style={{ ...labelStyle, marginBottom: 12 }}>Equipos recibidos como parte de pago</label>
                   {form.partesDePago.map((p, i) => (

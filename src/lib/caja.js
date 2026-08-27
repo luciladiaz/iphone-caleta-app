@@ -218,30 +218,6 @@ export async function eliminarMovimientosReparacion(negocioId, reparacionId, ori
   await eliminarMovimientosVenta(negocioId, reparacionId, origen);
 }
 
-// Ingreso de caja por la venta de un accesorio (Accesorios.jsx). A diferencia de una
-// venta de equipo, acá no hay un documento de "venta" propio para editar/borrar más
-// adelante y regenerar este movimiento a partir de él — por eso se guarda como
-// movimiento manual (automatico: false), así se puede corregir o borrar directo desde
-// Caja si hace falta (la baja de stock del accesorio no se deshace sola).
-export async function registrarVentaAccesorio(negocioId, accesorioId, detalle) {
-  const base = ['negocios', negocioId];
-  const monto = Number(detalle.monto) || 0;
-  if (monto <= 0) return;
-  await addDoc(collection(db, ...base, 'caja'), {
-    fecha: serverTimestamp(),
-    tipo: 'ingreso',
-    moneda: detalle.moneda === 'USD' ? 'USD' : 'ARS',
-    monto,
-    concepto: `Venta accesorio · ${detalle.nombre}${Number(detalle.cantidad) > 1 ? ` x${detalle.cantidad}` : ''}`,
-    origen: 'accesorio',
-    categoria: 'Venta accesorio',
-    ventaId: accesorioId,
-    cobroIdx: null,
-    cuotaIdx: null,
-    automatico: false,
-  });
-}
-
 // Reconstruye los movimientos de caja faltantes a partir de las ventas ya cargadas:
 // ventas registradas antes de tener Caja, cuotas ya marcadas como pagadas y pagos a
 // proveedores ya confirmados. No duplica: cada movimiento automático se identifica por

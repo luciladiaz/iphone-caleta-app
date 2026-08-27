@@ -103,6 +103,9 @@ function PendientesContacto({ negocios, onMarcar, marcando }) {
                   <span style={{ color: 'var(--rv-text-dim)', fontSize: 12.5 }}>{n.nombreDueño || 'sin dueño registrado'}</span>
                   <span style={{ background: `${DIA_COLOR[dia]}18`, color: DIA_COLOR[dia], fontSize: 11, fontWeight: 800, borderRadius: 99, padding: '2px 9px' }}>{DIA_LABEL[dia]} de trial</span>
                 </div>
+                <div style={{ color: 'var(--rv-text-dim)', fontSize: 11.5, marginBottom: 6 }}>
+                  Se registró el {fmtFecha(n.creadoEn)}{n.venceTrial ? ` · vence el ${fmtFecha(n.venceTrial)}` : ''}
+                </div>
                 <p style={{ color: 'var(--rv-text-mid)', fontSize: 12.5, lineHeight: 1.5 }}>{n.mensajeSugerido}</p>
                 {!n.telefono && <p style={{ color: 'var(--rv-text-dim)', fontSize: 11.5, marginTop: 4 }}>Sin teléfono cargado — se le manda el mail automático del día correspondiente.</p>}
               </div>

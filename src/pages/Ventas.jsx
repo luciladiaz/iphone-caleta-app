@@ -162,6 +162,22 @@ export default function Ventas() {
   }, [negocioId]);
 
   const equipoSeleccionado = stock.find(s => s.id === form.equipoId);
+
+  // Autocompleta el precio de venta con el que ya se cargó en Stock apenas se elige un
+  // equipo (no hay que volver a escribirlo). Separado del onSeleccionar del selector
+  // porque ahí "stock" quedaba capturado del cierre de ese render puntual — con la lista
+  // recién cargada (ej. la primera vez que se abre "Nueva venta" en la sesión) el clic
+  // podía llegar a disparar el handler con un array de stock desactualizado y el precio
+  // quedaba vacío. Este efecto corre con el stock y el equipoId siempre al día.
+  useEffect(() => {
+    if (editando || !form.equipoId) return;
+    const eq = stock.find(s => s.id === form.equipoId);
+    if (!eq) return;
+    const monto = eq.pvMonto ?? eq.pvUsd ?? '';
+    if (!monto) return;
+    setForm(f => (f.equipoId === eq.id ? { ...f, pvVentaMonto: monto, pvVentaMoneda: eq.pvMoneda || 'USD' } : f));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.equipoId, stock, editando]);
   const accesorioSeleccionado = accesorios.find(a => a.id === form.accesorioId);
 
   const seleccionarCliente = (c) => {
@@ -506,7 +522,17 @@ export default function Ventas() {
 
   const handleNuevaVenta = () => {
     if (limiteVentasAlcanzado) { setModalLimite(true); return; }
+    // Limpia cualquier dato que haya quedado cargado de un intento anterior (equipo,
+    // precio, cobros) — sin esto, una "Nueva venta" podía arrancar con el precio o el
+    // equipo de la venta que se estaba editando o creando justo antes.
     setEditando(null);
+    setForm({
+      tipo: 'equipo', equipoId: '', accesorioId: '', cantidadAccesorio: '1',
+      clienteId: '', cliente: '', telefono: '', vendedor: '', origen: '',
+      estado: 'pendiente', notas: '', tipoCambio: '', pvVentaMonto: '', pvVentaMoneda: 'USD',
+      cobros: [{ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS', cuotas: '', montoCuota: '', fechaInicio: '' }],
+      partesDePago: []
+    });
     setModal(true);
   };
 
@@ -632,7 +658,7 @@ export default function Ventas() {
                 <SelectorEquipoStock
                   stock={stock}
                   equipoId={form.equipoId}
-                  onSeleccionar={id => setForm({ ...form, equipoId: id, pvVentaMonto: stock.find(s => s.id === id)?.pvUsd || '', pvVentaMoneda: 'USD' })}
+                  onSeleccionar={id => setForm(f => ({ ...f, equipoId: id }))}
                 />
               )}
               {equipoSeleccionado && (

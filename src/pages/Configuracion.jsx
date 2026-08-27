@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs, addDoc, deleteDoc, doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
-import { IconGear, IconBox, IconCoin, IconArrowSwap, IconX, IconPin, IconUser, IconTruck, IconBell, IconTrendUp, IconTag, IconWallet } from '../components/Icons';
+import { IconGear, IconBox, IconCoin, IconArrowSwap, IconX, IconPin, IconUser, IconTruck, IconBell, IconTrendUp, IconTag, IconWallet, IconEdit, IconCheck } from '../components/Icons';
 import { CATEGORIAS_INGRESO as CATEGORIAS_INGRESO_DEFAULT, CATEGORIAS_EGRESO as CATEGORIAS_EGRESO_DEFAULT } from '../lib/caja';
 import { CATEGORIAS_STOCK, cargarModelosPorCategoria } from '../lib/categoriasProducto';
 
@@ -84,6 +84,8 @@ export default function Configuracion() {
   const [categoriasEgreso, setCategoriasEgreso] = useState([]);
   const [nuevoCanje, setNuevoCanje] = useState({ modelo: '', gb: '', valorUsd: '' });
   const [guardandoCanje, setGuardandoCanje] = useState(false);
+  const [editandoCanjeId, setEditandoCanjeId] = useState(null);
+  const [editCanje, setEditCanje] = useState({ modelo: '', gb: '', valorUsd: '' });
   const [tipoCambio, setTipoCambio] = useState('');
   const [tipoDolar, setTipoDolar] = useState('blue');
   const [savingTC, setSavingTC] = useState(false);
@@ -303,6 +305,21 @@ export default function Configuracion() {
     cargar();
   };
 
+  const abrirEdicionCanje = (c) => {
+    setEditandoCanjeId(c.id);
+    setEditCanje({ modelo: c.modelo, gb: c.gb || '', valorUsd: String(c.valorUsd) });
+  };
+
+  const guardarEdicionCanje = async () => {
+    if (!editCanje.modelo || !editCanje.valorUsd) return;
+    const nuevos = listaCanje
+      .map(c => c.id === editandoCanjeId ? { modelo: editCanje.modelo, gb: editCanje.gb, valorUsd: Number(editCanje.valorUsd) } : c)
+      .map(({ modelo, gb, valorUsd }) => ({ modelo, gb, valorUsd }));
+    await setDoc(doc(db, ...base, 'config', 'general'), { listaCanje: nuevos }, { merge: true });
+    setEditandoCanjeId(null);
+    cargar();
+  };
+
   const TILES = [
     { key: 'negocio', label: 'Mi Negocio', Icono: IconBox },
     { key: 'tipoCambio', label: 'Tipo de cambio', Icono: IconCoin, contador: tipoCambio ? `$${tipoCambio}` : null },
@@ -457,10 +474,30 @@ export default function Configuracion() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {listaCanje.map(c => (
-              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px' }}>
-                <span style={{ fontSize: 14 }}>{c.modelo}{c.gb ? ` ${/^\d+$/.test(String(c.gb).trim()) ? c.gb + 'GB' : c.gb}` : ''} — toma USD {c.valorUsd}</span>
-                <button onClick={() => eliminarCanje(c.id)} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', display: 'flex' }}><IconX size={15} /></button>
-              </div>
+              editandoCanjeId === c.id ? (
+                <div key={c.id} style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <select value={editCanje.modelo} onChange={e => setEditCanje({ ...editCanje, modelo: e.target.value })} style={{ ...inputStyle, flex: '2 1 160px' }}>
+                    <option value="">Modelo...</option>
+                    {categoriasProducto.map(cat => (
+                      <optgroup key={cat} label={cat}>
+                        {(modelosPorCategoria[cat] || []).map(m => <option key={m.id} value={m.nombre}>{m.nombre}</option>)}
+                      </optgroup>
+                    ))}
+                  </select>
+                  <input value={editCanje.gb} onChange={e => setEditCanje({ ...editCanje, gb: e.target.value })} placeholder="GB" style={{ ...inputStyle, flex: '1 1 70px' }} />
+                  <input type="number" value={editCanje.valorUsd} onChange={e => setEditCanje({ ...editCanje, valorUsd: e.target.value })} placeholder="Toma USD" style={{ ...inputStyle, flex: '1 1 100px' }} />
+                  <button onClick={guardarEdicionCanje} style={{ background: 'var(--rv-accent)', border: 'none', borderRadius: 6, padding: '8px 10px', color: '#fff', cursor: 'pointer', display: 'flex' }}><IconCheck size={14} /></button>
+                  <button onClick={() => setEditandoCanjeId(null)} style={{ background: 'none', border: '1px solid var(--rv-border)', borderRadius: 6, padding: '8px 10px', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={14} /></button>
+                </div>
+              ) : (
+                <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px' }}>
+                  <span style={{ fontSize: 14 }}>{c.modelo}{c.gb ? ` ${/^\d+$/.test(String(c.gb).trim()) ? c.gb + 'GB' : c.gb}` : ''} — toma USD {c.valorUsd}</span>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button onClick={() => abrirEdicionCanje(c)} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconEdit size={14} /></button>
+                    <button onClick={() => eliminarCanje(c.id)} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', display: 'flex' }}><IconX size={15} /></button>
+                  </div>
+                </div>
+              )
             ))}
             {listaCanje.length === 0 && <p style={{ color: 'var(--rv-text-dim)', fontSize: 13 }}>Todavía no cargaste ningún valor de toma</p>}
           </div>

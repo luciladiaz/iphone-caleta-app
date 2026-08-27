@@ -788,8 +788,8 @@ export default function Ventas() {
                                   {tc > 0 && cobro.monto > 0 && (
                                     <div style={{ fontSize: 11, color: 'var(--rv-accent)', marginTop: 4 }}>
                                       {cobro.moneda === 'ARS'
-                                        ? `≈ USD ${(Number(cobro.monto) / tc).toFixed(0)}`
-                                        : `≈ ARS $${(Number(cobro.monto) * tc).toLocaleString('es-AR')}`}
+                                        ? `≈ USD ${(Number(cobro.monto) / tc).toFixed(2)}`
+                                        : `≈ ARS $${(Number(cobro.monto) * tc).toLocaleString('es-AR', { maximumFractionDigits: 2 })}`}
                                     </div>
                                   )}
                                 </div>
@@ -813,8 +813,8 @@ export default function Ventas() {
                                   {tc > 0 && cobro.montoCuota > 0 && cobro.cuotas > 0 && (
                                     <div style={{ fontSize: 11, color: 'var(--rv-accent)', marginTop: 4 }}>
                                       Total {cobro.cuotas} cuotas: {cobro.moneda === 'ARS'
-                                        ? `$${(Number(cobro.cuotas) * Number(cobro.montoCuota)).toLocaleString('es-AR')} ≈ USD ${((Number(cobro.cuotas) * Number(cobro.montoCuota)) / tc).toFixed(0)}`
-                                        : `USD ${Number(cobro.cuotas) * Number(cobro.montoCuota)}`}
+                                        ? `$${(Number(cobro.cuotas) * Number(cobro.montoCuota)).toLocaleString('es-AR')} ≈ USD ${((Number(cobro.cuotas) * Number(cobro.montoCuota)) / tc).toFixed(2)}`
+                                        : `USD ${(Number(cobro.cuotas) * Number(cobro.montoCuota)).toFixed(2)}`}
                                     </div>
                                   )}
                                 </div>
@@ -838,16 +838,16 @@ export default function Ventas() {
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                               <span style={{ color: 'var(--rv-text-dim)' }}>Precio de venta</span>
-                              <span style={{ fontWeight: 700 }}>USD {pvUsd} <span style={{ color: 'var(--rv-text-dim)', fontWeight: 400 }}>· ${(pvUsd * tc).toLocaleString('es-AR')} ARS</span></span>
+                              <span style={{ fontWeight: 700 }}>USD {pvUsd.toFixed(2)} <span style={{ color: 'var(--rv-text-dim)', fontWeight: 400 }}>· ${(pvUsd * tc).toLocaleString('es-AR', { maximumFractionDigits: 2 })} ARS</span></span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                               <span style={{ color: 'var(--rv-text-dim)' }}>Cobrado</span>
-                              <span style={{ fontWeight: 700, color: 'var(--rv-text)' }}>USD {totalPagadoUsd.toFixed(0)} <span style={{ color: 'var(--rv-text-dim)', fontWeight: 400 }}>· ${(totalPagadoUsd * tc).toLocaleString('es-AR')} ARS</span></span>
+                              <span style={{ fontWeight: 700, color: 'var(--rv-text)' }}>USD {totalPagadoUsd.toFixed(2)} <span style={{ color: 'var(--rv-text-dim)', fontWeight: 400 }}>· ${(totalPagadoUsd * tc).toLocaleString('es-AR', { maximumFractionDigits: 2 })} ARS</span></span>
                             </div>
                             <div style={{ borderTop: '1px solid var(--rv-border)', paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
                               <span style={{ fontWeight: 700 }}>Saldo restante</span>
                               <span style={{ fontWeight: 800, color: saldoUsd <= 0 ? 'var(--rv-text)' : 'var(--rv-text-mid)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                {saldoUsd <= 0 ? <><IconCheckCircle size={14} style={{ color: 'var(--rv-accent)' }} />Saldado</> : `USD ${saldoUsd.toFixed(0)} · $${saldoArs.toLocaleString('es-AR')} ARS`}
+                                {saldoUsd <= 0 ? <><IconCheckCircle size={14} style={{ color: 'var(--rv-accent)' }} />Saldado</> : `USD ${saldoUsd.toFixed(2)} · $${saldoArs.toLocaleString('es-AR', { maximumFractionDigits: 2 })} ARS`}
                               </span>
                             </div>
                           </div>

@@ -299,16 +299,16 @@ export default function Reparaciones() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                         <span style={{ color: 'var(--rv-text-dim)' }}>Precio al cliente</span>
-                        <span style={{ fontWeight: 700 }}>USD {precio.toFixed(0)}</span>
+                        <span style={{ fontWeight: 700 }}>USD {precio.toFixed(2)}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                         <span style={{ color: 'var(--rv-text-dim)' }}>Cobrado</span>
-                        <span style={{ fontWeight: 700 }}>USD {pagado.toFixed(0)}</span>
+                        <span style={{ fontWeight: 700 }}>USD {pagado.toFixed(2)}</span>
                       </div>
                       <div style={{ borderTop: '1px solid var(--rv-border)', paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
                         <span style={{ fontWeight: 700 }}>Saldo restante</span>
                         <span style={{ fontWeight: 800, color: saldo <= 0 ? 'var(--rv-text)' : 'var(--rv-text-mid)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                          {saldo <= 0 ? <><IconCheckCircle size={14} style={{ color: 'var(--rv-accent)' }} />Saldado</> : `USD ${saldo.toFixed(0)}`}
+                          {saldo <= 0 ? <><IconCheckCircle size={14} style={{ color: 'var(--rv-accent)' }} />Saldado</> : `USD ${saldo.toFixed(2)}`}
                         </span>
                       </div>
                     </div>

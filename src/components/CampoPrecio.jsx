@@ -36,7 +36,10 @@ export default function CampoPrecio({ label, monto, moneda, onChange, tipoCambio
       </div>
       {equivalente > 0 && (
         <div style={{ fontSize: 11, color: 'var(--rv-accent)', marginTop: 4 }}>
-          ≈ {moneda === 'ARS' ? `USD ${equivalente.toFixed(0)}` : `$${equivalente.toLocaleString('es-AR')} ARS`}
+          {/* USD con 2 decimales: redondear a entero (toFixed(0)) hacía que cualquier
+              monto chico en ARS (típico en accesorios, o un pago parcial) mostrara
+              "≈ USD 0" — parecía que la conversión no funcionaba. */}
+          ≈ {moneda === 'ARS' ? `USD ${equivalente.toFixed(2)}` : `$${equivalente.toLocaleString('es-AR', { maximumFractionDigits: 2 })} ARS`}
         </div>
       )}
       {tc === 0 && Number(monto) > 0 && (

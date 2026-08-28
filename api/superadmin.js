@@ -202,6 +202,33 @@ async function manejarMarcarContacto(req, res) {
   }
 }
 
+// Extiende el trial de un negocio X días. Si venceTrial ya pasó, cuenta desde hoy (no
+// desde la fecha vieja, que le sumaría días "perdidos" que ya no importan); si todavía
+// no venció, se suma sobre esa fecha (no pisa el tiempo que le queda).
+async function manejarExtenderTrial(req, res) {
+  const { negocioId, dias } = req.body || {};
+  const diasNum = Number(dias);
+  if (!negocioId || !diasNum || diasNum <= 0)
+    return res.status(400).json({ error: 'Faltan o son inválidos: negocioId, dias' });
+
+  try {
+    const negRef = adminDb.doc(`negocios/${negocioId}`);
+    const negSnap = await negRef.get();
+    if (!negSnap.exists) return res.status(404).json({ error: 'Negocio no encontrado' });
+
+    const actual = negSnap.data();
+    const venceActual = aFecha(actual.venceTrial);
+    const base = venceActual && venceActual.getTime() > Date.now() ? venceActual : new Date();
+    const nuevaFecha = new Date(base.getTime() + diasNum * MS_DIA);
+
+    await negRef.update({ venceTrial: nuevaFecha });
+    return res.status(200).json({ ok: true, venceTrial: nuevaFecha.toISOString() });
+  } catch (err) {
+    console.error('[superadmin] Error extendiendo trial:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
 // Nota libre por negocio (mini-CRM: "ya hablé, dijo que necesita tiempo", etc.).
 async function manejarGuardarNota(req, res) {
   const { negocioId, nota } = req.body || {};
@@ -218,9 +245,10 @@ async function manejarGuardarNota(req, res) {
 }
 
 async function manejarPost(req, res) {
-  const { dia, nota } = req.body || {};
+  const { dia, nota, dias } = req.body || {};
   if (dia !== undefined) return manejarMarcarContacto(req, res);
   if (nota !== undefined) return manejarGuardarNota(req, res);
+  if (dias !== undefined) return manejarExtenderTrial(req, res);
   return res.status(400).json({ error: 'Body inválido' });
 }
 

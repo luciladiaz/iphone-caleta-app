@@ -135,7 +135,7 @@ const ESTADO_PAGO_COLOR = {
   exitoso: '#1a9c6b', cancelado_voluntario: '#6b7686', cancelado_sin_pago: '#d43d3d', reintentando: '#c8790a',
 };
 
-function DetalleModal({ negocio, data, loading, notaEditada, setNotaEditada, guardando, onGuardarNota, onCerrar }) {
+function DetalleModal({ negocio, data, loading, notaEditada, setNotaEditada, guardando, onGuardarNota, onCerrar, diasExtender, setDiasExtender, extendiendo, onExtenderTrial }) {
   return (
     <div onClick={onCerrar} style={{ position: 'fixed', inset: 0, background: 'rgba(15,20,32,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'var(--rv-surface)', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.25)' }}>
@@ -153,6 +153,42 @@ function DetalleModal({ negocio, data, loading, notaEditada, setNotaEditada, gua
         </div>
 
         <div style={{ padding: '18px 22px' }}>
+          {negocio.plan === 'trial' && (
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+                <IconClock size={14} style={{ color: 'var(--rv-text-dim)' }} />
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--rv-text-dim)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Extender trial</span>
+              </div>
+              <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginBottom: 10 }}>
+                Vence el {fmtFecha(negocio.venceTrial)}{negocio.diasTrialRestantes !== null && ` (${negocio.diasTrialRestantes <= 0 ? 'vencido' : `${negocio.diasTrialRestantes}d restantes`})`}
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                {[3, 7, 15].map(d => (
+                  <button
+                    key={d}
+                    onClick={() => onExtenderTrial(d)}
+                    disabled={extendiendo}
+                    style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: 'var(--rv-text)', cursor: extendiendo ? 'default' : 'pointer', opacity: extendiendo ? 0.6 : 1 }}
+                  >
+                    +{d} días
+                  </button>
+                ))}
+                <input
+                  type="number" min="1" value={diasExtender}
+                  onChange={e => setDiasExtender(e.target.value)}
+                  style={{ width: 70, background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, padding: '8px 10px', color: 'var(--rv-text)', fontSize: 12.5 }}
+                />
+                <button
+                  onClick={() => onExtenderTrial(Number(diasExtender))}
+                  disabled={extendiendo || !diasExtender || Number(diasExtender) <= 0}
+                  style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 12.5, fontWeight: 700, cursor: extendiendo ? 'default' : 'pointer', opacity: extendiendo ? 0.6 : 1 }}
+                >
+                  {extendiendo ? 'Extendiendo…' : 'Extender'}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
             <IconEdit size={14} style={{ color: 'var(--rv-text-dim)' }} />
             <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--rv-text-dim)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Nota</span>
@@ -211,6 +247,8 @@ export default function SuperAdmin() {
   const [detalleLoading, setDetalleLoading] = useState(false);
   const [notaEditada, setNotaEditada] = useState('');
   const [guardandoNota, setGuardandoNota] = useState(false);
+  const [diasExtender, setDiasExtender] = useState('7');
+  const [extendiendoTrial, setExtendiendoTrial] = useState(false);
 
   useEffect(() => {
     if (!user || user.email !== EMAIL_SUPERADMIN) { setLoading(false); return; }
@@ -287,6 +325,25 @@ export default function SuperAdmin() {
       setError(e.message);
     } finally {
       setGuardandoNota(false);
+    }
+  };
+
+  const extenderTrial = async (dias) => {
+    if (!dias || dias <= 0) return;
+    setExtendiendoTrial(true);
+    try {
+      const idToken = await user.getIdToken();
+      const res = await fetch('/api/superadmin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ negocioId: detalleId, dias }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || `Error ${res.status}`);
+      await cargar();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setExtendiendoTrial(false);
     }
   };
 
@@ -549,6 +606,10 @@ export default function SuperAdmin() {
             guardando={guardandoNota}
             onGuardarNota={guardarNota}
             onCerrar={cerrarDetalle}
+            diasExtender={diasExtender}
+            setDiasExtender={setDiasExtender}
+            extendiendo={extendiendoTrial}
+            onExtenderTrial={extenderTrial}
           />
         )}
       </div>

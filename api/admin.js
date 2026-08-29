@@ -5,6 +5,9 @@ import { FieldValue } from 'firebase-admin/firestore';
 // endpoint para no sumar funciones serverless (el plan Hobby de Vercel tope a
 // 12 por deploy). Uso: GET/POST /api/admin?secret=<CRON_SECRET>&accion=<accion>
 // Acciones: reseed-modelos | migrar-doc-publico | setup-demo-catalogo | test-mail-nurture
+// | consultar-preapproval
+
+const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
 
 const MODELOS_DEFAULT_POR_CATEGORIA = {
   iPhone: ['iPhone 12', 'iPhone 12 Pro', 'iPhone 12 Pro Max', 'iPhone 13', 'iPhone 13 Pro', 'iPhone 13 Pro Max', 'iPhone 14', 'iPhone 14 Pro', 'iPhone 14 Pro Max', 'iPhone 15', 'iPhone 15 Pro', 'iPhone 15 Pro Max', 'iPhone 16', 'iPhone 16 Plus', 'iPhone 16 Pro', 'iPhone 16 Pro Max', 'iPhone 17', 'iPhone 17 Air', 'iPhone 17 Pro', 'iPhone 17 Pro Max'],
@@ -186,12 +189,41 @@ async function accionFixRenovacionPrematura(req, res) {
   return res.status(200).json({ ok: true, corregidos: corregidos.length, detalle: corregidos });
 }
 
+// Consulta el estado real de un preapproval en Mercado Pago — pensado para armar
+// respuestas al soporte de MP (hora exacta del intento, email del pagador, status
+// actual) sin tener que volver a pegar el access token en ningún lado; ya está
+// disponible server-side vía la misma env var que usan crear-suscripcion.js y
+// webhook-mp.js.
+async function accionConsultarPreapproval(req, res) {
+  const preapprovalId = req.query?.preapprovalId || req.body?.preapprovalId;
+  if (!preapprovalId) return res.status(400).json({ error: 'Falta preapprovalId' });
+  if (!MP_ACCESS_TOKEN) return res.status(500).json({ error: 'MercadoPago no configurado en el servidor' });
+
+  const mpRes = await fetch(`https://api.mercadopago.com/preapproval/${preapprovalId}`, {
+    headers: { Authorization: `Bearer ${MP_ACCESS_TOKEN}` },
+  });
+  const data = await mpRes.json();
+  if (!mpRes.ok) return res.status(502).json({ error: `MP ${mpRes.status}: ${data.message || JSON.stringify(data)}` });
+
+  return res.status(200).json({
+    ok: true,
+    status: data.status,
+    status_detail: data.status_detail || null,
+    payer_email: data.payer_email,
+    reason: data.reason,
+    external_reference: data.external_reference,
+    date_created: data.date_created,
+    last_modified: data.last_modified,
+  });
+}
+
 const ACCIONES = {
   'reseed-modelos': accionReseedModelos,
   'migrar-doc-publico': accionMigrarDocPublico,
   'setup-demo-catalogo': accionSetupDemoCatalogo,
   'test-mail-nurture': accionTestMailNurture,
   'fix-renovacion-prematura': accionFixRenovacionPrematura,
+  'consultar-preapproval': accionConsultarPreapproval,
 };
 
 export default async function handler(req, res) {

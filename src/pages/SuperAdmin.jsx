@@ -153,6 +153,20 @@ function DetalleModal({ negocio, data, loading, notaEditada, setNotaEditada, gua
         </div>
 
         <div style={{ padding: '18px 22px' }}>
+          {(negocio.preapprovalId || negocio.telefono) && (
+            <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: '10px 14px', marginBottom: 20, fontSize: 12.5 }}>
+              {negocio.telefono && <div style={{ marginBottom: negocio.preapprovalId ? 6 : 0 }}><strong>Teléfono:</strong> {negocio.telefono}</div>}
+              {negocio.preapprovalId ? (
+                <>
+                  <div><strong>preapproval_id:</strong> <span style={{ fontFamily: 'monospace', userSelect: 'all' }}>{negocio.preapprovalId}</span></div>
+                  {negocio.ultimoCheckout && <div style={{ color: 'var(--rv-text-dim)', marginTop: 4 }}>Último intento de checkout: {fmtFecha(negocio.ultimoCheckout)}</div>}
+                </>
+              ) : (
+                <div style={{ color: 'var(--rv-text-dim)' }}>Todavía no inició ningún checkout de suscripción.</div>
+              )}
+            </div>
+          )}
+
           {negocio.plan === 'trial' && (
             <div style={{ marginBottom: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>

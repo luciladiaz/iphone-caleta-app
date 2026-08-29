@@ -26,12 +26,16 @@ function cargarSdkMercadoPago() {
 // da un área de contenido de 18 - 20(padding) - 2(borde) = negativo (0) — el
 // iframe no tenía dónde dibujarse y quedaba en blanco. Con content-box, height
 // define el alto del contenido en sí, sin que el padding se lo coma.
+const ALTURA_CAMPO_TARJETA = 24;
+
 const contenedorCampo = {
-  height: 20,
+  height: ALTURA_CAMPO_TARJETA,
   border: '1px solid var(--rv-border)',
   borderRadius: 8,
-  padding: '12px 14px',
+  padding: '10px 14px',
   background: 'var(--rv-surface-alt)',
+  display: 'flex',
+  alignItems: 'center',
 };
 
 const inputEstilo = {
@@ -78,7 +82,7 @@ export default function FormularioTarjetaMP({ email, onToken, onCancelar, proces
         // pase lo que pase con el CSS de nuestro contenedor -- el ancho lo pone MP por
         // default (280px/120px) pero el alto hay que decírselo nosotros sí o sí.
         const colorTexto = getComputedStyle(document.documentElement).getPropertyValue('--rv-text').trim() || '#111111';
-        const estiloCampoTarjeta = { style: { height: '20px', color: colorTexto, fontSize: '14px' } };
+        const estiloCampoTarjeta = { style: { height: `${ALTURA_CAMPO_TARJETA}px`, color: colorTexto, fontSize: '14px' } };
 
         cardFormRef.current = mp.cardForm({
           amount: '29900',
@@ -110,10 +114,11 @@ export default function FormularioTarjetaMP({ email, onToken, onCancelar, proces
               IDS_CAMPOS_TARJETA.forEach((id) => {
                 const contenedor = document.getElementById(id);
                 if (!contenedor) return;
+                const alturaObjetivo = `${ALTURA_CAMPO_TARJETA}px`;
                 const forzarAltura = () => {
                   const iframe = contenedor.querySelector('iframe');
-                  if (iframe && iframe.style.height !== '20px') {
-                    iframe.style.setProperty('height', '20px', 'important');
+                  if (iframe && iframe.style.height !== alturaObjetivo) {
+                    iframe.style.setProperty('height', alturaObjetivo, 'important');
                     iframe.style.setProperty('width', '100%', 'important');
                   }
                 };

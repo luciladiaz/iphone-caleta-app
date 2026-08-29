@@ -5,7 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 // endpoint para no sumar funciones serverless (el plan Hobby de Vercel tope a
 // 12 por deploy). Uso: GET/POST /api/admin?secret=<CRON_SECRET>&accion=<accion>
 // Acciones: reseed-modelos | migrar-doc-publico | setup-demo-catalogo | test-mail-nurture
-// | consultar-preapproval
+// | fix-renovacion-prematura | consultar-preapproval | estado-suscripcion-por-email
 
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
 
@@ -217,6 +217,54 @@ async function accionConsultarPreapproval(req, res) {
   });
 }
 
+// Busca el negocio por el email del dueño y trae el estado real de su suscripción en
+// Mercado Pago -- para no tener que andar cruzando el negocioId a mano entre Firestore
+// y el panel de MP cada vez que hay que revisar un pago puntual.
+async function accionEstadoSuscripcionPorEmail(req, res) {
+  const email = (req.query?.email || req.body?.email || '').trim().toLowerCase();
+  if (!email) return res.status(400).json({ error: 'Falta email' });
+
+  const usuariosSnap = await adminDb.collection('usuarios').where('email', '==', email).limit(1).get();
+  if (usuariosSnap.empty) return res.status(404).json({ error: `No se encontró ningún usuario con email ${email}` });
+  const ownerUid = usuariosSnap.docs[0].id;
+
+  const negociosSnap = await adminDb.collection('negocios').where('ownerUid', '==', ownerUid).limit(1).get();
+  if (negociosSnap.empty) return res.status(404).json({ error: `El usuario existe pero no tiene negocio asociado (ownerUid=${ownerUid})` });
+  const negDoc = negociosSnap.docs[0];
+  const n = negDoc.data();
+
+  const resultado = {
+    ok: true,
+    negocioId: negDoc.id,
+    nombre: n.nombre || null,
+    plan: n.plan || 'trial',
+    estado: n.estado || 'activo',
+    renovacionAutomatica: n.renovacionAutomatica === true,
+    preapprovalId: n.preapprovalId || null,
+    ultimoCheckout: n.ultimoCheckout?.toDate?.()?.toISOString() || null,
+    mp: null,
+  };
+
+  if (n.preapprovalId && MP_ACCESS_TOKEN) {
+    const mpRes = await fetch(`https://api.mercadopago.com/preapproval/${n.preapprovalId}`, {
+      headers: { Authorization: `Bearer ${MP_ACCESS_TOKEN}` },
+    });
+    const data = await mpRes.json();
+    resultado.mp = mpRes.ok
+      ? {
+          status: data.status,
+          status_detail: data.status_detail || null,
+          payer_email: data.payer_email,
+          date_created: data.date_created,
+          last_modified: data.last_modified,
+          next_payment_date: data.next_payment_date || null,
+        }
+      : { error: `MP ${mpRes.status}: ${data.message || JSON.stringify(data)}` };
+  }
+
+  return res.status(200).json(resultado);
+}
+
 const ACCIONES = {
   'reseed-modelos': accionReseedModelos,
   'migrar-doc-publico': accionMigrarDocPublico,
@@ -224,6 +272,7 @@ const ACCIONES = {
   'test-mail-nurture': accionTestMailNurture,
   'fix-renovacion-prematura': accionFixRenovacionPrematura,
   'consultar-preapproval': accionConsultarPreapproval,
+  'estado-suscripcion-por-email': accionEstadoSuscripcionPorEmail,
 };
 
 export default async function handler(req, res) {

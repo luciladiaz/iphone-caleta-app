@@ -6,7 +6,16 @@ const TIPOS_DOC = ['DNI', 'CI', 'LC', 'LE', 'Pasaporte'];
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
-const secureFieldBox = { padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, height: 42, boxSizing: 'border-box' };
+// Los Secure Fields son iframes que Mercado Pago mete adentro de este div. Sin un
+// tamaño explícito (acá y en el `style` que se les pasa más abajo) el iframe puede
+// renderizar más grande que la caja y quedar tapando visualmente los campos de abajo —
+// aunque se "vea" bien, los clics/foco terminan yendo al campo equivocado. overflow:
+// hidden + position: relative fuerza que quede contenido exactamente en su caja.
+const secureFieldBox = {
+  padding: '0 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)',
+  borderRadius: 8, height: 42, boxSizing: 'border-box', overflow: 'hidden', position: 'relative',
+  display: 'flex', alignItems: 'center', width: '100%',
+};
 
 // Los Secure Fields (CardNumber/SecurityCode/ExpirationDate) renderizan en iframes de
 // Mercado Pago — no heredan las variables CSS de esta página (son otro origen), así que
@@ -27,11 +36,15 @@ export default function FormularioTarjetaMP({ onToken, onCancelar, procesando, e
   const [tokenizando, setTokenizando] = useState(false);
   const [errorLocal, setErrorLocal] = useState('');
 
+  // width/height explícitos: sin esto el iframe interno puede tomar un tamaño propio
+  // que no coincide con secureFieldBox y termina desbordándose sobre los campos vecinos.
   const secureFieldStyle = {
     color: colorResuelto('--rv-text', '#16202f'),
     fontSize: '14px',
     fontFamily: 'Manrope, sans-serif',
     placeholderColor: colorResuelto('--rv-text-dim', '#6b7686'),
+    height: '20px',
+    width: '100%',
   };
 
   const ocupado = tokenizando || procesando;

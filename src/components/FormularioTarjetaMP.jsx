@@ -51,8 +51,8 @@ const inputEstilo = {
 // Pago indica específicamente para generar el token que después se usa con
 // /preapproval + card_token_id. El Brick generaba un token en contexto de pago
 // único, y MP lo rechazaba en /preapproval con "CC_VAL_433 Credit card validation
-// has failed". Acá MP maneja el montaje y el tamaño de los iframes internamente,
-// nosotros solo le damos contenedores con id fijo.
+// has failed". Los iframes de tarjeta NO se insertan dentro de nuestros divs --
+// MP los crea aparte y los superpone del tamaño que le digamos por style.
 export default function FormularioTarjetaMP({ email, onToken, onCancelar, procesando, error }) {
   const cardFormRef = useRef(null);
   const [listo, setListo] = useState(false);
@@ -67,18 +67,24 @@ export default function FormularioTarjetaMP({ email, onToken, onCancelar, proces
         if (!activo) return;
         const mp = new window.MercadoPago(PUBLIC_KEY, { locale: 'es-AR' });
 
-        // cardForm no acepta una propiedad "style" por campo (eso es de los Secure
-        // Fields sueltos, otra API) — el color de fondo/borde ya lo resuelve el CSS
-        // del contenedor de afuera; el texto que MP dibuja adentro del iframe usa su
-        // propio estilo por defecto.
+        // Confirmado leyendo el código fuente real del SDK (fields.create recibe
+        // {..., style: r.style} tal cual el style que mandamos por campo): "style" SÍ es
+        // una opción válida por campo en cardForm -- lo que se sacó antes por error.
+        // Confirmado también con devtools en producción: sin un height explícito acá, el
+        // iframe que MP inserta (fuera de nuestro div, superpuesto) queda con altura 0
+        // pase lo que pase con el CSS de nuestro contenedor -- el ancho lo pone MP por
+        // default (280px/120px) pero el alto hay que decírselo nosotros sí o sí.
+        const colorTexto = getComputedStyle(document.documentElement).getPropertyValue('--rv-text').trim() || '#111111';
+        const estiloCampoTarjeta = { style: { height: '20px', color: colorTexto, fontSize: '14px' } };
+
         cardFormRef.current = mp.cardForm({
           amount: '29900',
           iframe: true,
           form: {
             id: 'form-checkout-mp',
-            cardNumber: { id: 'form-checkout__cardNumber', placeholder: 'Número de tarjeta' },
-            expirationDate: { id: 'form-checkout__expirationDate', placeholder: 'MM/YY' },
-            securityCode: { id: 'form-checkout__securityCode', placeholder: 'CVV' },
+            cardNumber: { id: 'form-checkout__cardNumber', placeholder: 'Número de tarjeta', ...estiloCampoTarjeta },
+            expirationDate: { id: 'form-checkout__expirationDate', placeholder: 'MM/YY', ...estiloCampoTarjeta },
+            securityCode: { id: 'form-checkout__securityCode', placeholder: 'CVV', ...estiloCampoTarjeta },
             cardholderName: { id: 'form-checkout__cardholderName', placeholder: 'Nombre igual que en la tarjeta' },
             issuer: { id: 'form-checkout__issuer', placeholder: 'Banco emisor' },
             installments: { id: 'form-checkout__installments', placeholder: 'Cuotas' },

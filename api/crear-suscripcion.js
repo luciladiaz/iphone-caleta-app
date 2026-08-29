@@ -62,14 +62,15 @@ export default async function handler(req, res) {
       card_token_id: cardTokenId,
       back_url: `${APP_URL}/planes?pago=exitoso`,
       notification_url: `${APP_URL}/api/webhook-mp`,
+      // Sin start_date: MP cobra la primera cuota de inmediato al autorizar la
+      // suscripción, y desde ahí repite cada mes. Antes se mandaba un start_date 10
+      // minutos en el futuro (para esquivar el error "cannot be a past date") y eso
+      // hacía que el primer cobro real recién se programara para un mes después de
+      // alta -- entre eso y los 7 días de trial, un cliente nuevo tenía 37 días
+      // gratis antes de que se le cobrara la primera cuota real.
       auto_recurring: {
         frequency: 1,
         frequency_type: 'months',
-        // "new Date()" queda justo en el límite: para cuando la request llega a MP y la
-        // valida, ya pasaron unos segundos y la rechaza como fecha pasada (error real
-        // reproducido: "invalid value for auto_recurring.start_date, cannot be a past
-        // date"). Se le da un colchón de 10 minutos para absorber esa latencia.
-        start_date: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
         transaction_amount: planInfo.monto,
         currency_id: 'ARS',
       },

@@ -369,10 +369,12 @@ export default function SuperAdmin() {
     if (filtro !== 'todos') lista = lista.filter(n => n.salud === filtro);
     if (busqueda.trim()) {
       const q = busqueda.trim().toLowerCase();
+      const qDigitos = q.replace(/\D/g, '');
       lista = lista.filter(n =>
         n.nombre.toLowerCase().includes(q) ||
         (n.email || '').toLowerCase().includes(q) ||
-        (n.nombreDueño || '').toLowerCase().includes(q)
+        (n.nombreDueño || '').toLowerCase().includes(q) ||
+        (qDigitos.length >= 4 && (n.telefono || '').replace(/\D/g, '').includes(qDigitos))
       );
     }
     return lista;
@@ -499,7 +501,7 @@ export default function SuperAdmin() {
                 <input
                   value={busqueda}
                   onChange={e => setBusqueda(e.target.value)}
-                  placeholder="Buscar por negocio, dueño o email…"
+                  placeholder="Buscar por negocio, dueño, email o teléfono…"
                   style={{ width: '100%', background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '10px 14px 10px 36px', color: 'var(--rv-text)', fontSize: 13 }}
                 />
               </div>

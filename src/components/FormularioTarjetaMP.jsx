@@ -20,19 +20,21 @@ function cargarSdkMercadoPago() {
   });
 }
 
-// IMPORTANTE: sin box-sizing:border-box (default = content-box). El iframe que MP
-// mete adentro se dimensiona contra el área de contenido de este div. La versión
-// anterior tenía boxSizing:'border-box' + height:18 + padding:'10px 12px', lo que
-// da un área de contenido de 18 - 20(padding) - 2(borde) = negativo (0) — el
-// iframe no tenía dónde dibujarse y quedaba en blanco. Con content-box, height
-// define el alto del contenido en sí, sin que el padding se lo coma.
-const ALTURA_CAMPO_TARJETA = 24;
+// El alto TOTAL de la caja (ALTURA_CAJA) es el mismo número para los 3 campos de
+// tarjeta y para los inputs normales, con boxSizing:border-box en los dos casos --
+// así no dependen de que padding + alto de contenido "sumen" el mismo total por
+// coincidencia (eso fue lo que venía fallando: se veían de tamaños distintos). El
+// alto del iframe de tarjeta en sí (ALTURA_IFRAME, más chico que la caja) se centra
+// adentro con flex; se fuerza por JS más abajo porque MP lo arranca en 0.
+const ALTURA_CAJA = 44;
+const ALTURA_IFRAME = 22;
 
 const contenedorCampo = {
-  height: ALTURA_CAMPO_TARJETA,
+  height: ALTURA_CAJA,
+  boxSizing: 'border-box',
   border: '1px solid var(--rv-border)',
   borderRadius: 8,
-  padding: '10px 14px',
+  padding: '0 14px',
   background: 'var(--rv-surface-alt)',
   display: 'flex',
   alignItems: 'center',
@@ -40,13 +42,14 @@ const contenedorCampo = {
 
 const inputEstilo = {
   width: '100%',
-  padding: '12px 14px',
+  height: ALTURA_CAJA,
+  boxSizing: 'border-box',
+  padding: '0 14px',
   border: '1px solid var(--rv-border)',
   borderRadius: 8,
   background: 'var(--rv-surface-alt)',
   color: 'var(--rv-text)',
   fontSize: 14,
-  boxSizing: 'border-box',
 };
 
 // mp.cardForm(...) — no el Card Payment Brick (pensado para pagos únicos vía
@@ -82,7 +85,7 @@ export default function FormularioTarjetaMP({ email, onToken, onCancelar, proces
         // pase lo que pase con el CSS de nuestro contenedor -- el ancho lo pone MP por
         // default (280px/120px) pero el alto hay que decírselo nosotros sí o sí.
         const colorTexto = getComputedStyle(document.documentElement).getPropertyValue('--rv-text').trim() || '#111111';
-        const estiloCampoTarjeta = { style: { height: `${ALTURA_CAMPO_TARJETA}px`, color: colorTexto, fontSize: '14px' } };
+        const estiloCampoTarjeta = { style: { height: `${ALTURA_IFRAME}px`, color: colorTexto, fontSize: '14px' } };
 
         cardFormRef.current = mp.cardForm({
           amount: '29900',
@@ -114,7 +117,7 @@ export default function FormularioTarjetaMP({ email, onToken, onCancelar, proces
               IDS_CAMPOS_TARJETA.forEach((id) => {
                 const contenedor = document.getElementById(id);
                 if (!contenedor) return;
-                const alturaObjetivo = `${ALTURA_CAMPO_TARJETA}px`;
+                const alturaObjetivo = `${ALTURA_IFRAME}px`;
                 const forzarAltura = () => {
                   const iframe = contenedor.querySelector('iframe');
                   if (iframe && iframe.style.height !== alturaObjetivo) {

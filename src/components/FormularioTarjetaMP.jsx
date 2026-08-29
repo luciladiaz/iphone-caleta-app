@@ -20,10 +20,16 @@ function cargarSdkMercadoPago() {
   });
 }
 
+// Geometría igual a la del ejemplo oficial de Mercado Pago para cardForm (height:18px,
+// padding:1px 2px) — ya nos pasó dos veces que inventar un tamaño propio para estos
+// contenedores rompe cómo MP calcula/monta el iframe adentro. Solo se cambia color.
 const contenedorCampo = {
+  height: 18,
+  boxSizing: 'border-box',
+  display: 'block',
   border: '1px solid var(--rv-border)',
-  borderRadius: 8,
-  padding: '12px 14px',
+  borderRadius: 4,
+  padding: '10px 12px',
   background: 'var(--rv-surface-alt)',
 };
 
@@ -59,17 +65,19 @@ export default function FormularioTarjetaMP({ email, onToken, onCancelar, proces
       .then(() => {
         if (!activo) return;
         const mp = new window.MercadoPago(PUBLIC_KEY, { locale: 'es-AR' });
-        const colorTexto = getComputedStyle(document.documentElement).getPropertyValue('--rv-text').trim() || '#111111';
-        const estiloIframe = { style: { color: colorTexto, fontSize: '14px' } };
 
+        // cardForm no acepta una propiedad "style" por campo (eso es de los Secure
+        // Fields sueltos, otra API) — el color de fondo/borde ya lo resuelve el CSS
+        // del contenedor de afuera; el texto que MP dibuja adentro del iframe usa su
+        // propio estilo por defecto.
         cardFormRef.current = mp.cardForm({
           amount: '29900',
           iframe: true,
           form: {
             id: 'form-checkout-mp',
-            cardNumber: { id: 'form-checkout__cardNumber', placeholder: 'Número de tarjeta', ...estiloIframe },
-            expirationDate: { id: 'form-checkout__expirationDate', placeholder: 'MM/YY', ...estiloIframe },
-            securityCode: { id: 'form-checkout__securityCode', placeholder: 'CVV', ...estiloIframe },
+            cardNumber: { id: 'form-checkout__cardNumber', placeholder: 'Número de tarjeta' },
+            expirationDate: { id: 'form-checkout__expirationDate', placeholder: 'MM/YY' },
+            securityCode: { id: 'form-checkout__securityCode', placeholder: 'CVV' },
             cardholderName: { id: 'form-checkout__cardholderName', placeholder: 'Nombre igual que en la tarjeta' },
             issuer: { id: 'form-checkout__issuer', placeholder: 'Banco emisor' },
             installments: { id: 'form-checkout__installments', placeholder: 'Cuotas' },
@@ -117,10 +125,10 @@ export default function FormularioTarjetaMP({ email, onToken, onCancelar, proces
       )}
 
       <form id="form-checkout-mp" style={{ display: listo ? 'flex' : 'none', flexDirection: 'column', gap: 10 }}>
-        <div id="form-checkout__cardNumber" style={{ ...contenedorCampo, height: 20 }} />
+        <div id="form-checkout__cardNumber" style={contenedorCampo} />
         <div style={{ display: 'flex', gap: 10 }}>
-          <div id="form-checkout__expirationDate" style={{ ...contenedorCampo, height: 20, flex: 1 }} />
-          <div id="form-checkout__securityCode" style={{ ...contenedorCampo, height: 20, flex: 1 }} />
+          <div id="form-checkout__expirationDate" style={{ ...contenedorCampo, flex: 1 }} />
+          <div id="form-checkout__securityCode" style={{ ...contenedorCampo, flex: 1 }} />
         </div>
         <input id="form-checkout__cardholderName" type="text" placeholder="Nombre igual que en la tarjeta" style={inputEstilo} />
         <div style={{ display: 'flex', gap: 10 }}>

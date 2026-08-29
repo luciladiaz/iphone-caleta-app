@@ -6,7 +6,10 @@ import { FieldValue } from 'firebase-admin/firestore';
 // prueba de MP sin arriesgar la tarjeta real. Volver a MP_ACCESS_TOKEN antes de que
 // pague un cliente real -- si MP_ACCESS_TOKEN_TEST no está seteado en Vercel, esto
 // queda sin token y el endpoint devuelve 500 (no hace fallback silencioso a producción).
-const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN_TEST;
+// .trim() defiende contra un espacio o salto de línea de más al pegar el valor en
+// Vercel -- eso rompe el header Authorization con un 401 "Unauthorized access to
+// resource" sin ninguna pista de que el problema es solo whitespace.
+const MP_ACCESS_TOKEN = (process.env.MP_ACCESS_TOKEN_TEST || '').trim() || undefined;
 
 // URL base siempre apunta al dominio real de producción
 const APP_URL = 'https://reventapp.com.ar';

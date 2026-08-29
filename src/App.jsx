@@ -86,7 +86,9 @@ function AppRoutes() {
       <Route path="/planes" element={
         user
           ? (comprandoSinLayout ? <Planes /> : <Layout><Planes /></Layout>)
-          : <Navigate to="/login?redirect=/planes" />
+          // Preserva query params (ej: ?comprar=1 de un link directo de pago) a través del
+          // login -- antes se perdían y el modal de pago no se abría solo después de loguearse.
+          : <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`} />
       } />
 
       {/* /studio — privado, acceso solo al owner. El componente hace la verificación de email. */}

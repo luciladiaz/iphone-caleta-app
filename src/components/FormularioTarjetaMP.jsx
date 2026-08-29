@@ -125,11 +125,15 @@ export default function FormularioTarjetaMP({ email, onToken, onCancelar, proces
         </div>
       )}
 
-      {/* visibility (no display:none): mp.cardForm mide el tamaño del contenedor en el
-          momento del montaje para dimensionar los iframes de tarjeta. Con display:none
-          esa medición da 0 y los campos quedan rotos para siempre, aunque después se
-          muestre — ya nos pasó. visibility:hidden reserva el layout pero permite medir bien. */}
-      <form id="form-checkout-mp" style={{ display: 'flex', flexDirection: 'column', gap: 10, visibility: listo ? 'visible' : 'hidden' }}>
+      {/* NUNCA ocultar este form mientras carga -- ni con display:none ni con
+          visibility:hidden. Confirmado con las devtools en producción: mp.cardForm no
+          inserta los iframes de tarjeta adentro de nuestros divs -- los crea aparte
+          (en secure-fields.mercadopago.com) y los superpone del ancho/alto que mide de
+          nuestros contenedores en el momento del montaje. Con visibility:hidden el ancho
+          lo calculaba bien (280px/120px/120px) pero el alto daba 0 -- los 3 campos de
+          tarjeta quedaban con altura cero, invisibles e inutilizables, aunque después
+          "listo" pasara a true. El form tiene que estar visible desde el primer render. */}
+      <form id="form-checkout-mp" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div id="form-checkout__cardNumber" style={contenedorCampo} />
         <div style={{ display: 'flex', gap: 10 }}>
           <div id="form-checkout__expirationDate" style={{ ...contenedorCampo, flex: 1 }} />

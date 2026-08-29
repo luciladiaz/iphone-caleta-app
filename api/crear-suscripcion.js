@@ -62,7 +62,11 @@ export default async function handler(req, res) {
       auto_recurring: {
         frequency: 1,
         frequency_type: 'months',
-        start_date: new Date().toISOString(),
+        // "new Date()" queda justo en el límite: para cuando la request llega a MP y la
+        // valida, ya pasaron unos segundos y la rechaza como fecha pasada (error real
+        // reproducido: "invalid value for auto_recurring.start_date, cannot be a past
+        // date"). Se le da un colchón de 10 minutos para absorber esa latencia.
+        start_date: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
         transaction_amount: planInfo.monto,
         currency_id: 'ARS',
       },

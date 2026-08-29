@@ -260,7 +260,34 @@ async function accionEstadoSuscripcionPorEmail(req, res) {
           next_payment_date: data.next_payment_date || null,
         }
       : { error: `MP ${mpRes.status}: ${data.message || JSON.stringify(data)}` };
+
+    // El preapproval en sí no dice si el cobro real ya se efectivizó -- eso es un
+    // /v1/payments separado, asociado por external_reference. Sin esto solo se ve
+    // "authorized" (la suscripción existe) pero no si ya se generó/aprobó el cobro.
+    if (mpRes.ok && data.external_reference) {
+      const pagosRes = await fetch(
+        `https://api.mercadopago.com/v1/payments/search?external_reference=${encodeURIComponent(data.external_reference)}`,
+        { headers: { Authorization: `Bearer ${MP_ACCESS_TOKEN}` } }
+      );
+      const pagosData = await pagosRes.json();
+      resultado.pagosMp = pagosRes.ok
+        ? (pagosData.results || []).map((p) => ({
+            id: p.id,
+            status: p.status,
+            status_detail: p.status_detail,
+            transaction_amount: p.transaction_amount,
+            date_approved: p.date_approved,
+            date_created: p.date_created,
+          }))
+        : { error: `MP ${pagosRes.status}: ${pagosData.message || JSON.stringify(pagosData)}` };
+    }
   }
+
+  const pagosSnap = await adminDb.collection(`negocios/${negDoc.id}/pagos`).orderBy('fecha', 'desc').limit(5).get();
+  resultado.pagosFirestore = pagosSnap.docs.map((d) => {
+    const p = d.data();
+    return { tipo: p.tipo, estado: p.estado, fecha: p.fecha?.toDate?.()?.toISOString() || null };
+  });
 
   return res.status(200).json(resultado);
 }

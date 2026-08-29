@@ -402,6 +402,7 @@ export default function Planes() {
             </div>
             <div style={{ marginTop: 20 }}>
               <FormularioTarjetaMP
+                email={user?.email || perfil?.email}
                 onToken={confirmarConToken}
                 onCancelar={() => setModalTarjeta(false)}
                 procesando={creandoSuscripcion}

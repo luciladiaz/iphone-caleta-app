@@ -96,6 +96,21 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       console.error('MP preapproval error:', JSON.stringify(data));
+
+      // CC_VAL_433 es el código genérico que devuelve el motor antifraude de MP
+      // (equivalente a cc_rejected_high_risk) sin más detalle en el body -- confirmado
+      // en este mismo caso: no trae data.cause. No es un dato mal formado de nuestro
+      // lado (el body ya se verificó contra la documentación oficial campo por campo);
+      // MP lo dispara típicamente por reintentos repetidos con el mismo comprador/
+      // tarjeta en poco tiempo. Se le da un mensaje accionable en vez del genérico de MP.
+      if (data.message === 'CC_VAL_433' || data.error === 'CC_VAL_433') {
+        return res.status(502).json({
+          error: 'Mercado Pago rechazó la validación de la tarjeta por seguridad (riesgo alto). ' +
+            'Esto suele pasar tras varios intentos seguidos con la misma tarjeta. Esperá al menos ' +
+            'un rato antes de reintentar, o probá con otra tarjeta. Si persiste, contactanos por WhatsApp.',
+        });
+      }
+
       // data.cause trae el detalle real (código + descripción específica) que MP no
       // pone en el mensaje principal -- sin esto veníamos a ciegas frente a errores
       // genéricos como "Credit card validation has failed".

@@ -1,7 +1,12 @@
 import { adminDb, usuarioDeRequest } from './_firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
-const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+// MODO PRUEBA TEMPORAL -- usa el Access Token de TEST (env var MP_ACCESS_TOKEN_TEST)
+// en vez del de producción, para probar la creación de la suscripción con tarjetas de
+// prueba de MP sin arriesgar la tarjeta real. Volver a MP_ACCESS_TOKEN antes de que
+// pague un cliente real -- si MP_ACCESS_TOKEN_TEST no está seteado en Vercel, esto
+// queda sin token y el endpoint devuelve 500 (no hace fallback silencioso a producción).
+const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN_TEST;
 
 // URL base siempre apunta al dominio real de producción
 const APP_URL = 'https://reventapp.com.ar';

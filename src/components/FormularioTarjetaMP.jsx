@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 
-const PUBLIC_KEY = 'APP_USR-af288f66-58d1-4a4b-982b-cdaae5415a54';
+// MODO PRUEBA TEMPORAL -- Public Key de TEST para probar con tarjetas de prueba de MP
+// sin arriesgar la tarjeta real ni la cuenta de producción. Volver a la de producción
+// (APP_USR-af288f66-58d1-4a4b-982b-cdaae5415a54) antes de que pague un cliente real.
+const PUBLIC_KEY = 'TEST-dc9e687d-26be-4ac0-bc15-831cd3774599';
 const SDK_URL = 'https://sdk.mercadopago.com/js/v2';
 
 function cargarSdkMercadoPago() {

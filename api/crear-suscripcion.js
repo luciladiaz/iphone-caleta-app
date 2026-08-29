@@ -96,7 +96,13 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       console.error('MP preapproval error:', JSON.stringify(data));
-      return res.status(502).json({ error: `MP ${response.status}: ${data.message || data.error || JSON.stringify(data)}` });
+      // data.cause trae el detalle real (código + descripción específica) que MP no
+      // pone en el mensaje principal -- sin esto veníamos a ciegas frente a errores
+      // genéricos como "Credit card validation has failed".
+      const causa = Array.isArray(data.cause) && data.cause.length
+        ? ' | causa: ' + data.cause.map((c) => `${c.code}:${c.description}`).join(', ')
+        : '';
+      return res.status(502).json({ error: `MP ${response.status}: ${data.message || data.error || JSON.stringify(data)}${causa}` });
     }
 
     // Guardar el preapprovalId en Firestore para poder verificar el pago después. El

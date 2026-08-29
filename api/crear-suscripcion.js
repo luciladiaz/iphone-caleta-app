@@ -89,11 +89,6 @@ export default async function handler(req, res) {
       headers: {
         'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
         'Content-Type': 'application/json',
-        // MODO PRUEBA TEMPORAL: el ejemplo oficial de MP para crear una suscripción
-        // autorizada (status:"authorized" + card_token_id, sin plan asociado) manda
-        // este header con credenciales TEST -- sin él, la validación de la tarjeta en
-        // sandbox puede fallar. Sacar cuando se vuelva a producción.
-        'X-scope': 'stage',
         // Evita que un reintento de red (ej: el cliente pierde conexión justo después de
         // que MP ya procesó la creación) termine creando dos suscripciones duplicadas
         // para el mismo intento.

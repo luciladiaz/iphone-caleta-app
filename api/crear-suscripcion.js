@@ -48,7 +48,13 @@ export default async function handler(req, res) {
       // contra la API real y se aisló a este campo. Con texto simple (sin ese carácter)
       // la misma llamada, con el mismo token y los mismos datos, sí funciona.
       reason: `ReventApp - ${planInfo.nombre}`,
-      external_reference: `${negocioId}___${plan}`,
+      // Antes era fijo (negocioId + plan), así que un reintento del mismo cliente sobre el
+      // mismo plan mandaba SIEMPRE el mismo external_reference a MP — soporte de MP señaló
+      // que eso puede leerse como intentos "idénticos" y activar el motor antifraude
+      // (cc_rejected_high_risk). Se agrega un timestamp para que cada intento de alta sea
+      // único. parsearRef() en webhook-mp.js solo lee los primeros dos segmentos (split por
+      // '___', destructuring [negocioId, plan]), así que el tercero no le afecta.
+      external_reference: `${negocioId}___${plan}___${Date.now()}`,
       payer_email: email,
       back_url: `${APP_URL}/planes?pago=exitoso`,
       notification_url: `${APP_URL}/api/webhook-mp`,

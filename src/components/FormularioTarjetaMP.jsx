@@ -124,7 +124,11 @@ export default function FormularioTarjetaMP({ email, onToken, onCancelar, proces
         </div>
       )}
 
-      <form id="form-checkout-mp" style={{ display: listo ? 'flex' : 'none', flexDirection: 'column', gap: 10 }}>
+      {/* visibility (no display:none): mp.cardForm mide el tamaño del contenedor en el
+          momento del montaje para dimensionar los iframes de tarjeta. Con display:none
+          esa medición da 0 y los campos quedan rotos para siempre, aunque después se
+          muestre — ya nos pasó. visibility:hidden reserva el layout pero permite medir bien. */}
+      <form id="form-checkout-mp" style={{ display: 'flex', flexDirection: 'column', gap: 10, visibility: listo ? 'visible' : 'hidden' }}>
         <div id="form-checkout__cardNumber" style={contenedorCampo} />
         <div style={{ display: 'flex', gap: 10 }}>
           <div id="form-checkout__expirationDate" style={{ ...contenedorCampo, flex: 1 }} />

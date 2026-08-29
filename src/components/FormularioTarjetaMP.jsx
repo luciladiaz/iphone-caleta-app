@@ -53,8 +53,11 @@ const inputEstilo = {
 // único, y MP lo rechazaba en /preapproval con "CC_VAL_433 Credit card validation
 // has failed". Los iframes de tarjeta NO se insertan dentro de nuestros divs --
 // MP los crea aparte y los superpone del tamaño que le digamos por style.
+const IDS_CAMPOS_TARJETA = ['form-checkout__cardNumber', 'form-checkout__expirationDate', 'form-checkout__securityCode'];
+
 export default function FormularioTarjetaMP({ email, onToken, onCancelar, procesando, error }) {
   const cardFormRef = useRef(null);
+  const observersRef = useRef([]);
   const [listo, setListo] = useState(false);
   const [errorCarga, setErrorCarga] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -97,6 +100,28 @@ export default function FormularioTarjetaMP({ email, onToken, onCancelar, proces
               if (!activo) return;
               if (err) { setErrorCarga('No pudimos cargar el formulario de pago. Recargá la página.'); return; }
               setListo(true);
+
+              // Confirmado con devtools en producción: MP crea los 3 iframes de tarjeta
+              // (secure-fields.mercadopago.com, carga en 200 OK, sin errores) pero arrancan
+              // en height:0 -- la animación que deberían disparar para crecer a su altura
+              // real ("transition: height 2s ease" en su propio código) nunca se completa.
+              // En vez de depender de esa señal interna de MP, se fuerza la altura acá,
+              // y con un MutationObserver por si MP la vuelve a pisar después.
+              IDS_CAMPOS_TARJETA.forEach((id) => {
+                const contenedor = document.getElementById(id);
+                if (!contenedor) return;
+                const forzarAltura = () => {
+                  const iframe = contenedor.querySelector('iframe');
+                  if (iframe && iframe.style.height !== '20px') {
+                    iframe.style.setProperty('height', '20px', 'important');
+                    iframe.style.setProperty('width', '100%', 'important');
+                  }
+                };
+                forzarAltura();
+                const observer = new MutationObserver(forzarAltura);
+                observer.observe(contenedor, { attributes: true, attributeFilter: ['style'], subtree: true, childList: true });
+                observersRef.current.push(observer);
+              });
             },
             onSubmit: (event) => {
               event.preventDefault();
@@ -112,6 +137,8 @@ export default function FormularioTarjetaMP({ email, onToken, onCancelar, proces
 
     return () => {
       activo = false;
+      observersRef.current.forEach((o) => o.disconnect());
+      observersRef.current = [];
       try { cardFormRef.current?.unmount?.(); } catch { /* noop */ }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -20,16 +20,17 @@ function cargarSdkMercadoPago() {
   });
 }
 
-// Geometría igual a la del ejemplo oficial de Mercado Pago para cardForm (height:18px,
-// padding:1px 2px) — ya nos pasó dos veces que inventar un tamaño propio para estos
-// contenedores rompe cómo MP calcula/monta el iframe adentro. Solo se cambia color.
+// IMPORTANTE: sin box-sizing:border-box (default = content-box). El iframe que MP
+// mete adentro se dimensiona contra el área de contenido de este div. La versión
+// anterior tenía boxSizing:'border-box' + height:18 + padding:'10px 12px', lo que
+// da un área de contenido de 18 - 20(padding) - 2(borde) = negativo (0) — el
+// iframe no tenía dónde dibujarse y quedaba en blanco. Con content-box, height
+// define el alto del contenido en sí, sin que el padding se lo coma.
 const contenedorCampo = {
-  height: 18,
-  boxSizing: 'border-box',
-  display: 'block',
+  height: 20,
   border: '1px solid var(--rv-border)',
-  borderRadius: 4,
-  padding: '10px 12px',
+  borderRadius: 8,
+  padding: '12px 14px',
   background: 'var(--rv-surface-alt)',
 };
 

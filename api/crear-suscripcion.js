@@ -19,12 +19,12 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
 
-  const { plan, negocioId, email } = req.body || {};
+  const { plan, negocioId, email, cardTokenId } = req.body || {};
 
-  console.log('crear-suscripcion recibido:', { plan, negocioId, email: email || 'VACIO' });
+  console.log('crear-suscripcion recibido:', { plan, negocioId, email: email || 'VACIO', cardTokenId: cardTokenId ? 'OK' : 'FALTA' });
 
-  if (!plan || !negocioId || !email)
-    return res.status(400).json({ error: 'Faltan datos: plan, negocioId, email' });
+  if (!plan || !negocioId || !email || !cardTokenId)
+    return res.status(400).json({ error: 'Faltan datos: plan, negocioId, email, cardTokenId' });
 
   // El negocioId es visible en cualquier link de catálogo público, así que no alcanza
   // con que el cliente lo mande — hay que confirmar que quien llama es realmente dueño
@@ -56,23 +56,34 @@ export default async function handler(req, res) {
       // '___', destructuring [negocioId, plan]), así que el tercero no le afecta.
       external_reference: `${negocioId}___${plan}___${Date.now()}`,
       payer_email: email,
+      card_token_id: cardTokenId,
       back_url: `${APP_URL}/planes?pago=exitoso`,
       notification_url: `${APP_URL}/api/webhook-mp`,
       auto_recurring: {
         frequency: 1,
         frequency_type: 'months',
+        start_date: new Date().toISOString(),
         transaction_amount: planInfo.monto,
         currency_id: 'ARS',
       },
-      status: 'pending',
+      // Antes quedaba "pending" y el cliente terminaba de cargar la tarjeta en el
+      // checkout hosteado de Mercado Pago — ahí es donde venía fallando con "el negocio
+      // no acepta el medio de pago" sin llegar nunca a generar un pago. Con la tarjeta
+      // ya tokenizada acá (card_token_id) se puede crear directamente autorizada: MP
+      // valida la tarjeta en el momento (hace un cobro mínimo de prueba y lo devuelve).
+      status: 'authorized',
     };
-    console.log('Enviando a MP:', JSON.stringify(mpBody));
+    console.log('Enviando a MP:', JSON.stringify({ ...mpBody, card_token_id: 'OK' }));
 
     const response = await fetch('https://api.mercadopago.com/preapproval', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
         'Content-Type': 'application/json',
+        // Evita que un reintento de red (ej: el cliente pierde conexión justo después de
+        // que MP ya procesó la creación) termine creando dos suscripciones duplicadas
+        // para el mismo intento.
+        'X-Idempotency-Key': cardTokenId,
       },
       body: JSON.stringify(mpBody),
     });
@@ -84,12 +95,9 @@ export default async function handler(req, res) {
       return res.status(502).json({ error: `MP ${response.status}: ${data.message || data.error || JSON.stringify(data)}` });
     }
 
-    // Guardar el preapprovalId en Firestore para poder verificar el pago después.
-    // OJO: acá el preapproval recién se creó en MP con status "pending" — todavía no
-    // se cobró nada. renovacionAutomatica=true solo lo pone activarPlan() en
-    // webhook-mp.js, cuando MP confirma que el pago realmente se aprobó. Ponerlo acá
-    // (como estaba antes) hacía que un negocio que ni siquiera terminó de pagar
-    // apareciera con "renovación automática activa" sin que se le haya cobrado nada.
+    // Guardar el preapprovalId en Firestore para poder verificar el pago después. El
+    // webhook (webhook-mp.js) es quien activa el plan de verdad cuando MP confirma la
+    // autorización — esto es solo para poder rastrear el intento.
     try {
       await adminDb.doc(`negocios/${negocioId}`).update({
         preapprovalId: data.id,
@@ -100,7 +108,7 @@ export default async function handler(req, res) {
       console.warn('No se pudo guardar preapprovalId:', e.message);
     }
 
-    return res.json({ init_point: data.init_point });
+    return res.json({ ok: true, status: data.status, preapprovalId: data.id });
   } catch (err) {
     console.error('crear-suscripcion error:', err);
     return res.status(500).json({ error: 'Error interno del servidor' });

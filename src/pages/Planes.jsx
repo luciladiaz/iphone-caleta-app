@@ -2,7 +2,8 @@
 import { useAuth } from '../context/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
-import { IconCheckCircle, IconClock, IconXCircle, IconWarning } from '../components/Icons';
+import { IconCheckCircle, IconClock, IconXCircle, IconWarning, IconX } from '../components/Icons';
+import FormularioTarjetaMP from '../components/FormularioTarjetaMP';
 
 const WHATSAPP_SOPORTE = '5493364400111';
 
@@ -48,7 +49,10 @@ export default function Planes() {
   const [modalCancelar, setModalCancelar] = useState(false);
   const [cancelando, setCancelando] = useState(false);
   const [cancelError, setCancelError] = useState('');
-  const [comprarError, setComprarError] = useState(false);
+  const [modalTarjeta, setModalTarjeta] = useState(false);
+  const [creandoSuscripcion, setCreandoSuscripcion] = useState(false);
+  const [errorTarjeta, setErrorTarjeta] = useState('');
+  const [suscripcionRecienCreada, setSuscripcionRecienCreada] = useState(false);
   const proRef = useRef(null);
   const verificacionRef = useRef(null);
   const comprarDisparadoRef = useRef(false);
@@ -72,19 +76,21 @@ export default function Planes() {
   // trial), PrivateRoute lo va a rebotar a /login sin explicación — mejor no
   // navegar y mostrar el aviso de "verificá tu email" en el banner de abajo.
   useEffect(() => {
-    if (pago === 'exitoso' && planActivo && plan && plan !== 'trial') {
+    if (suscripcionRecienCreada && planActivo && plan && plan !== 'trial') {
       if (typeof fbq !== 'undefined') fbq('track', 'Purchase', { value: PRECIO_PLAN[plan] ?? 0, currency: 'ARS' });
       clearInterval(verificacionRef.current);
       if (!user?.emailVerified) return;
       const t = setTimeout(() => navigate('/'), 2500);
       return () => clearTimeout(t);
     }
-  }, [pago, planActivo, plan, navigate, user]);
+  }, [suscripcionRecienCreada, planActivo, plan, navigate, user]);
 
-  // Verificación activa: consulta el estado de la suscripción directamente con MP
-  // como respaldo si el webhook de MercadoPago no llega a tiempo
+  // Verificación activa: consulta el estado de la suscripción directamente con MP como
+  // respaldo si el webhook de Mercado Pago no llega a tiempo. Antes se disparaba con
+  // ?pago=exitoso (venía del redirect al checkout hosteado); ahora la suscripción se crea
+  // ya autorizada en el momento (ver confirmarConToken), así que arranca apenas eso pasa.
   useEffect(() => {
-    if (pago !== 'exitoso' || !negocioId || planActivo) return;
+    if (!suscripcionRecienCreada || !negocioId || planActivo) return;
 
     let intentos = 0;
     const MAX_INTENTOS = 10;
@@ -125,36 +131,47 @@ export default function Planes() {
       clearInterval(verificacionRef.current);
       setVerificando(false);
     };
-  }, [pago, negocioId]);
+  }, [suscripcionRecienCreada, negocioId]);
 
-  const handleContratar = async (planId, { silent = false } = {}) => {
-if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO_PLAN[planId] ?? 0, currency: 'ARS' });
+  const handleProMax = () => {
+    if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO_PLAN.promax ?? 0, currency: 'ARS' });
+    setErrorTarjeta('');
+    setModalTarjeta(true);
+  };
+
+  // El formulario de tarjeta ya tokenizó la tarjeta (ver FormularioTarjetaMP) — acá se
+  // manda el token al backend, que crea la suscripción directamente autorizada.
+  const confirmarConToken = async (cardTokenId) => {
+    setCreandoSuscripcion(true);
+    setErrorTarjeta('');
     try {
       const idToken = await user.getIdToken();
       const res = await fetch('/api/crear-suscripcion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-        body: JSON.stringify({ plan: planId, negocioId, email: user?.email || perfil?.email }),
+        body: JSON.stringify({ plan: 'promax', negocioId, email: user?.email || perfil?.email, cardTokenId }),
       });
       const data = await res.json();
-      if (data.init_point) window.location.href = data.init_point;
-      else if (silent) setComprarError(true);
-      else alert('No pudimos procesar el pago. Verificá que tu cuenta esté registrada con un email real y válido, o contactanos por WhatsApp.');
+      if (!res.ok || !data.ok) {
+        setErrorTarjeta(data.error || 'No pudimos activar tu suscripción. Verificá los datos de la tarjeta o contactanos por WhatsApp.');
+        return;
+      }
+      setModalTarjeta(false);
+      setSuscripcionRecienCreada(true);
     } catch {
-      if (silent) setComprarError(true);
-      else alert('Error al conectar con MercadoPago. Contactanos por WhatsApp.');
+      setErrorTarjeta('Error al conectar con Mercado Pago. Contactanos por WhatsApp.');
+    } finally {
+      setCreandoSuscripcion(false);
     }
   };
 
-  const handleProMax = () => handleContratar('promax');
-
-  // Compra directa desde la landing (?comprar=1): salta el trial y va directo a MercadoPago
-  // apenas el negocio recién creado está disponible. No usar planActivo como guarda: el trial
-  // recién creado también cuenta como "activo", así que bloquearía el checkout siempre.
+  // Compra directa desde la landing (?comprar=1): salta el trial y abre el formulario de
+  // tarjeta apenas el negocio recién creado está disponible. No usar planActivo como
+  // guarda: el trial recién creado también cuenta como "activo", así que bloquearía esto.
   useEffect(() => {
     if (comprar !== '1' || comprarDisparadoRef.current || !negocioId || plan === 'promax') return;
     comprarDisparadoRef.current = true;
-    handleContratar('promax', { silent: true });
+    setModalTarjeta(true);
   }, [comprar, negocioId, plan]);
 
   const handleCancelar = async () => {
@@ -186,23 +203,10 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
   const canceladoConGracia = negocio?.renovacionAutomatica === false && planActivo && plan !== 'trial';
   const puedeCancel = plan !== 'trial' && planActivo && negocio?.renovacionAutomatica !== false;
 
-  // Compra directa (?comprar=1): mientras se dispara el checkout automático no mostramos
-  // el plan ni el panel de fondo — nadie sin pagar/verificar debería ver eso, ni siquiera
-  // un instante. Si el checkout falla, comprarError cae al flujo normal de la página.
-  if (comprar === '1' && !comprarError && plan && plan !== 'promax') {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, textAlign: 'center', padding: 24, fontFamily: "'Manrope', sans-serif" }}>
-        <IconClock size={32} style={{ color: 'var(--rv-accent)' }} />
-        <div style={{ fontWeight: 700, fontSize: 17, color: 'var(--rv-text)' }}>Redirigiéndote a MercadoPago...</div>
-        <div style={{ color: 'var(--rv-text-dim)', fontSize: 14, maxWidth: 320 }}>Estamos preparando tu pago, esto no debería tardar más que unos segundos.</div>
-      </div>
-    );
-  }
-
   return (
     <div>
-      {/* ── Banner: pago exitoso (redirect en curso) ───────────────────────── */}
-      {pago === 'exitoso' && (
+      {/* ── Banner: suscripción recién creada (confirmación en el momento, sin redirect) ── */}
+      {suscripcionRecienCreada && (
         <div style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
           <div style={{ marginBottom: 6 }}>
             {planActivo && plan !== 'trial'
@@ -377,6 +381,32 @@ if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO
                 style={{ padding: '10px 20px', background: 'var(--rv-danger)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
                 {cancelando ? 'Cancelando...' : 'Sí, cancelar'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: formulario de tarjeta (tokeniza acá mismo, sin redirigir a MP) ──── */}
+      {modalTarjeta && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
+          <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 440, margin: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Plan Completo — $29.900/mes</h2>
+                <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, margin: '4px 0 0' }}>Cancelás cuando quieras.</p>
+              </div>
+              <button onClick={() => setModalTarjeta(false)} disabled={creandoSuscripcion}
+                style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}>
+                <IconX size={18} />
+              </button>
+            </div>
+            <div style={{ marginTop: 20 }}>
+              <FormularioTarjetaMP
+                onToken={confirmarConToken}
+                onCancelar={() => setModalTarjeta(false)}
+                procesando={creandoSuscripcion}
+                error={errorTarjeta}
+              />
             </div>
           </div>
         </div>

@@ -12,6 +12,7 @@
   "dependencies": {
     "@headlessui/react": "^2.2.10",
     "@heroicons/react": "^2.2.0",
+    "@mercadopago/sdk-react": "^1.0.7",
     "date-fns": "^4.4.0",
     "firebase": "^12.14.0",
     "firebase-admin": "^13.10.0",

@@ -14,6 +14,23 @@ service cloud.firestore {
         && perfilAutenticado().rol == 'admin';
     }
 
+    // Usuario activo de ESTE negocio (admin o no) -- condición base para leer/escribir
+    // cualquier cosa dentro de /negocios/{negocioId}/**. Se usa .get(...) con default en
+    // vez de acceso directo porque un campo que no existe en el doc (usuarios viejos sin
+    // "activo", o sin "permisos") tira error en las reglas -- no da "undefined", deniega
+    // TODO el acceso.
+    function esDeEsteNegocio(negocioId) {
+      return request.auth != null
+        && perfilAutenticado().negocioId == negocioId
+        && perfilAutenticado().get('activo', true) != false;
+    }
+
+    // Admin: acceso total siempre. No-admin: solo si tiene ese módulo tildado en
+    // Usuarios.jsx (permisos.{modulo} === true).
+    function tienePermiso(negocioId, modulo) {
+      return esAdminDe(negocioId) || perfilAutenticado().get('permisos', {})[modulo] == true;
+    }
+
     // Usuarios globales: cada usuario lee su propio doc (para obtener negocioId/permisos
     // al login). La escritura está separada en create/update para dos cosas:
     // 1) que un admin pueda dar de alta al doc de OTRO uid (así se crea un vendedor
@@ -51,46 +68,141 @@ service cloud.firestore {
       allow delete: if esAdminDe(resource.data.negocioId);
     }
 
-    // Negocios: solo acceden usuarios que pertenecen al negocio Y que además
-    // estén activos. Si un admin desactiva a alguien desde Usuarios.jsx, esto le
-    // corta el acceso de verdad (a nivel base de datos, no solo ocultándole
-    // pantallas) — no puede seguir leyendo ni escribiendo nada aunque intente
-    // hacerlo por afuera de la app, con la sesión que ya tenía abierta.
-    // Ojo: se usa .get('activo', true) y no .activo — acceder a un campo que no
-    // existe en el doc tira error en las reglas (no da "undefined", deniega TODO
-    // el acceso), así que esto es lo que evita romper a cualquier usuario viejo
-    // que nunca tuvo ese campo guardado.
-    match /negocios/{negocioId}/{document=**} {
-      allow read, write: if request.auth != null
-        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.negocioId == negocioId
-        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('activo', true) != false;
+    // Doc principal del negocio: plan, vencePlan, estado, renovacionAutomatica,
+    // preapprovalId -- campos de facturación. Antes cualquier usuario activo del negocio
+    // podía reescribir esto directo (autoactivarse un plan, revertir su propia
+    // suspensión). Ahora: admin siempre; con permiso "config" SOLO nombre/teléfono (lo
+    // único que edita Configuracion.jsx acá). Corregido y probado contra el emulador de
+    // Firestore 2026-08-30 (ver auditoría QA).
+    match /negocios/{negocioId} {
+      allow read: if esDeEsteNegocio(negocioId);
+      allow write: if esAdminDe(negocioId)
+        || (tienePermiso(negocioId, 'config')
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre', 'telefono']));
     }
 
     // El catálogo público (CatalogoPublico.jsx) ya NO lee stock/config directo de acá —
     // llama a api/catalogo.js, que arma la respuesta en el servidor con el Admin SDK
     // (no depende de estas reglas) y devuelve SOLO los campos seguros de los equipos
-    // disponibles. Antes `stock` tenía "allow read: if true" para esto y exponía a
-    // cualquiera en internet, sin login, el costoUsd/IMEI/proveedor de TODOS los
-    // equipos (vendidos incluidos) y el nombre/teléfono de clientes que entregaron un
-    // equipo como parte de pago — Firestore no permite exponer "algunos campos sí,
-    // otros no" de un mismo documento, así que la única forma correcta de tener un
-    // catálogo público es armar la respuesta a mano en el servidor, no abrir la
-    // colección entera.
-
-    // Info pública del negocio: SOLO nombre, plan y teléfono, en un doc aparte del
-    // principal (lo usa api/catalogo.js con el Admin SDK, no depende de esta regla,
-    // pero se deja legible por si se necesita consumir directo en el futuro). El doc
-    // negocios/{negocioId} en sí (datos de MercadoPago, fechas de vencimiento) NUNCA
-    // debe ser público — Firestore no permite exponer "algunos campos sí, otros no" de
-    // un mismo documento.
+    // disponibles.
     match /negocios/{negocioId}/publico/info {
       allow read: if true;
+      allow write: if esAdminDe(negocioId);
     }
+
+    // Permisos por módulo aplicados a nivel de base de datos (no solo en la pantalla):
+    // cada colección exige el permiso del módulo que la gestiona, más las excepciones
+    // puntuales que el propio código necesita para funciones que cruzan de un módulo a
+    // otro (ej: Ventas también escribe en stock/caja/accesorios/clientes como parte de
+    // completar una venta real). Cada mapeo está verificado línea por línea contra el
+    // código real y probado contra el emulador de Firestore (35 casos, 2026-08-30) antes
+    // de desplegarse -- ver auditoría QA para el detalle de cada colección.
+
+    match /negocios/{negocioId}/config/{doc} {
+      allow read: if esDeEsteNegocio(negocioId);
+      // checklistReparacion lo actualiza también quien tiene permiso "reparaciones"
+      // (ComprobanteReparacion.jsx), no solo "config".
+      allow write: if tienePermiso(negocioId, 'config')
+        || (tienePermiso(negocioId, 'reparaciones')
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['checklistReparacion']));
+    }
+
+    match /negocios/{negocioId}/usuarios/{doc} {
+      allow read: if esDeEsteNegocio(negocioId);
+      allow write: if tienePermiso(negocioId, 'usuarios');
+    }
+
+    match /negocios/{negocioId}/puntosVenta/{doc} {
+      allow read: if esDeEsteNegocio(negocioId);
+      allow write: if tienePermiso(negocioId, 'config');
+    }
+
+    match /negocios/{negocioId}/vendedores/{doc} {
+      allow read: if esDeEsteNegocio(negocioId);
+      allow write: if tienePermiso(negocioId, 'config');
+    }
+
+    match /negocios/{negocioId}/proveedores/{doc} {
+      allow read: if esDeEsteNegocio(negocioId);
+      allow write: if tienePermiso(negocioId, 'config');
+    }
+
+    match /negocios/{negocioId}/pagosProveedores/{doc} {
+      allow read: if esDeEsteNegocio(negocioId);
+      allow write: if tienePermiso(negocioId, 'proveedores');
+    }
+
+    match /negocios/{negocioId}/clientes/{doc} {
+      allow read: if esDeEsteNegocio(negocioId);
+      allow update, delete: if tienePermiso(negocioId, 'clientes');
+      // Ventas y Reparaciones dan de alta un cliente nuevo al vuelo (selector inline),
+      // pero no pueden editar/borrar uno existente sin el permiso de Clientes.
+      allow create: if tienePermiso(negocioId, 'clientes')
+        || tienePermiso(negocioId, 'ventas')
+        || tienePermiso(negocioId, 'reparaciones');
+    }
+
+    match /negocios/{negocioId}/reparaciones/{doc} {
+      allow read: if esDeEsteNegocio(negocioId);
+      allow write: if tienePermiso(negocioId, 'reparaciones');
+    }
+
+    match /negocios/{negocioId}/accesorios/{doc} {
+      allow read: if esDeEsteNegocio(negocioId);
+      allow create, delete: if tienePermiso(negocioId, 'accesorios');
+      // Ventas descuenta/repone `cantidad` como efecto de vender/cancelar un accesorio.
+      allow update: if tienePermiso(negocioId, 'accesorios')
+        || (tienePermiso(negocioId, 'ventas')
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cantidad']));
+    }
+
+    match /negocios/{negocioId}/stock/{doc} {
+      allow read: if esDeEsteNegocio(negocioId);
+      // Ventas también puede CREAR un equipo nuevo (recibido como parte de pago).
+      allow create: if tienePermiso(negocioId, 'stock') || tienePermiso(negocioId, 'ventas');
+      allow delete: if tienePermiso(negocioId, 'stock');
+      // Ventas marca "vendido"/"disponible" como parte de una venta real, tocando SOLO
+      // el campo estado -- nunca costoUsd ni el resto de la ficha del equipo.
+      allow update: if tienePermiso(negocioId, 'stock')
+        || (tienePermiso(negocioId, 'ventas')
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado']));
+    }
+
+    match /negocios/{negocioId}/ventas/{doc} {
+      allow read: if esDeEsteNegocio(negocioId);
+      allow create, delete: if tienePermiso(negocioId, 'ventas');
+      // Cobros y el Dashboard marcan cuotas pagadas tocando SOLO el campo `cobros`.
+      allow update: if tienePermiso(negocioId, 'ventas')
+        || ((tienePermiso(negocioId, 'cobros') || tienePermiso(negocioId, 'dashboard'))
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cobros']));
+    }
+
+    // Caja es el destino de los movimientos automáticos de Ventas, Cobros, Reparaciones
+    // y Proveedores (una venta, una cuota cobrada, un pago a proveedor) -- restringirlo
+    // solo a permiso "caja" rompería esos flujos para cualquier vendedor que tenga uno
+    // de esos módulos habilitados pero no "caja" en sí.
+    match /negocios/{negocioId}/caja/{doc} {
+      allow read: if esDeEsteNegocio(negocioId);
+      allow write: if tienePermiso(negocioId, 'caja')
+        || tienePermiso(negocioId, 'ventas')
+        || tienePermiso(negocioId, 'cobros')
+        || tienePermiso(negocioId, 'proveedores')
+        || tienePermiso(negocioId, 'reparaciones');
+    }
+
+    match /negocios/{negocioId}/cierresCaja/{doc} {
+      allow read: if esDeEsteNegocio(negocioId);
+      allow write: if tienePermiso(negocioId, 'caja');
+    }
+
+    // negocios/{id}/pagos: histórico de pagos de MercadoPago -- lo escribe SOLO el
+    // backend (Admin SDK, que no pasa por estas reglas). Sin match acá a propósito: no
+    // hace falta que ningún usuario del negocio lo lea desde el cliente, y así queda
+    // cerrado por default en vez de abierto por la regla genérica de antes.
 
     // Suscripciones: solo el admin puede leer, solo servidor puede escribir
     match /suscripciones/{negocioId} {
-      allow read: if request.auth != null
-        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.negocioId == negocioId;
+      allow read: if esDeEsteNegocio(negocioId);
       allow write: if false;
     }
   }

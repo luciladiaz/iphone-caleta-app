@@ -386,12 +386,22 @@ export default function Configuracion() {
               )}
             </div>
           </div>
-          {ultimaActualizacion && tipoDolar !== 'manual' && (
-            <p style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 10, marginBottom: 0 }}>
-              Última actualización: {new Date(ultimaActualizacion).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
-              {tipoCambio && <span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginLeft: 8 }}>${Number(tipoCambio).toLocaleString('es-AR')}</span>}
-            </p>
-          )}
+          {ultimaActualizacion && tipoDolar !== 'manual' && (() => {
+            // El cron corre una vez por día -- si la fuente externa (dolarapi) falla
+            // puntualmente para este negocio, antes se salteaba en silencio sin dejar
+            // ningún rastro visible: el tipo de cambio quedaba viejo sin que nadie se
+            // enterara. Con más de 36hs sin actualizar (1 corrida perdida + margen) se
+            // avisa acá, en el único lugar donde este dato realmente se muestra.
+            const horasDesde = (Date.now() - new Date(ultimaActualizacion).getTime()) / 3600000;
+            const vencido = horasDesde > 36;
+            return (
+              <p style={{ color: vencido ? 'var(--rv-danger)' : 'var(--rv-text-dim)', fontSize: 12, marginTop: 10, marginBottom: 0, fontWeight: vencido ? 700 : 400 }}>
+                {vencido ? '⚠ ' : ''}Última actualización: {new Date(ultimaActualizacion).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
+                {tipoCambio && <span style={{ color: vencido ? 'var(--rv-danger)' : 'var(--rv-accent)', fontWeight: 700, marginLeft: 8 }}>${Number(tipoCambio).toLocaleString('es-AR')}</span>}
+                {vencido && ' — no se pudo actualizar automáticamente, revisá o actualizá a mano.'}
+              </p>
+            );
+          })()}
         </ModalSeccion>
       )}
 

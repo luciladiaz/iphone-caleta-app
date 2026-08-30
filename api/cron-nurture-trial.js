@@ -1,4 +1,5 @@
 import { adminDb } from './_firebase.js';
+import { FieldValue } from 'firebase-admin/firestore';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const EMAIL_DIGEST_DESTINO = process.env.EMAIL_DIGEST_DESTINO || 'luucila20@gmail.com';
@@ -94,6 +95,12 @@ export default async function handler(req, res) {
       const dias = diasDesde(creadoEn);
       if (!DIAS_CONTACTO.includes(dias)) continue;
 
+      // `contactosTrial.{dia}` es el mismo campo que ya usa superadmin.js para el
+      // seguimiento manual por WhatsApp -- reusarlo acá evita que el camino de mail
+      // automático mande el mismo mail dos veces si el cron corre más de una vez el mismo
+      // día (reintento de Vercel, o un disparador externo tipo cron-job.org).
+      if (n.contactosTrial?.[dias] === true) continue;
+
       let usuario = {};
       try {
         const uSnap = await adminDb.doc(`usuarios/${n.ownerUid}`).get();
@@ -113,6 +120,11 @@ export default async function handler(req, res) {
         try {
           const { subject, html } = EMAILS_FALLBACK[dias](nombrePersona, negDoc.id);
           await enviarEmail({ to: usuario.email, subject, html });
+          // Solo el camino 100% automático se automarca -- el de WhatsApp lo sigue
+          // marcando Lucila a mano desde el panel superadmin después de mandarlo de
+          // verdad, no acá. Mismo patrón de dot-notation que ya usa superadmin.js:196
+          // para tocar solo esa clave del mapa sin pisar los otros días ya marcados.
+          await negDoc.ref.update({ [`contactosTrial.${dias}`]: true });
           emailsEnviados.push({ negocio: n.nombre, email: usuario.email, dia: dias });
         } catch (e) {
           errores.push({ negocio: n.nombre, error: e.message });

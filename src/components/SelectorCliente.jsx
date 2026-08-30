@@ -59,6 +59,12 @@ export default function SelectorCliente({ negocioId, clientes, clienteId, onSele
 
   const guardarNuevo = async () => {
     if (!nuevoCliente.nombre.trim()) return;
+    // Mismo aviso de posible duplicado que Clientes.jsx -- acá es todavía más fácil crear
+    // uno de más sin querer, porque no se ve la lista completa mientras se tipea.
+    if (nuevoCliente.telefono?.trim()) {
+      const dup = clientes.find(c => c.telefono?.trim() && c.telefono.trim() === nuevoCliente.telefono.trim());
+      if (dup && !window.confirm(`Ya existe un cliente con ese teléfono: "${dup.nombre}". ¿Creás uno nuevo igual?`)) return;
+    }
     setGuardando(true);
     try {
       // Mismo criterio de numeración que Clientes.jsx -- si no, un cliente creado acá

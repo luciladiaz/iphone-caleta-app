@@ -70,6 +70,15 @@ export default function Clientes() {
   const guardar = async (e) => {
     e.preventDefault();
     if (!form.nombre.trim()) return;
+    // Aviso (no bloqueo -- puede ser legítimo, ej. un teléfono familiar compartido) si ya
+    // existe otro cliente con el mismo teléfono, para no cargar el mismo cliente dos veces
+    // sin darse cuenta.
+    if (!editando && form.telefono?.trim()) {
+      const dup = clientes.find(c => c.telefono?.trim() && c.telefono.trim() === form.telefono.trim());
+      if (dup && !window.confirm(`Ya existe un cliente con ese teléfono: "${dup.nombre}". ¿Creás uno nuevo igual?`)) {
+        return;
+      }
+    }
     setGuardando(true);
     try {
       if (editando) {

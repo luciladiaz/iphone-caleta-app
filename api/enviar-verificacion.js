@@ -1,4 +1,5 @@
 import { adminAuth, usuarioDeRequest } from './_firebase.js';
+import { limitado } from './_rateLimit.js';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const APP_URL = 'https://reventapp.com.ar';
@@ -18,6 +19,15 @@ function botonWhatsapp(mensaje) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
+
+  // Registrar cuentas nuevas repetidamente con el email de otra persona dispara un mail
+  // de verificación real cada vez -- sin límite, alguien podía usar esto para
+  // email-bombing hacia una casilla ajena. El límite acá no lo elimina del todo (cada
+  // registro nuevo trae su propio token válido), pero frena a cualquiera que lo haga en
+  // ráfaga desde la misma conexión.
+  if (limitado(req, { ventanaMs: 10 * 60_000, maximo: 5 })) {
+    return res.status(429).json({ error: 'Demasiados pedidos. Esperá unos minutos antes de reintentar.' });
+  }
 
   const { nombre } = req.body || {};
 

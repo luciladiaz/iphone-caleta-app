@@ -4,6 +4,7 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconUser, IconPhone, IconMail, IconPin, IconHash, IconEdit, IconTrash, IconX, IconPlus, IconSearch, IconBox, IconArrowSwap, IconWrench, IconClock } from '../components/Icons';
 import { formatCapacidad } from '../lib/categoriasProducto';
+import { normalizarTexto } from '../lib/texto';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -79,14 +80,21 @@ export default function Clientes() {
       }
       cerrarModal();
       cargar();
-    } catch (err) { console.error(err); }
-    finally { setGuardando(false); }
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos guardar el cliente. Probá de nuevo.');
+    } finally { setGuardando(false); }
   };
 
   const eliminarCliente = async (c) => {
     if (!window.confirm(`¿Eliminás a ${c.nombre}? Las ventas ya registradas no se modifican.`)) return;
-    await deleteDoc(doc(db, ...base, 'clientes', c.id));
-    cargar();
+    try {
+      await deleteDoc(doc(db, ...base, 'clientes', c.id));
+      cargar();
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos eliminar el cliente. Probá de nuevo.');
+    }
   };
 
   if (loading) return <div style={{ color: 'var(--rv-text-dim)', padding: 40 }}>Cargando clientes...</div>;
@@ -111,9 +119,9 @@ export default function Clientes() {
   };
 
   const clientesFiltrados = clientes.filter(c => {
-    const b = busqueda.trim().toLowerCase();
+    const b = normalizarTexto(busqueda.trim());
     if (!b) return true;
-    return c.nombre?.toLowerCase().includes(b) || c.telefono?.includes(b) || c.email?.toLowerCase().includes(b) || c.dni?.includes(b);
+    return normalizarTexto(c.nombre).includes(b) || c.telefono?.includes(b) || normalizarTexto(c.email).includes(b) || c.dni?.includes(b);
   });
 
   return (

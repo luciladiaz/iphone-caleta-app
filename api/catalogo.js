@@ -20,13 +20,37 @@ export default async function handler(req, res) {
 
   try {
     const base = `negocios/${negocioId}`;
-    const [infoSnap, cfgSnap, stockSnap] = await Promise.all([
+    const [negSnap, infoSnap, cfgSnap, stockSnap] = await Promise.all([
+      adminDb.doc(base).get(),
       adminDb.doc(`${base}/publico/info`).get(),
       adminDb.doc(`${base}/config/general`).get(),
       adminDb.collection(`${base}/stock`).where('estado', '==', 'disponible').get(),
     ]);
 
     if (!infoSnap.exists) return res.status(404).json({ error: 'Negocio no encontrado' });
+
+    // El catálogo público es una feature del plan pago -- antes esto no se chequeaba acá,
+    // así que un negocio con el trial vencido o la cuenta suspendida/cancelada seguía
+    // teniendo su catálogo funcionando indefinidamente (stock y precios reales incluidos)
+    // aunque ya no pudiera entrar a la app. Misma lógica de "¿está activo?" que usa
+    // AuthContext.jsx en el cliente, replicada acá porque este endpoint no pasa por ahí.
+    const neg = negSnap.data() || {};
+    const rawPlan = neg.plan || 'trial';
+    let planActivo = true;
+    if (rawPlan === 'trial') {
+      if (neg.venceTrial) {
+        const vence = neg.venceTrial?.toDate?.() || new Date(neg.venceTrial);
+        planActivo = vence > new Date();
+      }
+    } else if (neg.estado === 'suspendido') {
+      planActivo = false;
+    } else if (neg.vencePlan) {
+      const vence = neg.vencePlan?.toDate?.() || new Date(neg.vencePlan);
+      planActivo = neg.estado === 'activo' && vence > new Date();
+    } else {
+      planActivo = neg.estado !== 'inactivo';
+    }
+    if (!planActivo) return res.status(404).json({ error: 'Negocio no encontrado' });
 
     const info = infoSnap.data() || {};
     const cfg = cfgSnap.data() || {};

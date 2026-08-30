@@ -8,8 +8,24 @@
 const registros = new Map();
 let llamadas = 0;
 
+function ipReal(req) {
+  // x-real-ip lo pone el propio edge de Vercel (no lo puede pisar quien hace el
+  // request). x-forwarded-for SÍ puede venir seteado a mano por el cliente -- y si viene
+  // con varios saltos ("cliente, proxy1, proxy2"), el PRIMER valor es el que el cliente
+  // controla directamente; el ÚLTIMO es el salto más cercano al edge de Vercel, más
+  // confiable. Antes se tomaba el primero, así que alcanzaba con mandar un
+  // X-Forwarded-For distinto en cada request para evadir el límite por completo.
+  if (req.headers['x-real-ip']) return req.headers['x-real-ip'];
+  const xff = req.headers['x-forwarded-for'];
+  if (xff) {
+    const partes = xff.split(',').map(p => p.trim()).filter(Boolean);
+    if (partes.length) return partes[partes.length - 1];
+  }
+  return req.socket?.remoteAddress || 'desconocido';
+}
+
 export function limitado(req, { ventanaMs = 60_000, maximo = 30 } = {}) {
-  const ip = (req.headers['x-forwarded-for']?.split(',')[0]?.trim()) || req.socket?.remoteAddress || 'desconocido';
+  const ip = ipReal(req);
   const ahora = Date.now();
 
   // Poda periódica para no dejar crecer el mapa sin límite con IPs viejas.

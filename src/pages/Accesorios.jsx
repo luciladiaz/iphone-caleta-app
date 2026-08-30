@@ -55,7 +55,9 @@ export default function Accesorios() {
   useEffect(() => { cargar(); }, [negocioId]);
 
   const guardar = async () => {
-    if (!form.nombre.trim() || !form.cantidad) return;
+    // "!form.cantidad" solo bloquea vacío -- "0" y "-5" son strings no-vacíos, así que
+    // pasaban igual y quedaban guardados tal cual, rompiendo "Unidades"/"Valor stock".
+    if (!form.nombre.trim() || Number(form.cantidad) <= 0 || isNaN(Number(form.cantidad))) return;
     // Acá el campo canónico queda en ARS (a diferencia de Stock/Ventas/Reparaciones, que
     // usan USD): si el costo o el precio de venta se cargaron en dólares y no hay tipo de
     // cambio, convertirMoneda() da 0 y se perdería el valor sin avisar.
@@ -64,39 +66,55 @@ export default function Accesorios() {
       return;
     }
     setSaving(true);
-    await addDoc(collection(db, 'negocios', negocioId, 'accesorios'), {
-      nombre: form.nombre.trim(),
-      categoria: form.categoria,
-      modelo: form.modelo,
-      color: form.color.trim(),
-      cantidad: Number(form.cantidad),
-      // precioCosto/precioVenta quedan en ARS (moneda que usa el resto de la pantalla:
-      // "Valor stock", tabla, etc.); costoMonto/costoMoneda guardan lo que se tipeó
-      // realmente, por si se cargó en USD.
-      precioCosto: convertirMoneda(form.costoMonto, form.costoMoneda, 'ARS', tipoCambio),
-      precioVenta: convertirMoneda(form.ventaMonto, form.ventaMoneda, 'ARS', tipoCambio),
-      costoMonto: Number(form.costoMonto) || 0, costoMoneda: form.costoMoneda,
-      ventaMonto: Number(form.ventaMonto) || 0, ventaMoneda: form.ventaMoneda,
-      creadoEn: new Date(),
-    });
-    setForm(FORM_VACIO);
-    setMostrarForm(false);
-    setSaving(false);
-    cargar();
+    try {
+      await addDoc(collection(db, 'negocios', negocioId, 'accesorios'), {
+        nombre: form.nombre.trim(),
+        categoria: form.categoria,
+        modelo: form.modelo,
+        color: form.color.trim(),
+        cantidad: Number(form.cantidad),
+        // precioCosto/precioVenta quedan en ARS (moneda que usa el resto de la pantalla:
+        // "Valor stock", tabla, etc.); costoMonto/costoMoneda guardan lo que se tipeó
+        // realmente, por si se cargó en USD.
+        precioCosto: convertirMoneda(form.costoMonto, form.costoMoneda, 'ARS', tipoCambio),
+        precioVenta: convertirMoneda(form.ventaMonto, form.ventaMoneda, 'ARS', tipoCambio),
+        costoMonto: Number(form.costoMonto) || 0, costoMoneda: form.costoMoneda,
+        ventaMonto: Number(form.ventaMonto) || 0, ventaMoneda: form.ventaMoneda,
+        creadoEn: new Date(),
+      });
+      setForm(FORM_VACIO);
+      setMostrarForm(false);
+      cargar();
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos guardar el accesorio. Probá de nuevo.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const eliminar = async (id) => {
     if (!confirm('¿Eliminar este accesorio?')) return;
-    await deleteDoc(doc(db, 'negocios', negocioId, 'accesorios', id));
-    cargar();
+    try {
+      await deleteDoc(doc(db, 'negocios', negocioId, 'accesorios', id));
+      cargar();
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos eliminar el accesorio. Probá de nuevo.');
+    }
   };
 
   const guardarCantidad = async (id) => {
     const n = parseInt(editCantidad);
     if (isNaN(n) || n < 0) return;
-    await updateDoc(doc(db, 'negocios', negocioId, 'accesorios', id), { cantidad: n });
-    setEditandoId(null);
-    cargar();
+    try {
+      await updateDoc(doc(db, 'negocios', negocioId, 'accesorios', id), { cantidad: n });
+      setEditandoId(null);
+      cargar();
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos actualizar la cantidad. Probá de nuevo.');
+    }
   };
 
   // El accesorio que se cargó en USD se traduce a pesos con el dólar de HOY, no con el

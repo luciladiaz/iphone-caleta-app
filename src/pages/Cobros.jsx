@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { collection, getDocs, query, orderBy, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
@@ -6,6 +6,7 @@ import { IconWallet, IconBell, IconCheck, IconCheckCircle, IconWarning, IconPhon
 import { registrarMovimientoCuota, eliminarMovimientoCuota, montoCobro } from '../lib/caja';
 import { formatCapacidad } from '../lib/categoriasProducto';
 import { fechaLocalDesdeInput } from '../lib/fechas';
+import { numeroWhatsapp } from '../lib/telefono';
 
 function diasDesde(fecha) {
   const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -36,9 +37,11 @@ function textoDeuda(d) {
 }
 
 const abrirWA = (telefono, mensaje) => {
-  const tel = telefono?.replace(/\D/g, '');
-  const telAR = tel?.startsWith('54') ? tel : `54${tel}`;
-  window.open(`https://wa.me/${telAR}?text=${encodeURIComponent(mensaje)}`, '_blank');
+  const numero = numeroWhatsapp(telefono);
+  const url = numero
+    ? `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`
+    : `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+  window.open(url, '_blank');
 };
 
 const FILTROS = [
@@ -58,6 +61,12 @@ export default function Cobros() {
   const [tipoCambio, setTipoCambio] = useState(null);
   const [modalWA, setModalWA] = useState(null); // grupo (cliente) seleccionado para enviar WA
   const [abierto, setAbierto] = useState(null); // clave del cliente con el detalle desplegado
+  const [procesandoCuota, setProcesandoCuota] = useState(null);
+  // Guard sincrónico (no el estado de arriba, que es asíncrono) contra doble click: dos
+  // clicks muy rápidos sobre la misma cuota podían disparar dos veces
+  // registrarMovimientoCuota antes de que el primer render con el botón deshabilitado
+  // llegara a pintarse, duplicando el ingreso en Caja.
+  const cuotasEnVueloRef = useRef(new Set());
 
   useEffect(() => {
     if (!negocioId) return;
@@ -78,20 +87,32 @@ export default function Cobros() {
   }, [negocioId]);
 
   const marcarCuota = async (ventaId, cobroIdx, cuotaIdx, pagada) => {
-    const base = ['negocios', negocioId];
-    const venta = ventas.find(v => v.id === ventaId);
-    const cobros = [...(venta.cobros || [])];
-    const cuotasPagadas = [...(cobros[cobroIdx].cuotasPagadas || [])];
-    if (pagada) {
-      const i = cuotasPagadas.indexOf(cuotaIdx); if (i > -1) cuotasPagadas.splice(i, 1);
-      await eliminarMovimientoCuota(negocioId, ventaId, cobroIdx, cuotaIdx);
-    } else {
-      cuotasPagadas.push(cuotaIdx);
-      await registrarMovimientoCuota(negocioId, ventaId, venta, cobroIdx, cuotaIdx, cobros[cobroIdx]);
+    const clave = `${ventaId}:${cobroIdx}:${cuotaIdx}`;
+    if (cuotasEnVueloRef.current.has(clave)) return;
+    cuotasEnVueloRef.current.add(clave);
+    setProcesandoCuota(clave);
+    try {
+      const base = ['negocios', negocioId];
+      const venta = ventas.find(v => v.id === ventaId);
+      const cobros = [...(venta.cobros || [])];
+      const cuotasPagadas = [...(cobros[cobroIdx].cuotasPagadas || [])];
+      if (pagada) {
+        const i = cuotasPagadas.indexOf(cuotaIdx); if (i > -1) cuotasPagadas.splice(i, 1);
+        await eliminarMovimientoCuota(negocioId, ventaId, cobroIdx, cuotaIdx);
+      } else {
+        cuotasPagadas.push(cuotaIdx);
+        await registrarMovimientoCuota(negocioId, ventaId, venta, cobroIdx, cuotaIdx, cobros[cobroIdx]);
+      }
+      cobros[cobroIdx] = { ...cobros[cobroIdx], cuotasPagadas };
+      await updateDoc(doc(db, ...base, 'ventas', ventaId), { cobros });
+      setVentas(vs => vs.map(v => v.id === ventaId ? { ...v, cobros } : v));
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos actualizar la cuota. Probá de nuevo.');
+    } finally {
+      cuotasEnVueloRef.current.delete(clave);
+      setProcesandoCuota(null);
     }
-    cobros[cobroIdx] = { ...cobros[cobroIdx], cuotasPagadas };
-    await updateDoc(doc(db, ...base, 'ventas', ventaId), { cobros });
-    setVentas(vs => vs.map(v => v.id === ventaId ? { ...v, cobros } : v));
   };
 
   if (loading) return <div style={{ color: 'var(--rv-text-dim)', padding: 40 }}>Cargando...</div>;
@@ -358,12 +379,13 @@ export default function Cobros() {
                               const fc = d.cobro.fechaInicio ? fechaCuota(d.cobro.fechaInicio, qi) : null;
                               const vencida = fc && fc < hoy && !pagada;
                               const fecha = fc ? fc.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' }) : `Cuota ${qi + 1}`;
+                              const procesando = procesandoCuota === `${d.ventaId}:${d.cobroIdx}:${qi}`;
                               return (
-                                <button key={qi} onClick={() => marcarCuota(d.ventaId, d.cobroIdx, qi, pagada)} style={{
-                                  padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--rv-border)',
+                                <button key={qi} disabled={procesando} onClick={() => marcarCuota(d.ventaId, d.cobroIdx, qi, pagada)} style={{
+                                  padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: procesando ? 'not-allowed' : 'pointer', border: '1px solid var(--rv-border)',
                                   background: vencida ? 'var(--rv-danger-soft)' : 'var(--rv-surface)',
                                   color: pagada ? 'var(--rv-text-mid)' : vencida ? 'var(--rv-danger)' : 'var(--rv-text-dim)',
-                                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                                  display: 'inline-flex', alignItems: 'center', gap: 5, opacity: procesando ? 0.6 : 1,
                                 }}>
                                   {pagada ? <IconCheck size={11} /> : vencida ? <IconWarning size={11} /> : null} {fecha}
                                 </button>

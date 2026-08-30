@@ -315,6 +315,18 @@ export default function Ventas() {
       alert('El precio de venta no puede quedar vacío o en $0 — revisá el campo antes de guardar.');
       return;
     }
+    // Un precio o un monto de cobro negativo (tipeo accidental, ej. "-500" en vez de
+    // "500") no se detectaba antes -- restaba de los totales de Ventas/Caja/reportes sin
+    // ningún aviso, a diferencia de Caja.jsx que sí valida esto en sus movimientos manuales.
+    if (esVentaEquipo && Number(form.pvVentaMonto) < 0) {
+      alert('El precio de venta no puede ser negativo.');
+      return;
+    }
+    const cobroNegativo = form.cobros.find(c => Number(c.monto) < 0 || Number(c.montoCuota) < 0);
+    if (cobroNegativo) {
+      alert('Ningún monto de cobro puede ser negativo — revisá los campos de "Monto" o "Monto por cuota".');
+      return;
+    }
     if (!editando && form.tipo === 'equipo') {
       const parteConProblema = form.partesDePago.find(p =>
         faltaTipoCambio(p.costoMonto, p.costoMoneda, 'USD', tc) || faltaTipoCambio(p.pvMonto, p.pvMoneda, 'USD', tc)

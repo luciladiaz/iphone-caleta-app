@@ -1,5 +1,6 @@
 import { adminDb, usuarioDeRequest } from './_firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
+import { limitado } from './_rateLimit.js';
 
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
 const APP_URL = 'https://reventapp.com.ar';
@@ -11,6 +12,10 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
+
+  if (limitado(req, { ventanaMs: 10 * 60_000, maximo: 10 })) {
+    return res.status(429).json({ error: 'Demasiados intentos seguidos. Esperá unos minutos antes de reintentar.' });
+  }
 
   const { negocioId } = req.body || {};
   if (!negocioId) return res.status(400).json({ error: 'Falta negocioId' });

@@ -119,6 +119,28 @@ async function logPagoRechazado(negocioId, mpId) {
   console.log(`[Webhook MP] ⏳ Pago rechazado, MP reintentando | negocio=${negocioId}`);
 }
 
+// Reembolso o contracargo: a diferencia de un pago "rejected" (que MP va a reintentar),
+// acá la plata YA había entrado y ahora se devolvió -- el negocio queda con el plan
+// pagado activo indefinidamente si no se corta acá. No es lo mismo que una cancelación
+// voluntaria (procesarCancelacion), por eso se loguea con su propio tipo para poder
+// distinguirlo después en el historial de pagos.
+async function procesarReembolso(negocioId, mpId) {
+  await adminDb.doc(`negocios/${negocioId}`).update({
+    estado: 'suspendido',
+    motivoSuspension: 'reembolso_o_contracargo',
+    fechaSuspension: FieldValue.serverTimestamp(),
+  });
+
+  await adminDb.collection(`negocios/${negocioId}/pagos`).add({
+    tipo: 'pago_reembolsado',
+    estado: 'reembolsado',
+    mpId: mpId || 'test',
+    fecha: FieldValue.serverTimestamp(),
+  });
+
+  console.log(`[Webhook MP] 💸 Pago reembolsado/contracargo — plan suspendido | negocio=${negocioId}`);
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -144,6 +166,8 @@ export default async function handler(req, res) {
       } else if (pago.status === 'rejected') {
         // MP va a reintentar — NUNCA bloquear por un solo pago rechazado
         await logPagoRechazado(parsed.negocioId, data.id);
+      } else if (pago.status === 'refunded' || pago.status === 'charged_back') {
+        await procesarReembolso(parsed.negocioId, data.id);
       }
     }
 

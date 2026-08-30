@@ -101,9 +101,19 @@ export default function Reparaciones() {
 
   const eliminarReparacion = async (rep) => {
     if (!window.confirm('¿Eliminás esta reparación? Esta acción no se puede deshacer.')) return;
-    await deleteDoc(doc(db, ...base, 'reparaciones', rep.id));
-    try { await eliminarMovimientosReparacion(negocioId, rep.id); } catch (err) { console.error('Error borrando movimientos de caja de la reparación:', err); }
-    cargar();
+    try {
+      // Los movimientos de caja se borran ANTES que el doc de la reparación (al revés de
+      // como estaba antes): si esto falla acá, la reparación sigue existiendo y se puede
+      // reintentar sin dejar nada huérfano. Si el orden fuera al revés y fallara el borrado
+      // de caja, quedaban movimientos de ingreso/egreso apuntando a una reparación que ya
+      // no existe, sin ningún aviso.
+      await eliminarMovimientosReparacion(negocioId, rep.id);
+      await deleteDoc(doc(db, ...base, 'reparaciones', rep.id));
+      cargar();
+    } catch (err) {
+      console.error('Error eliminando la reparación:', err);
+      alert('No pudimos eliminar la reparación. Probá de nuevo.');
+    }
   };
 
   const guardar = async (e) => {
@@ -167,8 +177,10 @@ export default function Reparaciones() {
       }
       cerrarModal();
       cargar();
-    } catch (err) { console.error(err); }
-    finally { setGuardando(false); }
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos guardar la reparación. Probá de nuevo.');
+    } finally { setGuardando(false); }
   };
 
   const reparacionesFiltradas = reparaciones.filter(r =>

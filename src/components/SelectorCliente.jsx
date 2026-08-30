@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { IconSearch, IconX, IconPlus } from './Icons';
+import { normalizarTexto } from '../lib/texto';
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -34,9 +35,9 @@ export default function SelectorCliente({ negocioId, clientes, clienteId, onSele
   }, []);
 
   const filtrados = clientes.filter(c => {
-    const b = busqueda.trim().toLowerCase();
+    const b = normalizarTexto(busqueda.trim());
     if (!b) return true;
-    return c.nombre?.toLowerCase().includes(b) || c.telefono?.includes(b) || c.dni?.includes(b) || c.email?.toLowerCase().includes(b);
+    return normalizarTexto(c.nombre).includes(b) || c.telefono?.includes(b) || c.dni?.includes(b) || normalizarTexto(c.email).includes(b);
   });
 
   const elegir = (c) => {
@@ -60,15 +61,22 @@ export default function SelectorCliente({ negocioId, clientes, clienteId, onSele
     if (!nuevoCliente.nombre.trim()) return;
     setGuardando(true);
     try {
-      const ref = await addDoc(collection(db, 'negocios', negocioId, 'clientes'), { ...nuevoCliente });
-      const creado = { id: ref.id, ...nuevoCliente };
+      // Mismo criterio de numeración que Clientes.jsx -- si no, un cliente creado acá
+      // (al vuelo, desde Ventas/Reparaciones) quedaba sin `numero` hasta la próxima vez
+      // que alguien abría la pantalla Clientes (que migra los que faltan).
+      const siguienteNumero = Math.max(0, ...clientes.map(c => c.numero || 0)) + 1;
+      const datos = { ...nuevoCliente, numero: siguienteNumero };
+      const ref = await addDoc(collection(db, 'negocios', negocioId, 'clientes'), datos);
+      const creado = { id: ref.id, ...datos };
       onClienteCreado?.(creado);
       onSeleccionar(creado);
       setModoNuevo(false);
       setAbierto(false);
       setBusqueda('');
-    } catch (err) { console.error(err); }
-    finally { setGuardando(false); }
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos crear el cliente. Probá de nuevo.');
+    } finally { setGuardando(false); }
   };
 
   return (

@@ -85,15 +85,22 @@ export default function Proveedores() {
       await registrarPagoProveedorCC(negocioId, ref.id, pagoData);
       setModalPago(null);
       cargar();
-    } catch (err) { console.error(err); }
-    finally { setGuardandoPago(false); }
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos registrar el pago. Probá de nuevo.');
+    } finally { setGuardandoPago(false); }
   };
 
   const eliminarPago = async (pago) => {
     if (!window.confirm(`¿Eliminás este pago de ${pago.moneda === 'USD' ? 'USD' : '$'} ${pago.monto}? Esto también lo saca de Caja.`)) return;
-    await deleteDoc(doc(db, ...base, 'pagosProveedores', pago.id));
-    await eliminarMovimientoPagoProveedorCC(negocioId, pago.id);
-    cargar();
+    try {
+      await deleteDoc(doc(db, ...base, 'pagosProveedores', pago.id));
+      await eliminarMovimientoPagoProveedorCC(negocioId, pago.id);
+      cargar();
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos eliminar el pago. Probá de nuevo.');
+    }
   };
 
   if (loading) return <div style={{ color: 'var(--rv-text-dim)', padding: 40 }}>Cargando...</div>;

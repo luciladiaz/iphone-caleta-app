@@ -105,9 +105,23 @@ export default function Stock() {
   };
 
   const eliminarEquipo = async (id) => {
-    if (!window.confirm('¿Eliminás este equipo del stock? Esta acción no se puede deshacer.')) return;
-    await deleteDoc(doc(db, ...base, 'stock', id));
-    cargar();
+    const eq = equipos.find(e => e.id === id);
+    // No hay forma de saber con certeza si ESTE equipo puntual tiene deuda pendiente con
+    // el proveedor (la cuenta corriente de Proveedores.jsx lleva un saldo agregado, no
+    // por equipo) -- pero si tiene un proveedor asociado y nunca se marcó como pagado,
+    // avisamos antes de borrar para que no desaparezca la deuda sin que nadie se entere.
+    const proveedorAsociado = eq?.origen?.proveedorNombre || eq?.proveedor;
+    const advertenciaDeuda = proveedorAsociado && eq?.pagadoProveedor !== true
+      ? `\n\nOjo: este equipo tiene a "${proveedorAsociado}" como proveedor y no está marcado como pagado. Si eliminás el equipo, esa deuda deja de verse en Proveedores.`
+      : '';
+    if (!window.confirm(`¿Eliminás este equipo del stock? Esta acción no se puede deshacer.${advertenciaDeuda}`)) return;
+    try {
+      await deleteDoc(doc(db, ...base, 'stock', id));
+      cargar();
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos eliminar el equipo. Probá de nuevo.');
+    }
   };
 
   const guardar = async (e) => {
@@ -120,6 +134,18 @@ export default function Stock() {
     if (faltaTipoCambio(form.costoMonto, form.costoMoneda, 'USD', tipoCambio) || faltaTipoCambio(form.pvMonto, form.pvMoneda, 'USD', tipoCambio)) {
       alert('Cargaste un precio en pesos pero no hay tipo de cambio configurado — se perdería el valor (quedaría en USD 0). Cargá el tipo de cambio en Configuración, o ingresá el precio directamente en USD.');
       return;
+    }
+    // Dos equipos ACTIVOS (no vendidos) con el mismo IMEI es casi siempre un error de
+    // tipeo -- historialEquipo() agrupa por IMEI asumiendo que es único por aparato
+    // físico, así que un típo que duplique un IMEI real fusiona el historial de dos
+    // equipos distintos. Un mismo IMEI reingresando SÍ es válido (parte de pago de un
+    // aparato que ya se vendió antes), por eso solo se chequea contra equipos no vendidos.
+    if (form.imei.trim()) {
+      const colision = equipos.find(e => e.id !== editandoId && e.imei && e.imei.trim() === form.imei.trim() && e.estado !== 'vendido');
+      if (colision) {
+        alert(`Ya hay otro equipo activo en stock con ese mismo ${ETIQUETA_ID_POR_CATEGORIA[form.categoria] || 'IMEI'} (${colision.modelo || 'sin modelo'}). Revisá que no sea un error de tipeo.`);
+        return;
+      }
     }
     setGuardando(true);
     try {
@@ -146,8 +172,10 @@ export default function Stock() {
       }
       cerrarModal();
       cargar();
-    } catch (err) { console.error(err); }
-    finally { setGuardando(false); }
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos guardar el equipo. Probá de nuevo.');
+    } finally { setGuardando(false); }
   };
 
   // Arma la línea de "de dónde salió" un equipo, con fallback a los campos

@@ -4,19 +4,7 @@ import html2canvas from 'html2canvas';
 import { db } from '../firebase/config';
 import { IconFile, IconX, IconCheck, IconDownload, IconSave, IconTrash, IconShare } from './Icons';
 import { canvasAPdfBlob } from '../lib/pdf';
-
-// Normaliza un teléfono argentino cargado en cualquier formato común al formato
-// que WhatsApp necesita en el link wa.me: 549 + código de área + número.
-function numeroWhatsapp(telefono) {
-  if (!telefono) return null;
-  let n = telefono.replace(/\D/g, '');
-  if (!n) return null;
-  if (n.startsWith('0')) n = n.slice(1);
-  if (n.startsWith('15')) n = n.slice(2);
-  if (n.startsWith('54')) n = n.slice(2);
-  if (n.startsWith('9')) n = n.slice(1);
-  return `549${n}`;
-}
+import { numeroWhatsapp } from '../lib/telefono';
 
 // El selector nativo de compartir archivos es confiable en celular (te muestra WhatsApp
 // con la imagen ya adjunta), pero en Mac/Windows suele fallar o ni mostrar WhatsApp — mejor

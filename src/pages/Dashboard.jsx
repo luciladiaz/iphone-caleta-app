@@ -1,10 +1,12 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { collection, getDocs, query, orderBy, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconCoin, IconBox, IconClock, IconWarning, IconBell, IconCheckCircle, IconCheck } from '../components/Icons';
 import { formatCapacidad } from '../lib/categoriasProducto';
 import { fechaLocalDesdeInput } from '../lib/fechas';
+import { registrarMovimientoCuota } from '../lib/caja';
+import { numeroWhatsapp } from '../lib/telefono';
 
 function StatCard({ Icon, label, value, sub, urgente }) {
   return (
@@ -31,9 +33,11 @@ function fechaCuotaCalc(fechaInicio, idx) {
 
 const generarMensajeWA = (cliente, telefono, modelo, gb, numeroCuota, totalCuotas, monto) => {
   const mensaje = `Hola ${cliente}! Te recuerdo que vence la cuota ${numeroCuota} de ${totalCuotas} de tu ${modelo}${gb ? ' ' + formatCapacidad(gb) : ''}. El monto es $${Number(monto).toLocaleString('es-AR')} ARS. Cualquier consulta avisame. Gracias!`;
-  const tel = telefono?.replace(/\D/g, '');
-  const telAR = tel?.startsWith('54') ? tel : `54${tel}`;
-  window.open(`https://wa.me/${telAR}?text=${encodeURIComponent(mensaje)}`, '_blank');
+  const numero = numeroWhatsapp(telefono);
+  const url = numero
+    ? `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`
+    : `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+  window.open(url, '_blank');
 };
 
 export default function Dashboard() {
@@ -43,6 +47,8 @@ export default function Dashboard() {
   const [todasVentas, setTodasVentas] = useState([]);
   const [tabCobros, setTabCobros] = useState('vencidas');
   const [loading, setLoading] = useState(true);
+  const [procesandoCuota, setProcesandoCuota] = useState(null);
+  const cuotasEnVueloRef = useRef(new Set());
 
   useEffect(() => {
     if (!negocioId) return;
@@ -60,7 +66,11 @@ export default function Dashboard() {
 
         const stock = stockSnap.docs.map(d => d.data());
         const ventas = ventasSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        const tc = cfgSnap.data()?.tipoCambio || 1;
+        // Antes el fallback era 1 (1 USD = $1 ARS) cuando todavía no se configuró el tipo
+        // de cambio -- mostraba "Ganancia ARS"/"Stock valor ARS" como si fueran el mismo
+        // número que en USD, un valor engañoso en vez de indicar que falta configurarlo.
+        // Con 0 esos campos quedan en $0, señal clara de "todavía no hay tipo de cambio".
+        const tc = cfgSnap.data()?.tipoCambio || 0;
 
         const hoy = new Date();
         const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
@@ -143,15 +153,33 @@ export default function Dashboard() {
   ];
 
   const marcarCuotaPagada = async (cobro) => {
-    const base = ['negocios', negocioId];
-    const venta = todasVentas.find(v => v.id === cobro.ventaId);
-    if (!venta) return;
-    const cobros = [...(venta.cobros || [])];
-    const cuotasPagadas = [...(cobros[cobro.cobroIdx].cuotasPagadas || [])];
-    cuotasPagadas.push(cobro.cuotaIdx);
-    cobros[cobro.cobroIdx] = { ...cobros[cobro.cobroIdx], cuotasPagadas };
-    await updateDoc(doc(db, ...base, 'ventas', cobro.ventaId), { cobros });
-    setTodasVentas(vs => vs.map(v => v.id === cobro.ventaId ? { ...v, cobros } : v));
+    const clave = `${cobro.ventaId}:${cobro.cobroIdx}:${cobro.cuotaIdx}`;
+    if (cuotasEnVueloRef.current.has(clave)) return;
+    cuotasEnVueloRef.current.add(clave);
+    setProcesandoCuota(clave);
+    try {
+      const base = ['negocios', negocioId];
+      const venta = todasVentas.find(v => v.id === cobro.ventaId);
+      if (!venta) return;
+      const cobros = [...(venta.cobros || [])];
+      const cuotasPagadas = [...(cobros[cobro.cobroIdx].cuotasPagadas || [])];
+      cuotasPagadas.push(cobro.cuotaIdx);
+      // Antes este atajo del Dashboard actualizaba `cobros` pero nunca llamaba a
+      // registrarMovimientoCuota -- a diferencia de Cobros.jsx, la cuota quedaba marcada
+      // como pagada sin generar el ingreso correspondiente en Caja. Ahora usa el mismo
+      // camino que Cobros.jsx para que el resultado sea idéntico sin importar desde qué
+      // pantalla se marca.
+      await registrarMovimientoCuota(negocioId, cobro.ventaId, venta, cobro.cobroIdx, cobro.cuotaIdx, cobros[cobro.cobroIdx]);
+      cobros[cobro.cobroIdx] = { ...cobros[cobro.cobroIdx], cuotasPagadas };
+      await updateDoc(doc(db, ...base, 'ventas', cobro.ventaId), { cobros });
+      setTodasVentas(vs => vs.map(v => v.id === cobro.ventaId ? { ...v, cobros } : v));
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos marcar la cuota como pagada. Probá de nuevo.');
+    } finally {
+      cuotasEnVueloRef.current.delete(clave);
+      setProcesandoCuota(null);
+    }
   };
 
   if (loading) return <div style={{ color: 'var(--rv-text-dim)', padding: 40 }}>Cargando...</div>;
@@ -234,7 +262,7 @@ export default function Dashboard() {
                         }}>
                         <IconBell size={13} />Recordatorio
                       </button>
-                      <button onClick={() => marcarCuotaPagada(c)} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', color: 'var(--rv-text-mid)', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <button disabled={procesandoCuota === `${c.ventaId}:${c.cobroIdx}:${c.cuotaIdx}`} onClick={() => marcarCuotaPagada(c)} style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', color: 'var(--rv-text-mid)', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: procesandoCuota === `${c.ventaId}:${c.cobroIdx}:${c.cuotaIdx}` ? 'not-allowed' : 'pointer', opacity: procesandoCuota === `${c.ventaId}:${c.cobroIdx}:${c.cuotaIdx}` ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: 6 }}>
                         <IconCheck size={13} />Pagada
                       </button>
                     </div>

@@ -1,5 +1,6 @@
 import { adminDb, usuarioDeRequest } from './_firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
+import { limitado } from './_rateLimit.js';
 
 // .trim() defiende contra un espacio o salto de línea de más al pegar el valor en
 // Vercel -- eso rompe el header Authorization con un 401 "Unauthorized access to
@@ -21,6 +22,14 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
+
+  // Este es justo el endpoint más expuesto al motor antifraude de MP (CC_VAL_433, ver
+  // comentario más abajo) -- MP lo dispara por reintentos repetidos en poco tiempo, así
+  // que limitar los intentos acá de nuestro lado ayuda a evitar disparar esa alarma en
+  // primer lugar, además de frenar abuso liso y llano.
+  if (limitado(req, { ventanaMs: 10 * 60_000, maximo: 8 })) {
+    return res.status(429).json({ error: 'Demasiados intentos seguidos. Esperá unos minutos antes de reintentar.' });
+  }
 
   const { plan, negocioId, email, cardTokenId } = req.body || {};
 

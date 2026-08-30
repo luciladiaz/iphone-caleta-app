@@ -41,6 +41,10 @@ export default async function handler(req, res) {
       if (neg.venceTrial) {
         const vence = neg.venceTrial?.toDate?.() || new Date(neg.venceTrial);
         planActivo = vence > new Date();
+      } else {
+        // Un negocio en trial siempre nace con venceTrial. Si falta, es un dato
+        // roto/editado a mano -- no regalar catálogo público indefinido.
+        planActivo = false;
       }
     } else if (neg.estado === 'suspendido') {
       planActivo = false;

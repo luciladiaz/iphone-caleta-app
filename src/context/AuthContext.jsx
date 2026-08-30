@@ -34,8 +34,11 @@ export function AuthProvider({ children }) {
         dias = Math.ceil((vence - hoy) / (1000 * 60 * 60 * 24));
         if (dias < 0) dias = 0;
       } else {
-        activo = true;
-        dias = 7;
+        // Un negocio en plan trial siempre nace con venceTrial (Registro.jsx/DevSeed.jsx lo
+        // setean junto con el doc). Si falta, es un dato roto/editado a mano -- bloquear en
+        // vez de regalar acceso indefinido "recién arrancado" cada vez que carga.
+        activo = false;
+        dias = 0;
       }
       setDiasRestantesTrial(dias);
       if (!activo) motivo = 'vencido';

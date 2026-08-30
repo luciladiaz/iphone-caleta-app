@@ -33,7 +33,16 @@ service cloud.firestore {
       // Alta de un compañero de equipo: la hace un admin ya existente del negocio.
       allow create: if esAdminDe(request.resource.data.negocioId);
 
-      allow update: if esAdminDe(resource.data.negocioId)
+      // negocioId es inmutable después de creado el doc -- si no, un admin (incluso
+      // el admin de su propia cuenta trial recién creada) podría reescribir SU PROPIO
+      // negocioId apuntando al de otro negocio: en el momento de la escritura
+      // esAdminDe() todavía lee los datos viejos (sigue siendo "admin de mi negocio
+      // actual"), así que sin este chequeo la rama no restringía en absoluto a qué
+      // valor NUEVO se podía cambiar negocioId -- eso daba acceso de admin total al
+      // negocio ajeno vía las reglas de /negocios/{negocioId}/**. Confirmado explotable
+      // y corregido 2026-08-30.
+      allow update: if (esAdminDe(resource.data.negocioId)
+            && request.resource.data.negocioId == resource.data.negocioId)
         || (request.auth != null && request.auth.uid == uid
             && request.resource.data.rol == resource.data.rol
             && request.resource.data.permisos == resource.data.permisos

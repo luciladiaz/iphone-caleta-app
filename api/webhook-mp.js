@@ -164,11 +164,19 @@ export default async function handler(req, res) {
       }
     }
 
-    // SIEMPRE responder 200 a MP — si respondemos 5xx, MP reintenta el webhook indefinidamente
+    // Notificación procesada con éxito (incluye los casos ya filtrados arriba con 200
+    // temprano: tipo desconocido, external_reference que no matchea un negocio).
     return res.status(200).json({ ok: true });
   } catch (err) {
-    console.error('[Webhook MP] Error:', err.message);
-    return res.status(200).json({ ok: false, error: err.message });
+    // Acá SÍ conviene que MP reintente: si fetchMP() falló (caída puntual de la API de MP)
+    // o si activarPlan/suspenderPlan no pudo escribir en Firestore, devolver 200 igual
+    // (como se hacía antes) le dice a MP "ya está, no hace falta que avises de nuevo" —
+    // pero el cobro real nunca se refleja acá, y como MP no vuelve a avisar, ese pago queda
+    // perdido para siempre sin ningún rastro. MP reintenta un webhook fallido con backoff
+    // por un tiempo limitado (no "indefinidamente" de forma dañina), que es exactamente la
+    // red de seguridad que hace falta para una falla transitoria.
+    console.error('[Webhook MP] Error procesando notificación, MP va a reintentar:', err.message);
+    return res.status(500).json({ ok: false, error: err.message });
   }
 }
 

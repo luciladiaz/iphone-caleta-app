@@ -306,6 +306,15 @@ export default function Ventas() {
       alert('Cargaste el precio de venta en pesos pero no hay tipo de cambio disponible (ni en esta venta ni en Configuración) — se perdería el valor. Cargá un tipo de cambio o ingresá el precio directamente en USD.');
       return;
     }
+    // Al EDITAR una venta ya facturada, si el campo de precio queda vacío/0 (a diferencia
+    // de crear una venta nueva, acá no hay un pvUsd del equipo al que volver como
+    // fallback) se bloquea el guardado en vez de pisar silenciosamente el precio real por
+    // USD 0 -- por ejemplo, alguien editando solo para corregir el vendedor y de paso el
+    // campo de precio queda en blanco.
+    if (editando && esVentaEquipo && convertirMoneda(form.pvVentaMonto, form.pvVentaMoneda, 'USD', tc) <= 0) {
+      alert('El precio de venta no puede quedar vacío o en $0 — revisá el campo antes de guardar.');
+      return;
+    }
     if (!editando && form.tipo === 'equipo') {
       const parteConProblema = form.partesDePago.find(p =>
         faltaTipoCambio(p.costoMonto, p.costoMoneda, 'USD', tc) || faltaTipoCambio(p.pvMonto, p.pvMoneda, 'USD', tc)
@@ -806,26 +815,34 @@ export default function Ventas() {
                                 {FORMAS_PAGO.map(f => <option key={f}>{f}</option>)}
                               </select>
                             </div>
+                            {/* El "Monto" genérico es plata en mano ya cobrada -- en "Cuotas
+                                personales" ese lugar lo ocupan "Monto por cuota" y "Cant.
+                                cuotas" de abajo, así que se oculta acá: si se llegaba a
+                                cargar algo en este campo para una seña en efectivo, quedaba
+                                guardado en `cobro.monto` pero montoCobro()/caja.js lo ignoran
+                                por completo para este tipo -- esa plata desaparecía de Caja y
+                                de "cobrado" sin ningún aviso. La Moneda sí se mantiene, la usan
+                                también las cuotas (para saber si montoCuota es ARS o USD). */}
+                            {cobro.tipo !== 'Equipo como parte de pago' && cobro.tipo !== 'Cuotas personales' && (
+                              <div>
+                                <label style={labelStyle}>Monto</label>
+                                <input type="number" value={cobro.monto} onChange={e => updateCobro(i, 'monto', e.target.value)} placeholder="0" style={inputStyle} />
+                                {tc > 0 && cobro.monto > 0 && (
+                                  <div style={{ fontSize: 11, color: 'var(--rv-accent)', marginTop: 4 }}>
+                                    {cobro.moneda === 'ARS'
+                                      ? `≈ USD ${(Number(cobro.monto) / tc).toFixed(2)}`
+                                      : `≈ ARS $${(Number(cobro.monto) * tc).toLocaleString('es-AR', { maximumFractionDigits: 2 })}`}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             {cobro.tipo !== 'Equipo como parte de pago' && (
-                              <>
-                                <div>
-                                  <label style={labelStyle}>Monto</label>
-                                  <input type="number" value={cobro.monto} onChange={e => updateCobro(i, 'monto', e.target.value)} placeholder="0" style={inputStyle} />
-                                  {tc > 0 && cobro.monto > 0 && (
-                                    <div style={{ fontSize: 11, color: 'var(--rv-accent)', marginTop: 4 }}>
-                                      {cobro.moneda === 'ARS'
-                                        ? `≈ USD ${(Number(cobro.monto) / tc).toFixed(2)}`
-                                        : `≈ ARS $${(Number(cobro.monto) * tc).toLocaleString('es-AR', { maximumFractionDigits: 2 })}`}
-                                    </div>
-                                  )}
-                                </div>
-                                <div>
-                                  <label style={labelStyle}>Moneda</label>
-                                  <select value={cobro.moneda} onChange={e => updateCobro(i, 'moneda', e.target.value)} style={inputStyle}>
-                                    <option>ARS</option><option>USD</option>
-                                  </select>
-                                </div>
-                              </>
+                              <div>
+                                <label style={labelStyle}>Moneda</label>
+                                <select value={cobro.moneda} onChange={e => updateCobro(i, 'moneda', e.target.value)} style={inputStyle}>
+                                  <option>ARS</option><option>USD</option>
+                                </select>
+                              </div>
                             )}
                             {cobro.tipo === 'Cuotas personales' && (
                               <>

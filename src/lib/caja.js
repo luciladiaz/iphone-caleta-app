@@ -7,13 +7,19 @@ import { db } from '../firebase/config';
 // ventas históricas que ya lo tenían guardado así.
 const TIPOS_SIN_CAJA = ['Cuotas personales', 'Equipo como parte de pago', 'iPhone como parte de pago'];
 
-// Monto real de un cobro en su propia moneda. Para "Cuotas personales" el importe
-// no vive en `monto` (ese campo queda vacío, ver Ventas.jsx) sino en cuotas × montoCuota;
-// "Equipo como parte de pago" no es dinero. Usar esto en vez de leer `cobro.monto` directo
-// en cualquier lugar que sume/compare montos de cobros.
+// Monto REALMENTE cobrado de un cobro, en su propia moneda -- todos los lugares que
+// llaman a esta función lo usan como "plata que ya entró" (el Excel de Ventas lo llama
+// "Cobrado", el dashboard gerencial "Facturado ARS/USD · cobros este mes"). Para
+// "Cuotas personales" el importe no vive en `monto` (ese campo queda vacío, ver
+// Ventas.jsx) sino en cuotasPagadas.length × montoCuota -- ANTES devolvía
+// cuotas × montoCuota (el compromiso TOTAL de la venta, pagado o no), lo que hacía que
+// una venta financiada en 10 cuotas apareciera "cobrada"/"facturada" al 100% desde el
+// día 1, aunque no hubiera entrado un peso todavía. "Equipo como parte de pago" no es
+// dinero. Usar esto en vez de leer `cobro.monto` directo en cualquier lugar que sume/
+// compare montos de cobros.
 export function montoCobro(cobro) {
   if (cobro.tipo === 'Equipo como parte de pago' || cobro.tipo === 'iPhone como parte de pago') return 0;
-  if (cobro.tipo === 'Cuotas personales') return (Number(cobro.cuotas) || 0) * (Number(cobro.montoCuota) || 0);
+  if (cobro.tipo === 'Cuotas personales') return (cobro.cuotasPagadas?.length || 0) * (Number(cobro.montoCuota) || 0);
   return Number(cobro.monto) || 0;
 }
 

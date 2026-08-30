@@ -119,12 +119,22 @@ export default function ComprobanteReparacion({ reparacion, negocioId, negocioNo
   };
 
   const todoTildado = items.length > 0 && items.every(it => it.checked);
-  const precio = Number(reparacion.precioUsd) || 0;
-  const pagado = Number(reparacion.montoPagado) || 0;
+  const cExistente = reparacion.comprobante;
+  // Mientras se está firmando (primera vez, o "Rehacer") se usan los datos EN VIVO de la
+  // reparación -- es lo correcto, el cliente tiene que firmar sobre el precio/diagnóstico
+  // actual. Pero una vez ya firmado (modoFirma=false), se usa la foto congelada guardada
+  // en comprobante.datos, no los datos en vivo -- si no, corregir el precio o el
+  // diagnóstico DESPUÉS de firmar hacía que "Descargar"/"Enviar por WhatsApp" regeneraran
+  // un PDF con el dato nuevo pero la firma vieja: un documento firmado que ya no coincide
+  // con lo que el cliente aceptó. Fallback a `reparacion` para comprobantes firmados antes
+  // de este fix, que no tienen `datos` guardado.
+  const datos = (!modoFirma && cExistente?.datos) ? cExistente.datos : reparacion;
+  const precio = Number(datos.precioUsd) || 0;
+  const pagado = Number(datos.montoPagado) || 0;
   const saldo = precio - pagado;
-  const garantiaDias = Number(reparacion.garantiaDias) || 0;
-  const fechaEntregaBase = reparacion.fechaEntrega
-    ? (reparacion.fechaEntrega.toDate ? reparacion.fechaEntrega.toDate() : new Date(reparacion.fechaEntrega))
+  const garantiaDias = Number(datos.garantiaDias) || 0;
+  const fechaEntregaBase = datos.fechaEntrega
+    ? (datos.fechaEntrega.toDate ? datos.fechaEntrega.toDate() : new Date(datos.fechaEntrega))
     : new Date();
   const venceGarantia = garantiaDias > 0
     ? new Date(fechaEntregaBase.getTime() + garantiaDias * 86400000)
@@ -186,6 +196,16 @@ export default function ComprobanteReparacion({ reparacion, negocioId, negocioNo
       firma,
       fecha: serverTimestamp(),
       generadoPor: entregadoPor || 'Vendedor',
+      // Foto congelada de la reparación al momento de la firma -- ver comentario en la
+      // definición de `datos` más arriba.
+      datos: {
+        modelo: reparacion.modelo || '', color: reparacion.color || '', imei: reparacion.imei || '',
+        cliente: reparacion.cliente || '', telefono: reparacion.telefono || '',
+        fallaReportada: reparacion.fallaReportada || '', diagnostico: reparacion.diagnostico || '',
+        precioUsd: Number(reparacion.precioUsd) || 0, montoPagado: Number(reparacion.montoPagado) || 0,
+        garantiaDias: Number(reparacion.garantiaDias) || 0,
+        fechaEntrega: reparacion.fechaEntrega || null,
+      },
     };
     await updateDoc(doc(db, 'negocios', negocioId, 'reparaciones', reparacion.id), { comprobante });
     // Esta versión del checklist (con lo agregado/editado) queda como la default del
@@ -378,17 +398,17 @@ export default function ComprobanteReparacion({ reparacion, negocioId, negocioNo
           </div>
 
           <div style={{ fontSize: 13, color: '#555', marginBottom: 4 }}>CLIENTE</div>
-          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>{reparacion.cliente || 'Sin nombre'} {reparacion.telefono ? `· ${reparacion.telefono}` : ''}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>{datos.cliente || 'Sin nombre'} {datos.telefono ? `· ${datos.telefono}` : ''}</div>
 
           <div style={{ fontSize: 13, color: '#555', marginBottom: 4 }}>EQUIPO</div>
-          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>{reparacion.modelo} {reparacion.color}</div>
-          <div style={{ fontSize: 13, color: '#333', marginBottom: 16 }}>IMEI: {reparacion.imei || 'no registrado'}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>{datos.modelo} {datos.color}</div>
+          <div style={{ fontSize: 13, color: '#333', marginBottom: 16 }}>IMEI: {datos.imei || 'no registrado'}</div>
 
           <div style={{ fontSize: 13, color: '#555', marginBottom: 4 }}>FALLA REPORTADA</div>
-          <div style={{ fontSize: 13, color: '#333', marginBottom: 12 }}>{reparacion.fallaReportada || '—'}</div>
+          <div style={{ fontSize: 13, color: '#333', marginBottom: 12 }}>{datos.fallaReportada || '—'}</div>
 
           <div style={{ fontSize: 13, color: '#555', marginBottom: 4 }}>DIAGNÓSTICO Y REPARACIÓN REALIZADA</div>
-          <div style={{ fontSize: 13, color: '#333', marginBottom: 16 }}>{reparacion.diagnostico || '—'}</div>
+          <div style={{ fontSize: 13, color: '#333', marginBottom: 16 }}>{datos.diagnostico || '—'}</div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, fontSize: 13 }}>
             <div>

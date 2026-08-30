@@ -303,12 +303,20 @@ const ACCIONES = {
 };
 
 export default async function handler(req, res) {
-  // Si CRON_SECRET no está seteado, el endpoint queda cerrado para todos, nunca
-  // abierto por default.
+  // Panel admin con poderes totales (lee email/pagos/estado de MP de cualquier negocio,
+  // reescribe en batch datos de TODOS los negocios) -- usa su PROPIO secreto, ADMIN_SECRET,
+  // en vez de compartir CRON_SECRET con los crons automáticos (cron-actualizar-dolar,
+  // cron-nurture-trial). Con un solo secreto, cualquier lugar donde ese valor pudiera
+  // quedar expuesto (logs de un cron, historial de navegador por el ?secret= en la URL)
+  // daba también acceso a este panel. Si ADMIN_SECRET todavía no está configurado en
+  // Vercel, cae de vuelta a CRON_SECRET para no romper el panel en el momento del deploy
+  // -- hay que agregar la variable de entorno ADMIN_SECRET en Vercel (con un valor propio,
+  // distinto de CRON_SECRET) para que la separación quede activa de verdad.
+  const secretEsperado = process.env.ADMIN_SECRET || process.env.CRON_SECRET;
   const authHeader = req.headers['authorization'];
   const querySecret = req.query?.secret;
-  const secretValido = !!process.env.CRON_SECRET &&
-    (authHeader === `Bearer ${process.env.CRON_SECRET}` || querySecret === process.env.CRON_SECRET);
+  const secretValido = !!secretEsperado &&
+    (authHeader === `Bearer ${secretEsperado}` || querySecret === secretEsperado);
   if (!secretValido) return res.status(401).json({ error: 'No autorizado' });
 
   const accion = req.query?.accion || req.body?.accion;

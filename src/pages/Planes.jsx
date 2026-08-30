@@ -57,6 +57,18 @@ export default function Planes() {
   const verificacionRef = useRef(null);
   const comprarDisparadoRef = useRef(false);
 
+  // Protege contra una segunda suscripción real cobrando por separado: `ultimoCheckout`
+  // lo graba el backend SOLO cuando crear-suscripcion.js ya creó la suscripción en MP con
+  // éxito (no en un intento fallido, ver comentario ahí) -- si eso pasó hace poco y el
+  // plan todavía no pasó a "promax" (falta la confirmación del webhook/verificación),
+  // significa que ya hay una suscripción real recién creada esperando activarse. Sin este
+  // chequeo, "Contratar ahora" seguía clickeable durante esa espera -- un click doble, o un
+  // refresh que reabre el checkout solo por `?comprar=1`, podía crear una SEGUNDA
+  // suscripción real. Pasados 10 minutos se vuelve a habilitar como salvavidas, por si la
+  // confirmación real nunca llega.
+  const msUltimoCheckout = negocio?.ultimoCheckout?.toMillis?.() ?? (negocio?.ultimoCheckout ? new Date(negocio.ultimoCheckout).getTime() : 0);
+  const checkoutPendienteReciente = plan !== 'promax' && msUltimoCheckout > 0 && (Date.now() - msUltimoCheckout) < 10 * 60 * 1000;
+
   useEffect(() => {
     const h = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', h);
@@ -134,6 +146,7 @@ export default function Planes() {
   }, [suscripcionRecienCreada, negocioId]);
 
   const handleProMax = () => {
+    if (checkoutPendienteReciente) return;
     if (typeof fbq !== 'undefined') fbq('track', 'InitiateCheckout', { value: PRECIO_PLAN.promax ?? 0, currency: 'ARS' });
     setErrorTarjeta('');
     setModalTarjeta(true);
@@ -169,10 +182,10 @@ export default function Planes() {
   // tarjeta apenas el negocio recién creado está disponible. No usar planActivo como
   // guarda: el trial recién creado también cuenta como "activo", así que bloquearía esto.
   useEffect(() => {
-    if (comprar !== '1' || comprarDisparadoRef.current || !negocioId || plan === 'promax') return;
+    if (comprar !== '1' || comprarDisparadoRef.current || !negocioId || plan === 'promax' || checkoutPendienteReciente) return;
     comprarDisparadoRef.current = true;
     setModalTarjeta(true);
-  }, [comprar, negocioId, plan]);
+  }, [comprar, negocioId, plan, checkoutPendienteReciente]);
 
   const handleCancelar = async () => {
     setCancelando(true);
@@ -342,6 +355,10 @@ export default function Planes() {
                 style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', textDecoration: 'underline', fontSize: 13, cursor: 'pointer', padding: 0, marginLeft: 6 }}>
                 Cancelar suscripción
               </button>
+            </div>
+          ) : checkoutPendienteReciente ? (
+            <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--rv-text-dim)' }}>
+              Ya iniciaste un pago hace instantes — esperando la confirmación de MercadoPago. Si no se activa en unos minutos, escribinos por WhatsApp.
             </div>
           ) : (
             <button onClick={handleProMax}

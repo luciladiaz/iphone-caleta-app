@@ -363,12 +363,17 @@ export default function Stock() {
                 <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>{ETIQUETA_ID_POR_CATEGORIA[form.categoria] || 'IMEI'}</label><input value={form.imei} onChange={e => setForm({...form, imei: e.target.value})} placeholder={form.categoria === 'Mac' || form.categoria === 'Drone' ? 'Número de serie' : '123456789012345'} style={inputStyle} /></div>
                 <div><label style={labelStyle}>Tipo de adquisición</label><select value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value})} style={inputStyle}>{TIPOS.map(t => <option key={t} value={t}>{t === 'consignacion' ? 'Consignación' : 'Compra directa'}</option>)}</select></div>
                 <div><label style={labelStyle}>Proveedor</label><select value={form.proveedor} onChange={e => setForm({...form, proveedor: e.target.value})} style={inputStyle}><option value="">Elegir...</option>{proveedores.map(p => <option key={p.id}>{p.nombre}</option>)}</select></div>
-                <CampoPrecio
-                  label="Costo"
-                  monto={form.costoMonto} moneda={form.costoMoneda}
-                  onChange={({ monto, moneda }) => setForm({ ...form, costoMonto: monto, costoMoneda: moneda })}
-                  tipoCambio={tipoCambio} placeholder="400"
-                />
+                {/* Costo oculto para no-admin: es el mismo dato que ya está oculto en la
+                    tarjeta (línea ~300) -- el modal de editar no debía ser una puerta
+                    trasera para ver/cambiar el costo real de compra. */}
+                {esAdmin && (
+                  <CampoPrecio
+                    label="Costo"
+                    monto={form.costoMonto} moneda={form.costoMoneda}
+                    onChange={({ monto, moneda }) => setForm({ ...form, costoMonto: monto, costoMoneda: moneda })}
+                    tipoCambio={tipoCambio} placeholder="400"
+                  />
+                )}
                 <CampoPrecio
                   label="Precio de venta"
                   monto={form.pvMonto} moneda={form.pvMoneda}
@@ -377,7 +382,11 @@ export default function Stock() {
                 />
                 <div><label style={labelStyle}>Punto de venta</label><select value={form.puntoVenta} onChange={e => setForm({...form, puntoVenta: e.target.value})} style={inputStyle}><option value="">Ninguno</option>{puntosVenta.map(p => <option key={p.id}>{p.nombre}</option>)}</select></div>
                 <div><label style={labelStyle}>Asignado a</label><select value={form.asignadoA} onChange={e => setForm({...form, asignadoA: e.target.value})} style={inputStyle}><option value="">Ninguno</option>{vendedores.map(v => <option key={v.id}>{v.nombre}</option>)}</select></div>
-                <div><label style={labelStyle}>Estado</label><select value={form.estado} onChange={e => setForm({...form, estado: e.target.value})} style={inputStyle}>{ESTADOS.map(s => <option key={s}>{s}</option>)}</select></div>
+                {/* "Vendido" queda solo para admin: un vendedor marcándolo a mano acá se
+                    salta por completo el flujo real de Ventas.jsx (que sí descuenta stock
+                    de forma atómica y deja un registro de venta) -- el equipo desaparecería
+                    del stock sin ninguna venta real detrás. */}
+                <div><label style={labelStyle}>Estado</label><select value={form.estado} onChange={e => setForm({...form, estado: e.target.value})} style={inputStyle}>{ESTADOS.filter(s => esAdmin || s !== 'vendido').map(s => <option key={s}>{s}</option>)}</select></div>
                 <div><label style={labelStyle}>Fecha de ingreso</label><input type="date" value={form.fechaManual} onChange={e => setForm({...form, fechaManual: e.target.value})} style={inputStyle} /></div>
                 <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>Notas</label><textarea value={form.notas} onChange={e => setForm({...form, notas: e.target.value})} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
               </div>

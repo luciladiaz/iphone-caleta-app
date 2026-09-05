@@ -53,9 +53,13 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Demasiados intentos seguidos. Esperá unos minutos antes de reintentar.' });
   }
 
-  const { plan, negocioId, email, cardTokenId, deviceId } = req.body || {};
+  const { plan, negocioId, email, cardTokenId, deviceId, tokenMeta } = req.body || {};
 
   console.log('crear-suscripcion recibido:', { plan, negocioId, email: email || 'VACIO', cardTokenId: cardTokenId ? 'OK' : 'FALTA' });
+  // Metadata del token (BIN, últimos 4, longitud de CVV, luhn_validation, status) -- nunca
+  // el número completo ni el CVV en sí. Sirve para diagnosticar sin especular si un pago
+  // rebota con "token generado sin validación de CVV".
+  if (tokenMeta) console.log('[crear-suscripcion] Token metadata:', JSON.stringify(tokenMeta));
 
   if (!plan || !negocioId || !email || !cardTokenId)
     return res.status(400).json({ error: 'Faltan datos: plan, negocioId, email, cardTokenId' });

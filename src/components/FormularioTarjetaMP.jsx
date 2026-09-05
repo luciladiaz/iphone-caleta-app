@@ -90,6 +90,7 @@ const IDS_CAMPOS_TARJETA = ['form-checkout__cardNumber', 'form-checkout__expirat
 export default function FormularioTarjetaMP({ email, onToken, onCancelar, procesando, error }) {
   const cardFormRef = useRef(null);
   const observersRef = useRef([]);
+  const tokenMetaRef = useRef(null);
   const [listo, setListo] = useState(false);
   const [errorCarga, setErrorCarga] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -157,12 +158,22 @@ export default function FormularioTarjetaMP({ email, onToken, onCancelar, proces
                 observersRef.current.push(observer);
               });
             },
+            // Se dispara apenas MP genera el token, ANTES del submit -- da visibilidad
+            // sobre metadata del token (security_code_length, luhn_validation, etc, nunca
+            // el número completo ni el CVV) que hoy no teníamos. Si un pago vuelve a
+            // rechazarse por "token generado sin validación de CVV", esto permite ver el
+            // dato real en vez de especular.
+            onCardTokenReceived: (err, data) => {
+              tokenMetaRef.current = data || null;
+              if (err) console.error('[MP cardForm] Error generando token:', err);
+              else console.log('[MP cardForm] Token generado:', JSON.stringify(data));
+            },
             onSubmit: (event) => {
               event.preventDefault();
               if (!activo) return;
               setEnviando(true);
               const { token } = cardFormRef.current.getCardFormData();
-              Promise.resolve(onToken(token, window.MP_DEVICE_SESSION_ID)).finally(() => { if (activo) setEnviando(false); });
+              Promise.resolve(onToken(token, window.MP_DEVICE_SESSION_ID, tokenMetaRef.current)).finally(() => { if (activo) setEnviando(false); });
             },
           },
         });

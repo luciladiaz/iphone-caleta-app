@@ -234,6 +234,9 @@ function DetalleModal({ negocio, data, loading, notaEditada, setNotaEditada, gua
                 <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: 'var(--rv-surface-alt)', borderRadius: 9, fontSize: 12.5 }}>
                   <div>
                     <div style={{ fontWeight: 600 }}>{p.tipo || '—'}</div>
+                    {p.motivoRechazo && (
+                      <div style={{ color: 'var(--rv-danger)', fontSize: 11.5, fontWeight: 600 }}>{p.motivoRechazo}</div>
+                    )}
                     <div style={{ color: 'var(--rv-text-dim)', fontSize: 11.5 }}>{fmtFecha(p.fecha)}</div>
                   </div>
                   <span style={{ color: ESTADO_PAGO_COLOR[p.estado] || 'var(--rv-text-dim)', fontWeight: 700, fontSize: 11.5 }}>{p.estado || '—'}</span>

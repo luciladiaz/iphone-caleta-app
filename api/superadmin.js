@@ -1,5 +1,7 @@
 import { adminDb, usuarioDeRequest } from './_firebase.js';
 
+const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+
 // Panel de superadmin — visión de todos los negocios (trial, plan, vencimientos,
 // estado de la suscripción) en un solo lugar. Acceso restringido a la dueña de la
 // app, verificado server-side contra el token de Firebase Auth (nunca confiar en
@@ -50,10 +52,28 @@ async function manejarDetalle(req, res, negocioId) {
     ]);
     if (!negSnap.exists) return res.status(404).json({ error: 'Negocio no encontrado' });
 
-    const historial = pagosSnap.docs.map(d => {
+    const historial = await Promise.all(pagosSnap.docs.map(async (d) => {
       const p = d.data();
-      return { id: d.id, tipo: p.tipo || null, estado: p.estado || null, mpId: p.mpId || null, fecha: aFecha(p.fecha)?.toISOString() || null };
-    });
+      const base = { id: d.id, tipo: p.tipo || null, estado: p.estado || null, mpId: p.mpId || null, motivoRechazo: p.motivoRechazo || null, fecha: aFecha(p.fecha)?.toISOString() || null };
+
+      // Para pagos rechazados ANTES de hoy, motivoRechazo no existe todavía (recién se
+      // empezó a guardar). Se consulta en vivo contra MP con el mpId ya guardado -- así
+      // no hace falta esperar un webhook nuevo para saber por qué falló uno viejo. Solo
+      // para tipo pago (mpId numérico real, no "test"), y solo si no lo teníamos ya.
+      if (!base.motivoRechazo && base.mpId && base.mpId !== 'test' && p.tipo?.includes('rechazado') && MP_ACCESS_TOKEN) {
+        try {
+          const r = await fetch(`https://api.mercadopago.com/v1/payments/${base.mpId}`, {
+            headers: { 'Authorization': `Bearer ${MP_ACCESS_TOKEN}` },
+          });
+          if (r.ok) {
+            const pago = await r.json();
+            base.motivoRechazo = pago.status_detail || null;
+          }
+        } catch (e) { console.warn(`[superadmin] No se pudo consultar mpId=${base.mpId}:`, e.message); }
+      }
+
+      return base;
+    }));
 
     return res.status(200).json({ ok: true, nota: negSnap.data().notaAdmin || '', historial });
   } catch (err) {

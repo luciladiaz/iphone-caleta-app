@@ -154,7 +154,7 @@ export default function Planes() {
 
   // El formulario de tarjeta ya tokenizó la tarjeta (ver FormularioTarjetaMP) — acá se
   // manda el token al backend, que crea la suscripción directamente autorizada.
-  const confirmarConToken = async (cardTokenId, tokenMeta) => {
+  const confirmarConToken = async (cardTokenId) => {
     setCreandoSuscripcion(true);
     setErrorTarjeta('');
     try {
@@ -162,7 +162,7 @@ export default function Planes() {
       const res = await fetch('/api/crear-suscripcion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-        body: JSON.stringify({ plan: 'promax', negocioId, email: user?.email || perfil?.email, cardTokenId, tokenMeta }),
+        body: JSON.stringify({ plan: 'promax', negocioId, email: user?.email || perfil?.email, cardTokenId }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {

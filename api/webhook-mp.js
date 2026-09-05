@@ -107,16 +107,31 @@ async function procesarCancelacion(negocioId, mpId) {
   await suspenderPlan(negocioId, mpId);
 }
 
-async function logPagoRechazado(negocioId, mpId) {
+// cc_rejected_call_for_authorize es un "hard decline" documentado por MP: el banco
+// emisor exige que el titular lo autorice personalmente llamándolo (no un problema de
+// fondos ni de nuestra integración) -- ningún reintento automático de MP lo va a
+// resolver nunca, a diferencia de un rechazo "blando" (fondos insuficientes, timeout)
+// donde sí tiene sentido esperar el reintento. Se guarda aparte para poder ver en el
+// historial de pagos que ESTE caso puntual necesita que el cliente llame a su banco,
+// en vez de asumir que ya se va a solucionar solo.
+const RECHAZOS_QUE_REQUIEREN_ACCION_DEL_CLIENTE = new Set(['cc_rejected_call_for_authorize']);
+
+async function logPagoRechazado(negocioId, mpId, statusDetail) {
+  const requiereAccion = RECHAZOS_QUE_REQUIEREN_ACCION_DEL_CLIENTE.has(statusDetail);
   try {
     await adminDb.collection(`negocios/${negocioId}/pagos`).add({
-      tipo: 'pago_rechazado_reintentando',
+      tipo: requiereAccion ? 'pago_rechazado_requiere_autorizacion_cliente' : 'pago_rechazado_reintentando',
       estado: 'reintentando',
+      motivoRechazo: statusDetail || 'desconocido',
       mpId: mpId || 'test',
       fecha: FieldValue.serverTimestamp(),
     });
   } catch (err) { console.error('[Webhook MP] Error logueando pago rechazado:', err); }
-  console.log(`[Webhook MP] ⏳ Pago rechazado, MP reintentando | negocio=${negocioId}`);
+  if (requiereAccion) {
+    console.log(`[Webhook MP] ⚠️ Pago rechazado -- requiere que el cliente autorice con su banco (${statusDetail}) | negocio=${negocioId}`);
+  } else {
+    console.log(`[Webhook MP] ⏳ Pago rechazado (${statusDetail || 'motivo desconocido'}), MP reintentando | negocio=${negocioId}`);
+  }
 }
 
 // Reembolso o contracargo: a diferencia de un pago "rejected" (que MP va a reintentar),
@@ -165,7 +180,7 @@ export default async function handler(req, res) {
         await activarPlan(parsed.negocioId, parsed.plan, data.id);
       } else if (pago.status === 'rejected') {
         // MP va a reintentar — NUNCA bloquear por un solo pago rechazado
-        await logPagoRechazado(parsed.negocioId, data.id);
+        await logPagoRechazado(parsed.negocioId, data.id, pago.status_detail);
       } else if (pago.status === 'refunded' || pago.status === 'charged_back') {
         await procesarReembolso(parsed.negocioId, data.id);
       }

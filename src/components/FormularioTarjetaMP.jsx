@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 const PUBLIC_KEY = 'APP_USR-af288f66-58d1-4a4b-982b-cdaae5415a54';
 const SDK_URL = 'https://sdk.mercadopago.com/js/v2';
+const SECURITY_URL = 'https://www.mercadopago.com/v2/security.js';
 
 function cargarSdkMercadoPago() {
   return new Promise((resolve, reject) => {
@@ -16,6 +17,30 @@ function cargarSdkMercadoPago() {
     script.src = SDK_URL;
     script.onload = () => resolve();
     script.onerror = () => reject(new Error('no se pudo cargar el sdk'));
+    document.head.appendChild(script);
+  });
+}
+
+// Genera window.MP_DEVICE_SESSION_ID (fingerprint del dispositivo) que MP usa en su
+// motor antifraude para distinguir un comprador legítimo de un patrón de riesgo. Sin
+// esto, MP evalúa cada suscripción "a ciegas" respecto del dispositivo -- confirmado
+// contra la documentación oficial de MP (github.com/mercadopago/sdk-js discussion #145)
+// como recomendación explícita para mejorar la tasa de aprobación. No falla si no carga:
+// el pago sigue funcionando, solo sin esa señal extra de seguridad.
+function cargarSecurityMP() {
+  return new Promise((resolve) => {
+    if (window.MP_DEVICE_SESSION_ID) return resolve();
+    const existente = document.querySelector(`script[src="${SECURITY_URL}"]`);
+    if (existente) {
+      existente.addEventListener('load', () => resolve());
+      existente.addEventListener('error', () => resolve());
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = SECURITY_URL;
+    script.setAttribute('view', 'checkout');
+    script.onload = () => resolve();
+    script.onerror = () => resolve();
     document.head.appendChild(script);
   });
 }
@@ -72,6 +97,7 @@ export default function FormularioTarjetaMP({ email, onToken, onCancelar, proces
   useEffect(() => {
     let activo = true;
 
+    cargarSecurityMP();
     cargarSdkMercadoPago()
       .then(() => {
         if (!activo) return;
@@ -136,7 +162,7 @@ export default function FormularioTarjetaMP({ email, onToken, onCancelar, proces
               if (!activo) return;
               setEnviando(true);
               const { token } = cardFormRef.current.getCardFormData();
-              Promise.resolve(onToken(token)).finally(() => { if (activo) setEnviando(false); });
+              Promise.resolve(onToken(token, window.MP_DEVICE_SESSION_ID)).finally(() => { if (activo) setEnviando(false); });
             },
           },
         });

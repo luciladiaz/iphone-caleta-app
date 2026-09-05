@@ -15,6 +15,28 @@ const PLANES_MP = {
   promax: { nombre: 'Plan Completo', monto: 29900 },
 };
 
+// Mapeo oficial de motivos de rechazo de tarjeta a mensajes accionables -- misma lista
+// que usa el propio plugin de Mercado Pago (github.com/mercadopago/cart-magento2,
+// StatusDetailMessage.php), traducida. Se usa SOLO para dar mejor mensaje cuando
+// data.cause trae uno de estos códigos; si no matchea ninguno, cae al mensaje genérico
+// de siempre más abajo -- no reemplaza ni arriesga el manejo existente de CC_VAL_433.
+const MOTIVOS_RECHAZO = {
+  cc_rejected_bad_filled_card_number: 'Revisá que el número de tarjeta esté bien escrito.',
+  cc_rejected_bad_filled_date: 'Revisá la fecha de vencimiento de la tarjeta.',
+  cc_rejected_bad_filled_other: 'Revisá que los datos de la tarjeta estén completos y correctos.',
+  cc_rejected_bad_filled_security_code: 'Revisá el código de seguridad (CVV) de la tarjeta.',
+  cc_rejected_blacklist: 'No pudimos procesar el pago con esta tarjeta. Probá con otra.',
+  cc_rejected_call_for_authorize: 'Tu banco necesita que autorices este pago vos mismo/a. Llamá al número que figura al dorso de tu tarjeta y autorizá el pago a Mercado Pago.',
+  cc_rejected_card_disabled: 'Tu tarjeta no está habilitada para pagos online. Llamá al número que figura al dorso de tu tarjeta para activarla.',
+  cc_rejected_card_error: 'No pudimos procesar el pago con esta tarjeta. Probá con otra o contactanos por WhatsApp.',
+  cc_rejected_duplicated_payment: 'Ya se registró un intento de pago por este monto hace instantes. Si necesitás repetirlo, usá otra tarjeta.',
+  cc_rejected_high_risk: 'Mercado Pago rechazó la validación de la tarjeta por seguridad (riesgo alto). Esperá un rato antes de reintentar, o probá con otra tarjeta.',
+  cc_rejected_insufficient_amount: 'La tarjeta no tiene saldo o límite disponible suficiente para esta operación.',
+  cc_rejected_invalid_installments: 'Esta tarjeta no admite el pago en la cantidad de cuotas configurada.',
+  cc_rejected_max_attempts: 'Llegaste al límite de intentos permitidos con esta tarjeta. Probá con otra tarjeta más tarde.',
+  cc_rejected_other_reason: 'Tu banco no autorizó el pago. Contactá a tu banco para más info, o probá con otra tarjeta.',
+};
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', APP_URL);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -31,7 +53,7 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Demasiados intentos seguidos. Esperá unos minutos antes de reintentar.' });
   }
 
-  const { plan, negocioId, email, cardTokenId } = req.body || {};
+  const { plan, negocioId, email, cardTokenId, deviceId } = req.body || {};
 
   console.log('crear-suscripcion recibido:', { plan, negocioId, email: email || 'VACIO', cardTokenId: cardTokenId ? 'OK' : 'FALTA' });
 
@@ -92,16 +114,23 @@ export default async function handler(req, res) {
     };
     console.log('Enviando a MP:', JSON.stringify({ ...mpBody, card_token_id: 'OK' }));
 
+    const headers = {
+      'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
+      'Content-Type': 'application/json',
+      // Evita que un reintento de red (ej: el cliente pierde conexión justo después de
+      // que MP ya procesó la creación) termine creando dos suscripciones duplicadas
+      // para el mismo intento.
+      'X-Idempotency-Key': cardTokenId,
+    };
+    // Device ID (generado por security.js en FormularioTarjetaMP.jsx) -- le da al motor
+    // antifraude de MP una señal real del dispositivo del comprador en vez de evaluar la
+    // suscripción a ciegas. Si por lo que sea el script no llegó a cargar en el navegador
+    // del cliente, deviceId viene undefined y simplemente no se manda el header.
+    if (deviceId) headers['X-meli-session-id'] = deviceId;
+
     const response = await fetch('https://api.mercadopago.com/preapproval', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
-        'Content-Type': 'application/json',
-        // Evita que un reintento de red (ej: el cliente pierde conexión justo después de
-        // que MP ya procesó la creación) termine creando dos suscripciones duplicadas
-        // para el mismo intento.
-        'X-Idempotency-Key': cardTokenId,
-      },
+      headers,
       body: JSON.stringify(mpBody),
     });
 
@@ -122,6 +151,13 @@ export default async function handler(req, res) {
             'Esto suele pasar tras varios intentos seguidos con la misma tarjeta. Esperá al menos ' +
             'un rato antes de reintentar, o probá con otra tarjeta. Si persiste, contactanos por WhatsApp.',
         });
+      }
+
+      // Si data.cause trae alguno de los 14 motivos oficiales de rechazo, usar el
+      // mensaje traducido y accionable en vez del código crudo de MP.
+      const causaConocida = Array.isArray(data.cause) && data.cause.find((c) => MOTIVOS_RECHAZO[c.code]);
+      if (causaConocida) {
+        return res.status(502).json({ error: MOTIVOS_RECHAZO[causaConocida.code] });
       }
 
       // data.cause trae el detalle real (código + descripción específica) que MP no

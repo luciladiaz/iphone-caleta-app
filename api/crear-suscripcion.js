@@ -143,6 +143,22 @@ export default async function handler(req, res) {
     if (!response.ok) {
       console.error('MP preapproval error:', JSON.stringify(data));
 
+      // DIAGNÓSTICO TEMPORAL -- borrar apenas se resuelva el caso de "sin validación de
+      // CVV". Consulta la metadata real del token contra la API de MP (BIN, últimos 4,
+      // longitud de CVV, luhn_validation) para confirmar si el emisor validó el CVV o no,
+      // en vez de especular. No expone el PAN completo ni el CVV.
+      if (data.message === 'Card token was generated without cvv validation') {
+        try {
+          const rInfo = await fetch(`https://api.mercadopago.com/v1/card_tokens/${cardTokenId}`, {
+            headers: { 'Authorization': `Bearer ${MP_ACCESS_TOKEN}` },
+          });
+          const tokenInfo = await rInfo.json();
+          console.log('[DEBUG] Token sin CVV -- metadata completa:', JSON.stringify(tokenInfo));
+        } catch (e) {
+          console.error('[DEBUG] No se pudo consultar el token:', e.message);
+        }
+      }
+
       // CC_VAL_433 es el código genérico que devuelve el motor antifraude de MP
       // (equivalente a cc_rejected_high_risk) sin más detalle en el body -- confirmado
       // en este mismo caso: no trae data.cause. No es un dato mal formado de nuestro

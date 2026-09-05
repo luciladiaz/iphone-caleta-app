@@ -53,7 +53,7 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Demasiados intentos seguidos. Esperá unos minutos antes de reintentar.' });
   }
 
-  const { plan, negocioId, email, cardTokenId, deviceId, tokenMeta } = req.body || {};
+  const { plan, negocioId, email, cardTokenId, tokenMeta } = req.body || {};
 
   console.log('crear-suscripcion recibido:', { plan, negocioId, email: email || 'VACIO', cardTokenId: cardTokenId ? 'OK' : 'FALTA' });
   // Metadata del token (BIN, últimos 4, longitud de CVV, luhn_validation, status) -- nunca
@@ -126,11 +126,6 @@ export default async function handler(req, res) {
       // para el mismo intento.
       'X-Idempotency-Key': cardTokenId,
     };
-    // Device ID (generado por security.js en FormularioTarjetaMP.jsx) -- le da al motor
-    // antifraude de MP una señal real del dispositivo del comprador en vez de evaluar la
-    // suscripción a ciegas. Si por lo que sea el script no llegó a cargar en el navegador
-    // del cliente, deviceId viene undefined y simplemente no se manda el header.
-    if (deviceId) headers['X-meli-session-id'] = deviceId;
 
     const response = await fetch('https://api.mercadopago.com/preapproval', {
       method: 'POST',

@@ -186,6 +186,27 @@ export default async function handler(req, res) {
       }
     }
 
+    // Cobro recurrente de una suscripción YA autorizada (cada cuota/reintento genera o
+    // actualiza una "factura" -- authorized_payments). Esto es DISTINTO del evento
+    // "payment" de arriba: confirmado con soporte de Mercado Pago que los reintentos de
+    // un cobro recurrente notifican acá, no como eventos "payment" nuevos. Sin este
+    // handler quedábamos completamente ciegos a los reintentos de un cliente ya
+    // suscripto -- confirmado en vivo con el caso real de un cliente en "Intento 3 de 4"
+    // que nunca generó un solo registro en Firestore porque nunca escuchábamos este tipo
+    // de evento.
+    if (type === 'subscription_authorized_payment') {
+      const factura = await fetchMP(`/authorized_payments/${data.id}`);
+      const parsed = parsearRef(factura.external_reference);
+      if (!parsed) return res.status(200).json({ ok: true });
+
+      const pago = factura.payment;
+      if (pago?.status === 'approved') {
+        await activarPlan(parsed.negocioId, parsed.plan, pago.id);
+      } else if (pago?.status === 'rejected') {
+        await logPagoRechazado(parsed.negocioId, pago.id, pago.status_detail);
+      }
+    }
+
     // Cambio de estado de la suscripción
     if (type === 'subscription_preapproval') {
       const sub = await fetchMP(`/preapproval/${data.id}`);

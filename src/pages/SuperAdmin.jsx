@@ -258,7 +258,7 @@ function DetalleModal({ negocio, data, loading, notaEditada, setNotaEditada, gua
               {data.historial.map(p => (
                 <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: 'var(--rv-surface-alt)', borderRadius: 9, fontSize: 12.5 }}>
                   <div>
-                    <div style={{ fontWeight: 600 }}>{p.tipo || '—'}</div>
+                    <div style={{ fontWeight: 600 }}>{p.tipo || '—'} {p.mpId && p.mpId !== 'test' ? <span style={{ fontWeight: 400, fontFamily: 'monospace', color: 'var(--rv-text-dim)' }}>· mpId: {p.mpId}</span> : ''}</div>
                     {p.motivoRechazo && (
                       <div style={{ color: 'var(--rv-danger)', fontSize: 11.5, fontWeight: 600 }}>{p.motivoRechazo}</div>
                     )}

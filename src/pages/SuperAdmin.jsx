@@ -222,9 +222,34 @@ function DetalleModal({ negocio, data, loading, notaEditada, setNotaEditada, gua
             {guardando ? 'Guardando…' : 'Guardar nota'}
           </button>
 
+          {!loading && data?.facturasMP?.length > 0 && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, margin: '24px 0 10px' }}>
+                <IconReceipt size={14} style={{ color: 'var(--rv-text-dim)' }} />
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--rv-text-dim)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Cobros reales (directo de Mercado Pago)</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {data.facturasMP.map(f => (
+                  <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: 'var(--rv-surface-alt)', borderRadius: 9, fontSize: 12.5 }}>
+                    <div>
+                      <div style={{ fontWeight: 600 }}>
+                        {f.retryAttempt !== null ? `Intento ${f.retryAttempt}` : 'Cobro'} · payment_id: {f.paymentId || '—'}
+                      </div>
+                      {f.motivoRechazo && (
+                        <div style={{ color: 'var(--rv-danger)', fontSize: 11.5, fontWeight: 600 }}>{f.motivoRechazo}</div>
+                      )}
+                      <div style={{ color: 'var(--rv-text-dim)', fontSize: 11.5 }}>{fmtFecha(f.debitDate)}</div>
+                    </div>
+                    <span style={{ color: ESTADO_PAGO_COLOR[f.paymentStatus] || 'var(--rv-text-dim)', fontWeight: 700, fontSize: 11.5 }}>{f.paymentStatus || f.status || '—'}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, margin: '24px 0 10px' }}>
             <IconReceipt size={14} style={{ color: 'var(--rv-text-dim)' }} />
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--rv-text-dim)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Historial de pagos</span>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--rv-text-dim)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Historial de pagos (nuestro registro)</span>
           </div>
           {loading && <p style={{ color: 'var(--rv-text-dim)', fontSize: 13 }}>Cargando…</p>}
           {!loading && data?.historial?.length === 0 && <p style={{ color: 'var(--rv-text-dim)', fontSize: 13 }}>Sin movimientos registrados.</p>}

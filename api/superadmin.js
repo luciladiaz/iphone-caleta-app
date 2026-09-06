@@ -75,7 +75,37 @@ async function manejarDetalle(req, res, negocioId) {
       return base;
     }));
 
-    return res.status(200).json({ ok: true, nota: negSnap.data().notaAdmin || '', historial });
+    // Historial REAL de cobros directo desde MP (authorized_payments/search por
+    // preapproval_id) -- a diferencia de "historial" (que sale de nuestro Firestore, y
+    // depende de que el webhook haya llegado), esto consulta a MP directamente y trae
+    // TODOS los intentos de cobro recurrente que existan, hayan generado notificación o
+    // no. Es lo que permite ver el motivo real de un intento aunque el webhook nunca haya
+    // llegado (confirmado que puede pasar si falta habilitar un tópico específico).
+    let facturasMP = [];
+    const preapprovalId = negSnap.data().preapprovalId;
+    if (preapprovalId && MP_ACCESS_TOKEN) {
+      try {
+        const rFact = await fetch(`https://api.mercadopago.com/authorized_payments/search?preapproval_id=${preapprovalId}`, {
+          headers: { 'Authorization': `Bearer ${MP_ACCESS_TOKEN}` },
+        });
+        if (rFact.ok) {
+          const data = await rFact.json();
+          facturasMP = (data.results || []).map((f) => ({
+            id: f.id,
+            status: f.status,
+            retryAttempt: f.retry_attempt ?? null,
+            debitDate: f.debit_date || null,
+            paymentId: f.payment?.id || null,
+            paymentStatus: f.payment?.status || null,
+            motivoRechazo: f.payment?.status_detail || null,
+          }));
+        } else {
+          console.warn(`[superadmin] authorized_payments/search respondió ${rFact.status} para preapproval=${preapprovalId}`);
+        }
+      } catch (e) { console.warn('[superadmin] Error consultando authorized_payments:', e.message); }
+    }
+
+    return res.status(200).json({ ok: true, nota: negSnap.data().notaAdmin || '', historial, facturasMP });
   } catch (err) {
     console.error('[superadmin] Error en detalle:', err.message);
     return res.status(500).json({ error: err.message });

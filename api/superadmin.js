@@ -90,10 +90,13 @@ async function manejarDetalle(req, res, negocioId) {
         });
         if (rFact.ok) {
           const data = await rFact.json();
+          console.log(`[superadmin] authorized_payments/search preapproval=${preapprovalId}: ${data.results?.length ?? 0} resultado(s), paging=${JSON.stringify(data.paging)}`);
           facturasMP = (data.results || []).map((f) => ({
             id: f.id,
             status: f.status,
             retryAttempt: f.retry_attempt ?? null,
+            dateCreated: f.date_created || null,
+            lastModified: f.last_modified || null,
             debitDate: f.debit_date || null,
             paymentId: f.payment?.id || null,
             paymentStatus: f.payment?.status || null,

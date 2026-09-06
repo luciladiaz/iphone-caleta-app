@@ -238,7 +238,7 @@ function DetalleModal({ negocio, data, loading, notaEditada, setNotaEditada, gua
                       {f.motivoRechazo && (
                         <div style={{ color: 'var(--rv-danger)', fontSize: 11.5, fontWeight: 600 }}>{f.motivoRechazo}</div>
                       )}
-                      <div style={{ color: 'var(--rv-text-dim)', fontSize: 11.5 }}>{fmtFecha(f.debitDate)}</div>
+                      <div style={{ color: 'var(--rv-text-dim)', fontSize: 11.5 }}>Última modificación: {fmtFecha(f.lastModified)} · Programado: {fmtFecha(f.debitDate)}</div>
                     </div>
                     <span style={{ color: ESTADO_PAGO_COLOR[f.paymentStatus] || 'var(--rv-text-dim)', fontWeight: 700, fontSize: 11.5 }}>{f.paymentStatus || f.status || '—'}</span>
                   </div>

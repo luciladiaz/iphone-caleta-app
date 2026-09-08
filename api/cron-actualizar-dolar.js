@@ -21,13 +21,34 @@ async function fetchCotizacion(tipo) {
 
 // Respaldo de suscripciones canceladas cuya notificación nunca llegó (confirmado que
 // pasa: el webhook subscription_preapproval puede no llegar). Sin esto, un negocio
-// sigue con acceso pago hasta que venza vencePlan solo, aunque MP ya haya cancelado la
-// suscripción de verdad -- hasta 31 días de acceso sin pagar. Replica EXACTO el mismo
-// criterio que procesarCancelacion() en webhook-mp.js: solo corta acceso si MP dice
-// "cancelled" (nunca por "paused", que es solo un reintento en curso -- no hay que
-// bloquear por un cobro fallido aislado) y nunca si el negocio ya se auto-canceló desde
-// la app (renovacionAutomatica === false es un estado válido e intencional aparte, con
-// su propio período de gracia hasta vencePlan).
+// sigue con acceso pago hasta que venza vencePlan solo, aunque MP ya haya dejado de
+// cobrarle de verdad -- hasta 31 días de acceso sin pagar.
+//
+// Corta acceso en dos casos:
+// 1) status === 'cancelled' -- igual que procesarCancelacion() en webhook-mp.js.
+// 2) status === 'paused' CON los 4 intentos de cobro ya agotados -- confirmado en vivo
+//    (07/09/2026) que MP puede dejar una suscripción en "paused" indefinidamente después
+//    de agotar los reintentos, sin pasarla nunca a "cancelled" como decía la
+//    documentación. Sin este segundo caso, esas suscripciones quedan con acceso pago
+//    para siempre porque ningún mecanismo (ni el webhook, ni este chequeo) reacciona a
+//    "paused" solo. Se confirma "agotado" consultando authorized_payments/search y
+//    viendo si algún intento llegó a retry_attempt 4 -- así nunca se corta a alguien en
+//    medio de un reintento legítimo (paused con menos de 4 intentos).
+// Nunca corta si el negocio ya se auto-canceló desde la app (renovacionAutomatica ===
+// false es un estado válido e intencional aparte, con su propio período de gracia hasta
+// vencePlan).
+const MAX_INTENTOS_COBRO = 4;
+
+async function intentosAgotados(preapprovalId) {
+  const r = await fetch(`https://api.mercadopago.com/authorized_payments/search?preapproval_id=${preapprovalId}`, {
+    headers: { 'Authorization': `Bearer ${MP_ACCESS_TOKEN}` },
+  });
+  if (!r.ok) return false;
+  const data = await r.json();
+  const maxIntento = (data.results || []).reduce((max, f) => Math.max(max, f.retry_attempt || 0), 0);
+  return maxIntento >= MAX_INTENTOS_COBRO;
+}
+
 async function verificarSuscripcionesActivas() {
   if (!MP_ACCESS_TOKEN) return { revisadas: 0, cortadas: [] };
 
@@ -36,31 +57,22 @@ async function verificarSuscripcionesActivas() {
     .where('estado', '==', 'activo')
     .get();
 
-  // DIAGNÓSTICO TEMPORAL -- sacar una vez confirmado que la lógica engancha bien.
-  console.log(`[cron-dolar][diag] Candidatos con plan=promax y estado=activo: ${snap.size}`);
-
   const cortadas = [];
   for (const doc of snap.docs) {
     const n = doc.data();
-    console.log(`[cron-dolar][diag] ${doc.id} (${n.nombre || 'sin nombre'}): preapprovalId=${n.preapprovalId || 'NINGUNO'} renovacionAutomatica=${n.renovacionAutomatica}`);
-
-    if (!n.preapprovalId || n.renovacionAutomatica === false) {
-      console.log(`[cron-dolar][diag] ${doc.id}: saltado (sin preapprovalId o auto-cancelado)`);
-      continue;
-    }
+    if (!n.preapprovalId || n.renovacionAutomatica === false) continue;
 
     try {
       const r = await fetch(`https://api.mercadopago.com/preapproval/${n.preapprovalId}`, {
         headers: { 'Authorization': `Bearer ${MP_ACCESS_TOKEN}` },
       });
-      if (!r.ok) {
-        console.log(`[cron-dolar][diag] ${doc.id}: MP respondió ${r.status} para preapproval=${n.preapprovalId}`);
-        continue;
-      }
+      if (!r.ok) continue;
       const sub = await r.json();
-      console.log(`[cron-dolar][diag] ${doc.id}: MP status=${sub.status}`);
 
-      if (sub.status === 'cancelled') {
+      const debeCortar = sub.status === 'cancelled'
+        || (sub.status === 'paused' && await intentosAgotados(n.preapprovalId));
+
+      if (debeCortar) {
         await doc.ref.update({
           estado: 'suspendido',
           motivoSuspension: 'pago_fallido',

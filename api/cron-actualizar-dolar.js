@@ -36,17 +36,29 @@ async function verificarSuscripcionesActivas() {
     .where('estado', '==', 'activo')
     .get();
 
+  // DIAGNÓSTICO TEMPORAL -- sacar una vez confirmado que la lógica engancha bien.
+  console.log(`[cron-dolar][diag] Candidatos con plan=promax y estado=activo: ${snap.size}`);
+
   const cortadas = [];
   for (const doc of snap.docs) {
     const n = doc.data();
-    if (!n.preapprovalId || n.renovacionAutomatica === false) continue;
+    console.log(`[cron-dolar][diag] ${doc.id} (${n.nombre || 'sin nombre'}): preapprovalId=${n.preapprovalId || 'NINGUNO'} renovacionAutomatica=${n.renovacionAutomatica}`);
+
+    if (!n.preapprovalId || n.renovacionAutomatica === false) {
+      console.log(`[cron-dolar][diag] ${doc.id}: saltado (sin preapprovalId o auto-cancelado)`);
+      continue;
+    }
 
     try {
       const r = await fetch(`https://api.mercadopago.com/preapproval/${n.preapprovalId}`, {
         headers: { 'Authorization': `Bearer ${MP_ACCESS_TOKEN}` },
       });
-      if (!r.ok) continue;
+      if (!r.ok) {
+        console.log(`[cron-dolar][diag] ${doc.id}: MP respondió ${r.status} para preapproval=${n.preapprovalId}`);
+        continue;
+      }
       const sub = await r.json();
+      console.log(`[cron-dolar][diag] ${doc.id}: MP status=${sub.status}`);
 
       if (sub.status === 'cancelled') {
         await doc.ref.update({

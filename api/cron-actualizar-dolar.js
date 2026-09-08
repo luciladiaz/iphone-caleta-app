@@ -1,4 +1,7 @@
 import { adminDb } from './_firebase.js';
+import { FieldValue } from 'firebase-admin/firestore';
+
+const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
 
 // Endpoints de dolarapi.com por tipo
 const ENDPOINTS = {
@@ -14,6 +17,51 @@ async function fetchCotizacion(tipo) {
   if (!res.ok) throw new Error(`dolarapi ${res.status} para ${tipo}`);
   const data = await res.json();
   return data.venta;
+}
+
+// Respaldo de suscripciones canceladas cuya notificación nunca llegó (confirmado que
+// pasa: el webhook subscription_preapproval puede no llegar). Sin esto, un negocio
+// sigue con acceso pago hasta que venza vencePlan solo, aunque MP ya haya cancelado la
+// suscripción de verdad -- hasta 31 días de acceso sin pagar. Replica EXACTO el mismo
+// criterio que procesarCancelacion() en webhook-mp.js: solo corta acceso si MP dice
+// "cancelled" (nunca por "paused", que es solo un reintento en curso -- no hay que
+// bloquear por un cobro fallido aislado) y nunca si el negocio ya se auto-canceló desde
+// la app (renovacionAutomatica === false es un estado válido e intencional aparte, con
+// su propio período de gracia hasta vencePlan).
+async function verificarSuscripcionesActivas() {
+  if (!MP_ACCESS_TOKEN) return { revisadas: 0, cortadas: [] };
+
+  const snap = await adminDb.collection('negocios')
+    .where('plan', '==', 'promax')
+    .where('estado', '==', 'activo')
+    .get();
+
+  const cortadas = [];
+  for (const doc of snap.docs) {
+    const n = doc.data();
+    if (!n.preapprovalId || n.renovacionAutomatica === false) continue;
+
+    try {
+      const r = await fetch(`https://api.mercadopago.com/preapproval/${n.preapprovalId}`, {
+        headers: { 'Authorization': `Bearer ${MP_ACCESS_TOKEN}` },
+      });
+      if (!r.ok) continue;
+      const sub = await r.json();
+
+      if (sub.status === 'cancelled') {
+        await doc.ref.update({
+          estado: 'suspendido',
+          motivoSuspension: 'pago_fallido',
+          fechaSuspension: FieldValue.serverTimestamp(),
+        });
+        cortadas.push(n.nombre || doc.id);
+      }
+    } catch (e) {
+      console.warn(`[cron-dolar] No se pudo verificar suscripción de ${doc.id}:`, e.message);
+    }
+  }
+
+  return { revisadas: snap.size, cortadas };
 }
 
 export default async function handler(req, res) {
@@ -78,7 +126,20 @@ export default async function handler(req, res) {
     await batch.commit();
 
     console.log(`[cron-dolar] ✅ ${actualizados} negocios actualizados a las ${ahora}`);
-    return res.status(200).json({ ok: true, actualizados, cotizaciones, ahora });
+
+    // Aislado en su propio try/catch: si esto falla, no debe afectar el resultado ya
+    // confirmado de la actualización de cotizaciones de arriba.
+    let suscripciones = { revisadas: 0, cortadas: [] };
+    try {
+      suscripciones = await verificarSuscripcionesActivas();
+      if (suscripciones.cortadas.length > 0) {
+        console.log(`[cron-dolar] 🔒 Suscripciones cortadas por cancelación no notificada: ${suscripciones.cortadas.join(', ')}`);
+      }
+    } catch (e) {
+      console.error('[cron-dolar] Error verificando suscripciones:', e.message);
+    }
+
+    return res.status(200).json({ ok: true, actualizados, cotizaciones, ahora, suscripciones });
   } catch (err) {
     console.error('[cron-dolar] Error:', err.message);
     return res.status(500).json({ error: err.message });

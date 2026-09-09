@@ -256,14 +256,19 @@ export default function Stock() {
     .filter(e =>
       `${e.categoria} ${e.modelo} ${e.color} ${e.gb} ${e.imei} ${e.puntoVenta} ${e.asignadoA} ${e.proveedor || ''} ${e.origen?.proveedorNombre || ''} ${e.origen?.clienteNombre || ''}`.toLowerCase().includes(filtro.toLowerCase())
     )
-    // Pedido de un cliente: poder ordenar por fecha de adquisición o por modelo. La
+    // Pedido de un cliente: ordenar por fecha de adquisición o por modelo -- sumados acá
+    // precio y batería, los otros dos criterios más comunes para stock de celulares. La
     // consulta a Firestore ya trae todo por fechaIngreso desc (línea ~63), así que
-    // "fecha_desc" no necesita reordenar -- se deja el .sort() igual para los otros 3
+    // "fecha_desc" no necesita reordenar -- se deja el .sort() igual para los demás
     // casos, sin mutar el array original de `equipos`.
     .sort((a, b) => {
       if (orden === 'fecha_asc') return fechaMs(a.fechaIngreso) - fechaMs(b.fechaIngreso);
       if (orden === 'modelo_asc') return (a.modelo || '').localeCompare(b.modelo || '');
       if (orden === 'modelo_desc') return (b.modelo || '').localeCompare(a.modelo || '');
+      if (orden === 'precio_asc') return Number(a.pvUsd || 0) - Number(b.pvUsd || 0);
+      if (orden === 'precio_desc') return Number(b.pvUsd || 0) - Number(a.pvUsd || 0);
+      if (orden === 'bateria_asc') return Number(a.bateria || 0) - Number(b.bateria || 0);
+      if (orden === 'bateria_desc') return Number(b.bateria || 0) - Number(a.bateria || 0);
       return fechaMs(b.fechaIngreso) - fechaMs(a.fechaIngreso); // fecha_desc (default)
     });
   const categoriasConStock = categoriasProducto.filter(cat => equipos.some(e => e.categoria === cat && e.estado !== 'vendido'));
@@ -337,6 +342,10 @@ export default function Stock() {
           <option value="fecha_asc">Más viejo primero</option>
           <option value="modelo_asc">Modelo A-Z</option>
           <option value="modelo_desc">Modelo Z-A</option>
+          <option value="precio_asc">Precio: menor a mayor</option>
+          <option value="precio_desc">Precio: mayor a menor</option>
+          <option value="bateria_desc">Batería: mayor a menor</option>
+          <option value="bateria_asc">Batería: menor a mayor</option>
         </select>
       </div>
 

@@ -402,6 +402,10 @@ export default function SuperAdmin() {
         n.nombre.toLowerCase().includes(q) ||
         (n.email || '').toLowerCase().includes(q) ||
         (n.nombreDueño || '').toLowerCase().includes(q) ||
+        // Permite pegar directo el negocioId sacado de la "referencia externa" de un
+        // pago en el panel de MP (formato negocioId___plan___timestamp) para rastrear
+        // de quién es un cobro sin tener que buscarlo a mano en la base de datos.
+        n.id.toLowerCase().includes(q) ||
         (qDigitos.length >= 4 && (n.telefono || '').replace(/\D/g, '').includes(qDigitos))
       );
     }

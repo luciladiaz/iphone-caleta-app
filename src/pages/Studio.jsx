@@ -455,6 +455,108 @@ function StoryCTA({ tag, titulo, subtitulo, precio, url, handle }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// HISTORIAS DESTACADAS  (portadas 400×400 · historias 405×720 iguales a Story)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Set de íconos lineales propios (sin librería externa, mismo criterio que LogoMark:
+// todo CSS/SVG inline). Un ícono por categoría de destacada.
+const ICONOS_DESTACADAS = {
+  cohete: <path d="M12 2c2.5 2 4 5.5 4 9.5 0 2-.5 3.8-1.2 5.3L12 19l-2.8-2.2C8.5 15.3 8 13.5 8 11.5 8 7.5 9.5 4 12 2Z" />,
+  grilla: <path d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z" />,
+  etiqueta: <path d="M3 11.5V5a2 2 0 0 1 2-2h6.5L21 12.5 12.5 21 3 11.5Z" />,
+  estrella: <path d="M12 2.5l2.9 6 6.6.7-4.9 4.5 1.3 6.5L12 16.9 6.1 20.2l1.3-6.5-4.9-4.5 6.6-.7L12 2.5Z" />,
+  pregunta: <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Zm0-6.5v-.3c0-1.4.9-2 1.8-2.6.8-.6 1.5-1.1 1.5-2.2 0-1.4-1.3-2.4-3-2.4-1.4 0-2.5.6-3 1.7M12 18.2h.01" />,
+  telefono: <path d="M8 2h8a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Zm4 17h.01" />,
+};
+
+function IconoLineal({ children, size = 40 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      {children}
+    </svg>
+  );
+}
+
+// Portada de destacada: círculo con degradé de marca + ícono centrado. Instagram
+// recorta a círculo lo que se suba, así que el diseño ya nace pensado para eso (ícono
+// chico y centrado, sin texto pegado al borde que se corte).
+function HighlightCover({ icono }) {
+  return (
+    <div style={{ width: 400, height: 400, background: B.navy, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif' }}>
+      <div style={{
+        width: 400, height: 400, borderRadius: '50%',
+        background: `linear-gradient(150deg, ${B.deep} 0%, ${B.blue} 100%)`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <IconoLineal size={90}>{ICONOS_DESTACADAS[icono]}</IconoLineal>
+      </div>
+    </div>
+  );
+}
+
+// Formato pregunta/respuesta para la destacada de FAQ.
+function StoryFAQ({ pregunta, respuesta, handle }) {
+  return (
+    <div style={{ width: 405, height: 720, background: B.navy, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: -90, left: -90, width: 320, height: 320, borderRadius: '50%', border: '1px solid rgba(37,99,235,0.12)', pointerEvents: 'none' }} />
+
+      <div style={{ padding: '44px 36px 0', display: 'flex', justifyContent: 'center' }}>
+        <LogoMark iconSize={30} />
+      </div>
+
+      <div style={{ flex: 1, padding: '0 36px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 22 }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          <span style={{ fontSize: 30, fontWeight: 900, color: B.sky, lineHeight: 1 }}>?</span>
+          <div style={{ fontSize: 30, fontWeight: 900, color: B.white, lineHeight: 1.15, letterSpacing: '-1px', whiteSpace: 'pre-line' }}>{pregunta}</div>
+        </div>
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          <span style={{ fontSize: 20, fontWeight: 900, color: B.green, flexShrink: 0, marginTop: 2 }}>✓</span>
+          <div style={{ fontSize: 19, color: B.gray, lineHeight: 1.6, whiteSpace: 'pre-line' }}>{respuesta}</div>
+        </div>
+      </div>
+
+      <div style={{ padding: '0 36px 44px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+        <span style={{ fontSize: 12, color: B.gray }}>{handle}</span>
+        <div style={{ width: 36, height: 4, background: B.white, borderRadius: 2, opacity: 0.25 }} />
+      </div>
+    </div>
+  );
+}
+
+// Testimonio en formato historia (adaptado de FeedTestimonio a 405×720).
+function StoryTestimonio({ cita, nombre, ciudad }) {
+  return (
+    <div style={{ width: 405, height: 720, background: B.navy, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: -70, right: -70, width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+      <div style={{ padding: '44px 36px 0', display: 'flex', justifyContent: 'center' }}>
+        <LogoMark iconSize={30} />
+      </div>
+
+      <div style={{ flex: 1, padding: '0 40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ fontSize: 60, fontWeight: 900, color: B.blue, lineHeight: 0.9, marginBottom: 10, opacity: 0.65 }}>&ldquo;</div>
+        <div style={{ fontSize: 15, color: B.blue, letterSpacing: 4, marginBottom: 16 }}>★★★★★</div>
+        <div style={{ fontSize: 24, fontWeight: 700, color: B.white, lineHeight: 1.45, letterSpacing: '-0.5px', marginBottom: 28, whiteSpace: 'pre-line' }}>{cita}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 46, height: 46, borderRadius: '50%', background: `linear-gradient(135deg, ${B.deep}, ${B.blue})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, fontWeight: 900, color: '#fff', flexShrink: 0 }}>
+            {(nombre || 'U').charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: B.white }}>{nombre}</div>
+            <div style={{ fontSize: 12, color: B.gray }}>{ciudad}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: '0 36px 44px', display: 'flex', justifyContent: 'center' }}>
+        <span style={{ fontSize: 12, color: B.gray, fontWeight: 600, letterSpacing: 1 }}>@reventapp.iphone</span>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // META ADS  (405 × 720 preview — exporta 1080 × 1920 · formato 9:16)
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1311,12 +1413,306 @@ const TEMPLATES = {
       ],
     },
   ],
+  destacadas: [
+    // ── 1) EMPEZÁ — primera destacada que ve alguien nuevo: baja la fricción del trial ──
+    {
+      id: 'dest-cover-empezar', nombre: '🚀 Portada: Empezá', desc: 'Ícono de portada para la destacada "Empezá".',
+      component: HighlightCover, exportW: 1080, exportH: 1080, previewW: 400, previewH: 400,
+      defaults: { icono: 'cohete' }, campos: [],
+    },
+    {
+      id: 'dest-empezar-1', nombre: 'Empezá · 1/2', desc: 'Hook de bajo compromiso: gratis, sin tarjeta.',
+      component: StoryHook, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        tag: 'EMPEZÁ GRATIS',
+        titulo: '7 días\nsin tarjeta.',
+        subtitulo: 'Cargá tu stock hoy y probá todo el sistema sin compromiso.',
+        handle: '@reventapp.iphone',
+      },
+      campos: [
+        { key: 'tag', label: 'Etiqueta' },
+        { key: 'titulo', label: 'Título (\\n para salto)', multiline: true, rows: 2 },
+        { key: 'subtitulo', label: 'Bajada' },
+        { key: 'handle', label: 'Handle Instagram' },
+      ],
+    },
+    {
+      id: 'dest-empezar-2', nombre: 'Empezá · 2/2', desc: 'Cierre con precio + link directo.',
+      component: StoryCTA, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        tag: 'SIN VUELTAS',
+        titulo: '$29.900\n/mes',
+        subtitulo: 'Todo incluido. Cancelás cuando quieras.',
+        precio: '7 días gratis para probarlo primero',
+        url: 'reventapp.com.ar',
+        handle: '@reventapp.iphone',
+      },
+      campos: [
+        { key: 'tag', label: 'Etiqueta' },
+        { key: 'titulo', label: 'Precio (\\n para salto)', multiline: true, rows: 2 },
+        { key: 'subtitulo', label: 'Bajada' },
+        { key: 'precio', label: 'Línea chica' },
+        { key: 'url', label: 'URL / texto del botón' },
+        { key: 'handle', label: 'Handle Instagram' },
+      ],
+    },
+
+    // ── 2) FUNCIONES — 3 pilares del producto, uno por historia ──
+    {
+      id: 'dest-cover-funciones', nombre: '📦 Portada: Funciones', desc: 'Ícono de portada para la destacada "Funciones".',
+      component: HighlightCover, exportW: 1080, exportH: 1080, previewW: 400, previewH: 400,
+      defaults: { icono: 'grilla' }, campos: [],
+    },
+    {
+      id: 'dest-funciones-stock', nombre: 'Funciones · Stock', desc: 'Pilar 1: control de stock.',
+      component: StoryFeature, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        tag: 'STOCK',
+        titulo: 'Todo tu\ninventario\nen orden.',
+        subtitulo: 'Modelo, GB, color, batería e IMEI. Buscalo en segundos, desde el celular.',
+        url: 'reventapp.com.ar',
+        handle: '@reventapp.iphone',
+      },
+      campos: [
+        { key: 'tag', label: 'Etiqueta' },
+        { key: 'titulo', label: 'Título (\\n para salto)', multiline: true, rows: 3 },
+        { key: 'subtitulo', label: 'Bajada' },
+        { key: 'url', label: 'URL' },
+        { key: 'handle', label: 'Handle Instagram' },
+      ],
+    },
+    {
+      id: 'dest-funciones-cobros', nombre: 'Funciones · Cobros', desc: 'Pilar 2: cobros y cuotas.',
+      component: StoryFeature, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        tag: 'COBROS',
+        titulo: 'Cuotas y\ndeudores,\nbajo control.',
+        subtitulo: 'Semáforo de atraso y botón directo a WhatsApp para reclamar sin vueltas.',
+        url: 'reventapp.com.ar',
+        handle: '@reventapp.iphone',
+      },
+      campos: [
+        { key: 'tag', label: 'Etiqueta' },
+        { key: 'titulo', label: 'Título (\\n para salto)', multiline: true, rows: 3 },
+        { key: 'subtitulo', label: 'Bajada' },
+        { key: 'url', label: 'URL' },
+        { key: 'handle', label: 'Handle Instagram' },
+      ],
+    },
+    {
+      id: 'dest-funciones-multimoneda', nombre: 'Funciones · Multi-moneda', desc: 'Pilar 3: ganancias en ARS y USD.',
+      component: StoryFeature, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        tag: 'MULTI-MONEDA',
+        titulo: 'Ganás en\npesos y\ndólares.',
+        subtitulo: 'Tipo de cambio del día (Blue, Oficial o MEP), siempre actualizado solo.',
+        url: 'reventapp.com.ar',
+        handle: '@reventapp.iphone',
+      },
+      campos: [
+        { key: 'tag', label: 'Etiqueta' },
+        { key: 'titulo', label: 'Título (\\n para salto)', multiline: true, rows: 3 },
+        { key: 'subtitulo', label: 'Bajada' },
+        { key: 'url', label: 'URL' },
+        { key: 'handle', label: 'Handle Instagram' },
+      ],
+    },
+
+    // ── 3) PRECIOS — transparencia total, saca la objeción de "debe ser caro" ──
+    {
+      id: 'dest-cover-precios', nombre: '💰 Portada: Precios', desc: 'Ícono de portada para la destacada "Precios".',
+      component: HighlightCover, exportW: 1080, exportH: 1080, previewW: 400, previewH: 400,
+      defaults: { icono: 'etiqueta' }, campos: [],
+    },
+    {
+      id: 'dest-precios-1', nombre: 'Precios · 1/2', desc: 'Baja la guardia: un plan, sin letra chica.',
+      component: StoryHook, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        tag: 'SIN LETRA CHICA',
+        titulo: 'Un solo\nplan.',
+        subtitulo: 'Todo incluido, sin funciones bloqueadas por precio.',
+        handle: '@reventapp.iphone',
+      },
+      campos: [
+        { key: 'tag', label: 'Etiqueta' },
+        { key: 'titulo', label: 'Título (\\n para salto)', multiline: true, rows: 2 },
+        { key: 'subtitulo', label: 'Bajada' },
+        { key: 'handle', label: 'Handle Instagram' },
+      ],
+    },
+    {
+      id: 'dest-precios-2', nombre: 'Precios · 2/2', desc: 'El número concreto + qué incluye.',
+      component: StoryCTA, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        tag: 'TODO INCLUIDO',
+        titulo: '$29.900\n/mes',
+        subtitulo: 'Stock y ventas ilimitadas. Usuarios ilimitados. Sin costos extra.',
+        precio: 'Cancelás cuando quieras, sin permanencia',
+        url: 'reventapp.com.ar',
+        handle: '@reventapp.iphone',
+      },
+      campos: [
+        { key: 'tag', label: 'Etiqueta' },
+        { key: 'titulo', label: 'Precio (\\n para salto)', multiline: true, rows: 2 },
+        { key: 'subtitulo', label: 'Bajada' },
+        { key: 'precio', label: 'Línea chica' },
+        { key: 'url', label: 'URL / texto del botón' },
+        { key: 'handle', label: 'Handle Instagram' },
+      ],
+    },
+
+    // ── 4) TESTIMONIOS — prueba social, el empujón final para el que ya está convencido ──
+    {
+      id: 'dest-cover-testimonios', nombre: '⭐ Portada: Testimonios', desc: 'Ícono de portada para la destacada "Testimonios".',
+      component: HighlightCover, exportW: 1080, exportH: 1080, previewW: 400, previewH: 400,
+      defaults: { icono: 'estrella' }, campos: [],
+    },
+    {
+      id: 'dest-testimonio-1', nombre: 'Testimonio · 1', desc: 'Reemplazá por una cita real de un cliente.',
+      component: StoryTestimonio, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        cita: 'Antes anotaba todo en un cuaderno y perdía plata sin darme cuenta. Con ReventApp sé exactamente cuánto gano en cada venta.',
+        nombre: 'Fernando M.',
+        ciudad: 'Córdoba',
+      },
+      campos: [
+        { key: 'cita', label: 'Cita (\\n para salto)', multiline: true, rows: 4 },
+        { key: 'nombre', label: 'Nombre del cliente' },
+        { key: 'ciudad', label: 'Ciudad' },
+      ],
+    },
+    {
+      id: 'dest-testimonio-2', nombre: 'Testimonio · 2', desc: 'Segunda cita — variá el dolor que resuelve.',
+      component: StoryTestimonio, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        cita: 'Lo que más uso es el catálogo por WhatsApp. Mando un link y el cliente ve todo el stock actualizado al toque.',
+        nombre: 'Rocío A.',
+        ciudad: 'Rosario',
+      },
+      campos: [
+        { key: 'cita', label: 'Cita (\\n para salto)', multiline: true, rows: 4 },
+        { key: 'nombre', label: 'Nombre del cliente' },
+        { key: 'ciudad', label: 'Ciudad' },
+      ],
+    },
+    {
+      id: 'dest-testimonio-social', nombre: 'Testimonio · Dato social', desc: 'Cierre de la destacada con el número de tracción real (formato 1:1, no historia).',
+      component: FeedDato, exportW: 1080, exportH: 1080, previewW: 540, previewH: 540,
+      defaults: {
+        label: 'YA CONFÍAN EN REVENTAPP',
+        numero: '+200',
+        unidad: 'revendedores',
+        contexto: 'CABA, Córdoba, Rosario, Mendoza y Mar del Plata.',
+        cta: 'Sumate en reventapp.com.ar',
+      },
+      campos: [
+        { key: 'label', label: 'Etiqueta superior' },
+        { key: 'numero', label: 'Número grande' },
+        { key: 'unidad', label: 'Unidad' },
+        { key: 'contexto', label: 'Contexto' },
+        { key: 'cta', label: 'CTA final' },
+      ],
+    },
+
+    // ── 5) PREGUNTAS FRECUENTES — derriba las objeciones más comunes antes de que frenen el trial ──
+    {
+      id: 'dest-cover-faq', nombre: '❓ Portada: FAQ', desc: 'Ícono de portada para la destacada "Preguntas".',
+      component: HighlightCover, exportW: 1080, exportH: 1080, previewW: 400, previewH: 400,
+      defaults: { icono: 'pregunta' }, campos: [],
+    },
+    {
+      id: 'dest-faq-tecnologia', nombre: 'FAQ · ¿Sé de tecnología?', desc: 'Objeción más común: "no sé usar sistemas".',
+      component: StoryFAQ, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        pregunta: '¿Necesito saber\nde tecnología\npara usarlo?',
+        respuesta: 'No. Si podés usar WhatsApp, podés usar ReventApp. Está pensado para revendedores, no para programadores.',
+        handle: '@reventapp.iphone',
+      },
+      campos: [
+        { key: 'pregunta', label: 'Pregunta (\\n para salto)', multiline: true, rows: 3 },
+        { key: 'respuesta', label: 'Respuesta', multiline: true, rows: 3 },
+        { key: 'handle', label: 'Handle Instagram' },
+      ],
+    },
+    {
+      id: 'dest-faq-celular', nombre: 'FAQ · ¿Funciona en el celular?', desc: 'Objeción: "necesito estar en la compu".',
+      component: StoryFAQ, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        pregunta: '¿Funciona bien\ndesde el\ncelular?',
+        respuesta: 'Sí, 100%. Está diseñado mobile-first para que lo uses desde tu celular en cualquier momento del día.',
+        handle: '@reventapp.iphone',
+      },
+      campos: [
+        { key: 'pregunta', label: 'Pregunta (\\n para salto)', multiline: true, rows: 3 },
+        { key: 'respuesta', label: 'Respuesta', multiline: true, rows: 3 },
+        { key: 'handle', label: 'Handle Instagram' },
+      ],
+    },
+    {
+      id: 'dest-faq-cancelar', nombre: 'FAQ · ¿Puedo cancelar?', desc: 'Objeción: "y si no me sirve, quedo atado".',
+      component: StoryFAQ, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        pregunta: '¿Qué pasa\nsi cancelo\nmás adelante?',
+        respuesta: 'Cancelás cuando quieras, sin permanencia. Tus datos quedan guardados por si volvés a necesitarlos.',
+        handle: '@reventapp.iphone',
+      },
+      campos: [
+        { key: 'pregunta', label: 'Pregunta (\\n para salto)', multiline: true, rows: 3 },
+        { key: 'respuesta', label: 'Respuesta', multiline: true, rows: 3 },
+        { key: 'handle', label: 'Handle Instagram' },
+      ],
+    },
+
+    // ── 6) CÓMO FUNCIONA — recorrido rápido de 3 pasos para el que ya decidió probar ──
+    {
+      id: 'dest-cover-como-funciona', nombre: '📲 Portada: Cómo funciona', desc: 'Ícono de portada para la destacada "Cómo funciona".',
+      component: HighlightCover, exportW: 1080, exportH: 1080, previewW: 400, previewH: 400,
+      defaults: { icono: 'telefono' }, campos: [],
+    },
+    {
+      id: 'dest-como-1', nombre: 'Cómo funciona · 1/2', desc: 'Los 3 pasos, sin vueltas.',
+      component: StoryHook, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        tag: 'ASÍ DE SIMPLE',
+        titulo: '3 pasos\ny arrancás.',
+        subtitulo: 'Registrate → Cargá tu stock → Compartí tu catálogo por WhatsApp.',
+        handle: '@reventapp.iphone',
+      },
+      campos: [
+        { key: 'tag', label: 'Etiqueta' },
+        { key: 'titulo', label: 'Título (\\n para salto)', multiline: true, rows: 2 },
+        { key: 'subtitulo', label: 'Bajada' },
+        { key: 'handle', label: 'Handle Instagram' },
+      ],
+    },
+    {
+      id: 'dest-como-2', nombre: 'Cómo funciona · 2/2', desc: 'Cierre con el link para arrancar ya.',
+      component: StoryCTA, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        tag: 'LISTO EN MINUTOS',
+        titulo: 'Empezá\nhoy mismo.',
+        subtitulo: '7 días gratis, sin tarjeta de crédito.',
+        precio: 'Después, $29.900/mes, todo incluido',
+        url: 'reventapp.com.ar',
+        handle: '@reventapp.iphone',
+      },
+      campos: [
+        { key: 'tag', label: 'Etiqueta' },
+        { key: 'titulo', label: 'Título (\\n para salto)', multiline: true, rows: 2 },
+        { key: 'subtitulo', label: 'Bajada' },
+        { key: 'precio', label: 'Línea chica' },
+        { key: 'url', label: 'URL / texto del botón' },
+        { key: 'handle', label: 'Handle Instagram' },
+      ],
+    },
+  ],
 };
 
 const TAB_LABELS = {
-  feed:  '📱  Feed  1:1',
-  story: '📲  Historia',
-  ad:    '📣  Meta Ad',
+  feed:       '📱  Feed  1:1',
+  story:      '📲  Historia',
+  ad:         '📣  Meta Ad',
+  destacadas: '⭐  Destacadas',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

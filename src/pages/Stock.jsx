@@ -48,6 +48,7 @@ export default function Stock() {
   const [modalCatalogo, setModalCatalogo] = useState(false);
   const [catalogoCategorias, setCatalogoCategorias] = useState([]);
   const [copiado, setCopiado] = useState(false);
+  const [copiadoTodo, setCopiadoTodo] = useState(false);
   const [modalLimite, setModalLimite] = useState(false);
   const FORM_VACIO = {
     categoria: categoriasProducto[0] || 'iPhone', modelo: '', color: '', gb: '', bateria: '', imei: '',
@@ -224,6 +225,20 @@ export default function Stock() {
     navigator.clipboard.writeText(generarFichaWA(eq));
     setCopiado(eq.id);
     setTimeout(() => setCopiado(false), 2000);
+  };
+
+  // Mismo filtro de categorías que ya usa el link del catálogo (catalogoCategorias vacío
+  // = todas) -- así "copiar todo como texto" siempre muestra exactamente lo mismo que el
+  // link que se está por compartir en el mismo modal, nunca stock de más ni de menos.
+  const copiarStockCompleto = () => {
+    const disponibles = equipos.filter(e => e.estado === 'disponible');
+    const filtrados = catalogoCategorias.length > 0
+      ? disponibles.filter(e => catalogoCategorias.includes(e.categoria))
+      : disponibles;
+    const texto = filtrados.map(generarFichaWA).join('\n\n');
+    navigator.clipboard.writeText(texto);
+    setCopiadoTodo(true);
+    setTimeout(() => setCopiadoTodo(false), 2000);
   };
 
   const stockDisponible = equipos.filter(e => e.estado === 'disponible');
@@ -463,6 +478,13 @@ export default function Stock() {
               <button onClick={() => { navigator.clipboard.writeText(urlCatalogo); }} style={{ flex: 1, background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Copiar link</button>
               <a href={`https://wa.me/?text=Mirá mi catálogo: ${urlCatalogo}`} target="_blank" rel="noreferrer" style={{ flex: 1, background: '#25D366', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Compartir por WhatsApp</a>
             </div>
+            {/* Alternativa al link: el texto completo de todo el stock (misma ficha que ya
+                se arma equipo por equipo con "Compartir ficha WhatsApp", unida de una sola
+                vez) -- pedido explícito de un cliente que prefiere pegar el catálogo como
+                texto plano en vez de mandar un link. */}
+            <button type="button" onClick={copiarStockCompleto} style={{ width: '100%', marginTop: 10, background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: copiadoTodo ? 'var(--rv-text)' : 'var(--rv-accent)', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+              {copiadoTodo ? <><IconCheck size={13} />Stock copiado como texto</> : <><IconShare size={13} />Copiar todo el stock como texto</>}
+            </button>
           </div>
         </div>
       )}

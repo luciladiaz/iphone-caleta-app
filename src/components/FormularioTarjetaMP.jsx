@@ -136,7 +136,13 @@ export default function FormularioTarjetaMP({ email, onToken, onCancelar, proces
               if (!activo) return;
               setEnviando(true);
               const { token } = cardFormRef.current.getCardFormData();
-              Promise.resolve(onToken(token)).finally(() => { if (activo) setEnviando(false); });
+              // window.MP_DEVICE_SESSION_ID -- lo genera el SDK v2 (sdk.mercadopago.com/js/v2)
+              // por su cuenta, sin cargar security.js (que sí rompía el CVV, confirmado y
+              // revertido antes). Confirmado en producción con devtools que trae un valor
+              // real ("armor.xxx...") sin ese script. Mercado Pago mismo confirmó que con
+              // SDK v2 el Device ID se recolecta automáticamente -- esto lo aprovecha sin
+              // arriesgar el conflicto de antes.
+              Promise.resolve(onToken(token, window.MP_DEVICE_SESSION_ID)).finally(() => { if (activo) setEnviando(false); });
             },
           },
         });

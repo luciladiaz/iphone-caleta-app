@@ -53,7 +53,7 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Demasiados intentos seguidos. Esperá unos minutos antes de reintentar.' });
   }
 
-  const { plan, negocioId, email, cardTokenId } = req.body || {};
+  const { plan, negocioId, email, cardTokenId, deviceId } = req.body || {};
 
   console.log('crear-suscripcion recibido:', { plan, negocioId, email: email || 'VACIO', cardTokenId: cardTokenId ? 'OK' : 'FALTA' });
 
@@ -122,6 +122,12 @@ export default async function handler(req, res) {
       // para el mismo intento.
       'X-Idempotency-Key': cardTokenId,
     };
+    // Device ID -- lo genera el SDK v2 solo (window.MP_DEVICE_SESSION_ID), confirmado en
+    // producción con devtools que trae valor real sin cargar security.js (que sí rompía
+    // el CVV, ya descartado). Le da al motor antifraude de MP una señal real del
+    // dispositivo en la creación de la suscripción. Si por lo que sea no llegó (SDK no
+    // cargó a tiempo, browser viejo, etc), deviceId viene undefined y no se manda nada.
+    if (deviceId) headers['X-meli-session-id'] = deviceId;
 
     const response = await fetch('https://api.mercadopago.com/preapproval', {
       method: 'POST',

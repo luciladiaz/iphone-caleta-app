@@ -129,6 +129,11 @@ export default async function handler(req, res) {
     // cargó a tiempo, browser viejo, etc), deviceId viene undefined y no se manda nada.
     if (deviceId) headers['X-meli-session-id'] = deviceId;
 
+    // DIAGNÓSTICO TEMPORAL (pedido por soporte de MP para validar el impacto real del
+    // Device ID) -- nunca el valor completo, solo si se mandó y los primeros caracteres
+    // para poder cruzarlo después con el preapproval_id resultante.
+    console.log(`[crear-suscripcion] Device ID enviado=${deviceId ? 'sí' : 'no'}${deviceId ? ` (${deviceId.slice(0, 20)}...)` : ''}`);
+
     const response = await fetch('https://api.mercadopago.com/preapproval', {
       method: 'POST',
       headers,
@@ -169,6 +174,8 @@ export default async function handler(req, res) {
         : '';
       return res.status(502).json({ error: `MP ${response.status}: ${data.message || data.error || JSON.stringify(data)}${causa}` });
     }
+
+    console.log(`[crear-suscripcion] preapproval_id=${data.id} (Device ID enviado=${deviceId ? 'sí' : 'no'})`);
 
     // Guardar el preapprovalId en Firestore para poder verificar el pago después. El
     // webhook (webhook-mp.js) es quien activa el plan de verdad cuando MP confirma la

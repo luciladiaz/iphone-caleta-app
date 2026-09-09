@@ -44,6 +44,7 @@ export default function Stock() {
   const [filtro, setFiltro] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('todas');
   const [filtroPuntoVenta, setFiltroPuntoVenta] = useState('todos');
+  const [orden, setOrden] = useState('fecha_desc');
   const [showCalculadora, setShowCalculadora] = useState(false);
   const [modalCatalogo, setModalCatalogo] = useState(false);
   const [catalogoCategorias, setCatalogoCategorias] = useState([]);
@@ -254,7 +255,17 @@ export default function Stock() {
     })
     .filter(e =>
       `${e.categoria} ${e.modelo} ${e.color} ${e.gb} ${e.imei} ${e.puntoVenta} ${e.asignadoA} ${e.proveedor || ''} ${e.origen?.proveedorNombre || ''} ${e.origen?.clienteNombre || ''}`.toLowerCase().includes(filtro.toLowerCase())
-    );
+    )
+    // Pedido de un cliente: poder ordenar por fecha de adquisición o por modelo. La
+    // consulta a Firestore ya trae todo por fechaIngreso desc (línea ~63), así que
+    // "fecha_desc" no necesita reordenar -- se deja el .sort() igual para los otros 3
+    // casos, sin mutar el array original de `equipos`.
+    .sort((a, b) => {
+      if (orden === 'fecha_asc') return fechaMs(a.fechaIngreso) - fechaMs(b.fechaIngreso);
+      if (orden === 'modelo_asc') return (a.modelo || '').localeCompare(b.modelo || '');
+      if (orden === 'modelo_desc') return (b.modelo || '').localeCompare(a.modelo || '');
+      return fechaMs(b.fechaIngreso) - fechaMs(a.fechaIngreso); // fecha_desc (default)
+    });
   const categoriasConStock = categoriasProducto.filter(cat => equipos.some(e => e.categoria === cat && e.estado !== 'vendido'));
   const puntosVentaConStock = puntosVenta.map(p => p.nombre).filter(nombre => equipos.some(e => e.puntoVenta === nombre && e.estado !== 'vendido'));
   const hayEquiposSinPuntoVenta = equipos.some(e => !e.puntoVenta && e.estado !== 'vendido');
@@ -319,7 +330,15 @@ export default function Stock() {
         </div>
       )}
 
-      <input placeholder="Buscar por modelo, color, IMEI/serie, vendedor, proveedor o cliente..." value={filtro} onChange={e => setFiltro(e.target.value)} style={{ ...inputStyle, marginBottom: 20, maxWidth: 420 }} />
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+        <input placeholder="Buscar por modelo, color, IMEI/serie, vendedor, proveedor o cliente..." value={filtro} onChange={e => setFiltro(e.target.value)} style={{ ...inputStyle, maxWidth: 420 }} />
+        <select value={orden} onChange={e => setOrden(e.target.value)} style={{ ...inputStyle, width: 'auto', maxWidth: 220 }}>
+          <option value="fecha_desc">Más nuevo primero</option>
+          <option value="fecha_asc">Más viejo primero</option>
+          <option value="modelo_asc">Modelo A-Z</option>
+          <option value="modelo_desc">Modelo Z-A</option>
+        </select>
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
         {equiposFiltrados.map(eq => (

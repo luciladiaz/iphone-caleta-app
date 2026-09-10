@@ -461,7 +461,11 @@ function StoryCTA({ tag, titulo, subtitulo, precio, url, handle }) {
 // Set de íconos lineales propios (sin librería externa, mismo criterio que LogoMark:
 // todo CSS/SVG inline). Un ícono por categoría de destacada.
 const ICONOS_DESTACADAS = {
-  cohete: <path d="M12 2c2.5 2 4 5.5 4 9.5 0 2-.5 3.8-1.2 5.3L12 19l-2.8-2.2C8.5 15.3 8 13.5 8 11.5 8 7.5 9.5 4 12 2Z" />,
+  // Silueta de cohete real (nariz + cuerpo + aletas + ventanita), armada solo con líneas
+  // rectas para que el resultado sea 100% predecible -- el path anterior (una curva a
+  // mano) en realidad trazaba una forma de hoja/ojo, no un cohete, y quedó así de fábrica
+  // sin que nadie lo notara hasta agrandarlo.
+  cohete: <><path d="M12 2 L15 8 L15 16 L18 21 L15 18 L12 20 L9 18 L6 21 L9 16 L9 8 Z" /><circle cx="12" cy="9.5" r="1.4" fill="#fff" stroke="none" /></>,
   grilla: <path d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z" />,
   etiqueta: <path d="M3 11.5V5a2 2 0 0 1 2-2h6.5L21 12.5 12.5 21 3 11.5Z" />,
   estrella: <path d="M12 2.5l2.9 6 6.6.7-4.9 4.5 1.3 6.5L12 16.9 6.1 20.2l1.3-6.5-4.9-4.5 6.6-.7L12 2.5Z" />,

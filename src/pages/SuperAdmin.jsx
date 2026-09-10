@@ -147,7 +147,7 @@ function CampanaReactivacion({ negocios, onEnviarPrueba, onEnviarCampaña, envia
         <span style={{ background: 'var(--rv-danger-soft)', color: 'var(--rv-danger)', fontSize: 11.5, fontWeight: 800, borderRadius: 99, padding: '2px 9px' }}>{candidatos.length}</span>
       </div>
       <p style={{ color: 'var(--rv-text-dim)', fontSize: 12.5, lineHeight: 1.5, marginBottom: 12 }}>
-        Les manda un mail contando las novedades (Reparaciones, cancelación real, plan único, modo oscuro, etc.) y les reactiva 7 días de prueba gratis, de una sola vez. No se repite: quien ya lo recibió no aparece más acá.
+        Les manda un mail contando 3 features nuevas (comprobante con firma, Plan Canje, Reparaciones) pidiéndoles que respondan o escriban por WhatsApp si quieren reactivar 7 días de prueba gratis — no se los reactiva solo, así filtrás quién está realmente interesado. Cuando alguien te escriba, activáselo a mano desde "Extender trial" en su detalle. No se repite: quien ya lo recibió no aparece más acá.
         {sinEmail > 0 ? ` (${sinEmail} más están vencidos pero sin email de dueño cargado, así que no se les puede mandar.)` : ''}
       </p>
 
@@ -471,7 +471,7 @@ export default function SuperAdmin() {
   const enviarCampañaWinback = async () => {
     const candidatos = (datos?.negocios || []).filter(n => n.salud === 'trial_vencido' && !n.esDemo && !n.winbackEnviado && n.email);
     if (candidatos.length === 0) return;
-    if (!window.confirm(`Esto le manda un mail real a ${candidatos.length} persona(s) y les reactiva 7 días de trial. ¿Confirmás?`)) return;
+    if (!window.confirm(`Esto le manda un mail real a ${candidatos.length} persona(s) invitándolas a pedir la reactivación. ¿Confirmás?`)) return;
 
     setEnviandoCampañaWinback(true);
     setResultadoWinback(null);

@@ -24,36 +24,44 @@ const MENSAJES_WHATSAPP = {
   6: (nombre) => `Hola ${nombre}! Mañana se vence tu prueba gratis de ReventApp. Si querés seguir, el plan completo son $29.900/mes, con todo incluido, cancelás cuando quieras. ¿Tuviste algún problema con el pago o dudas del plan? Y si decidís no seguir, contame por qué — me ayuda un montón a mejorar la app`,
 };
 
-function botonWhatsapp(mensaje) {
+function botonWhatsapp(mensaje, label = '💬 Escribinos por WhatsApp') {
   const url = `https://wa.me/${WHATSAPP_SOPORTE}?text=${encodeURIComponent(mensaje)}`;
-  return `<p><a href="${url}" style="display:inline-block;background:#25D366;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">💬 Escribinos por WhatsApp</a></p>`;
+  return `<p><a href="${url}" style="display:inline-block;background:#25D366;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold">${label}</a></p>`;
 }
 
 // Campaña de reactivación para negocios cuyo trial venció sin convertir a pago
-// (manejarWinback más abajo). Solo se menciona lo que cambió DE VERDAD desde que se
-// simplificó a un plan único (fuente: WIKI/changelog real del proyecto, no inventado):
-// módulo de reparaciones (2026-08-16), cancelación real con botón (2026-08-16), modo
-// oscuro (2026-08-17), mejoras de Stock/Studio (2026-09-09/10). El incentivo (7 días
-// más de prueba) se aplica de verdad en Firestore ANTES de mandar el mail, en
-// manejarWinback -- nunca prometer algo que no se ejecutó en el mismo paso.
+// (manejarWinback más abajo). Dos rondas de feedback de Lucila sobre la primera
+// versión:
+// 1) Cancelación y "un solo plan simple" no ayudan a decidir una compra (sacan
+//    fricción, no dan motivo) -- reemplazadas por 3 features que resuelven un dolor
+//    real y concreto del día a día del revendedor (fuente: WIKI, investigación de
+//    mercado real del 2026-08-08 + código confirmado): comprobante con
+//    checklist+firma (cierra el dolor de reclamos de garantía), Plan Canje (evita
+//    cuentas a mano en la parte más propensa a error de la operación) y Reparaciones
+//    (suma un negocio entero a la misma app).
+// 2) Regalar los 7 días de prueba de nuevo, ya activados de una, no sirve como señal
+//    de interés real -- a alguien que ya tuvo un trial gratis y no convirtió, darle
+//    más gratis sin pedirle nada no filtra quién está genuinamente interesado. Ahora
+//    el mail PIDE una acción (responder o escribir por WhatsApp) para reactivar --
+//    quien no está interesado simplemente no contesta, y quien contesta es una señal
+//    real. La activación queda manual (Lucila usa el botón "Extender trial" que ya
+//    existe en el detalle del negocio en el panel), así que manejarWinback ya NO
+//    toca venceTrial -- solo manda el mail y marca winbackEnviado.
 function EMAIL_WINBACK(nombre) {
   return {
-    subject: `${nombre}, te reactivamos 7 días gratis en ReventApp 🎁`,
+    subject: `${nombre}, te guardamos 7 días de prueba gratis 🎁`,
     html: `
       <p>Hola ${nombre},</p>
       <p>Probaste ReventApp hace un tiempo y no llegaste a decidirte. Pasa, y antes de asumir que no era para vos, quisimos darte otra chance.</p>
-      <p>Desde entonces cambiamos bastante la plataforma:</p>
+      <p>Desde entonces sumamos 3 cosas que te van a servir de verdad:</p>
       <ul style="padding-left:18px;line-height:1.7">
-        <li>🔧 <strong>Módulo de Reparaciones nuevo</strong>: si además reparás equipos, ahora llevás todo el flujo (ingreso → diagnóstico → presupuesto → entrega) en la misma app.</li>
-        <li>✅ <strong>Cancelación real con un botón</strong>: "cancelás cuando quieras" ahora es un botón de verdad adentro de la app, no un trámite manual.</li>
-        <li>💰 <strong>Un solo plan simple</strong>: $29.900/mes con todo incluido (antes había varios niveles confusos).</li>
-        <li>🌙 Modo oscuro, mejoras en Stock (orden por fecha, modelo o precio) y en Studio (contenido listo para Instagram).</li>
-        <li>📋 Copiar tu stock completo como texto con un clic, para mandarlo por donde quieras.</li>
+        <li>🧾 <strong>Comprobante de venta con checklist de estado + firma digital del cliente</strong>: te cubrís ante cualquier reclamo de garantía después de la venta.</li>
+        <li>🔁 <strong>Plan Canje</strong>: calculadora automática de la diferencia cuando un cliente te entrega un equipo usado como parte de pago — sin cuentas a mano ni errores.</li>
+        <li>🔧 <strong>Módulo de Reparaciones</strong>: si además reparás equipos, ahora llevás todo el flujo (ingreso → diagnóstico → presupuesto → entrega) en la misma app.</li>
       </ul>
-      <p>Y para que puedas probar todo esto sin apuro: <strong>ya te reactivamos 7 días de prueba gratis</strong>, sin necesidad de cargar tarjeta. Solo tenés que entrar.</p>
-      <p><a href="${APP_URL}/login" style="display:inline-block;background:#2563EB;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold;margin:8px 0">Entrar a ReventApp →</a></p>
-      <p>Si tenés una duda puntual (precio, cómo migrar tu stock viejo, lo que sea), escribinos directo y te ayudamos personalmente:</p>
-      ${botonWhatsapp(`Hola! Me llegó el mail de reactivación de ReventApp (${nombre}) y tengo una duda`)}
+      <p>Si te interesa darle otra vuelta, avisanos y te reactivamos 7 días de prueba gratis al toque, sin necesidad de cargar tarjeta:</p>
+      ${botonWhatsapp(`Hola! Me llegó el mail de ReventApp y quiero reactivar mi prueba (${nombre})`, '🎁 Quiero mis 7 días gratis')}
+      <p style="color:#666;font-size:13px">También podés responder directamente este correo.</p>
       <p style="color:#888;font-size:12px;margin-top:28px">Si preferís no recibir más este tipo de mails, respondé este correo y te sacamos de la lista.</p>`,
   };
 }
@@ -349,11 +357,17 @@ async function manejarGuardarNota(req, res) {
 // - testEmail: manda UN mail de prueba a esa dirección (sin tocar Firestore), para
 //   revisar cómo se ve antes de mandarlo en serio.
 // - negocioIds: la lista exacta que Lucila ya vio y confirmó en el panel (nunca
-//   recalculada a ciegas del lado del servidor) -- por cada uno, extiende el trial 7
-//   días desde hoy (mismo criterio que manejarExtenderTrial: si por algo ya no
-//   estuviera vencido, no le resta días), manda el mail y recién ahí marca
-//   winbackEnviado, para que un reintento por error de red no lo mande dos veces a
-//   quien ya lo recibió.
+//   recalculada a ciegas del lado del servidor) -- por cada uno, manda el mail y
+//   marca winbackEnviado, para que un reintento por error de red no lo mande dos
+//   veces a quien ya lo recibió.
+//
+// A propósito NO extiende venceTrial acá -- el mail le pide a la persona que
+// responda o escriba por WhatsApp para reactivar (ver comentario en EMAIL_WINBACK):
+// regalar los 7 días de una sin pedir nada no da ninguna señal de interés real.
+// Cuando alguien efectivamente contesta, Lucila lo activa a mano con el botón
+// "Extender trial" que ya existe en el detalle de cada negocio (manejarExtenderTrial),
+// mismo mecanismo de siempre, solo que ahora disparado por una respuesta real en vez
+// de a ciegas.
 async function manejarWinback(req, res) {
   const { testEmail, negocioIds } = req.body || {};
   if (!RESEND_API_KEY) return res.status(500).json({ error: 'Resend no configurado en el servidor' });
@@ -389,14 +403,9 @@ async function manejarWinback(req, res) {
       }
       if (!usuario.email) { errores.push({ negocioId, error: 'Sin email de dueño' }); continue; }
 
-      const venceActual = aFecha(n.venceTrial);
-      const base = venceActual && venceActual.getTime() > Date.now() ? venceActual : new Date();
-      const nuevaFecha = new Date(base.getTime() + 7 * MS_DIA);
-
       const nombrePersona = usuario.nombre || n.nombre || '';
       await enviarEmail({ to: usuario.email, ...EMAIL_WINBACK(nombrePersona) });
       await negRef.update({
-        venceTrial: nuevaFecha,
         winbackEnviado: true,
         winbackFecha: FieldValue.serverTimestamp(),
       });

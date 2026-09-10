@@ -465,7 +465,21 @@ const ICONOS_DESTACADAS = {
   // rectas para que el resultado sea 100% predecible -- el path anterior (una curva a
   // mano) en realidad trazaba una forma de hoja/ojo, no un cohete, y quedó así de fábrica
   // sin que nadie lo notara hasta agrandarlo.
-  cohete: <><path d="M12 2 L15 8 L15 16 L18 21 L15 18 L12 20 L9 18 L6 21 L9 16 L9 8 Z" /><circle cx="12" cy="9.5" r="1.4" fill="#fff" stroke="none" /></>,
+  //
+  // Relleno explícito (fill blanco, stroke none) en vez de depender del stroke pesado
+  // del IconoLineal padre (3.2 en un viewBox de 24, ~25px reales al tamaño de la portada)
+  // -- con ese trazo tan grueso el cuerpo (6 unidades de ancho) quedaba completamente
+  // cubierto por el propio trazo y se veía como un blob sólido sin definición ("muy
+  // tosco", feedback de Lucila). Cuerpo angosto (4 unidades) + relleno limpio = silueta
+  // fina y reconocible en vez de un bloque. La ventanita se "perfora" con el color más
+  // oscuro del degradé de fondo (B.deep) en lugar de blanco sobre blanco, para que se
+  // note como hueco real y no desaparezca contra el cuerpo.
+  cohete: (
+    <>
+      <path d="M12 2 L14 8 L14 15 L17 20 L14 17.5 L12 19.5 L10 17.5 L7 20 L10 15 L10 8 Z" fill="#fff" stroke="none" />
+      <circle cx="12" cy="9.5" r="1.3" fill="#1A3A8F" stroke="none" />
+    </>
+  ),
   grilla: <path d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z" />,
   etiqueta: <path d="M3 11.5V5a2 2 0 0 1 2-2h6.5L21 12.5 12.5 21 3 11.5Z" />,
   estrella: <path d="M12 2.5l2.9 6 6.6.7-4.9 4.5 1.3 6.5L12 16.9 6.1 20.2l1.3-6.5-4.9-4.5 6.6-.7L12 2.5Z" />,

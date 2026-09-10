@@ -131,6 +131,62 @@ function PendientesContacto({ negocios, onMarcar, marcando }) {
   );
 }
 
+// Campaña de reactivación por mail para trials vencidos que nunca convirtieron a
+// pago (ver EMAIL_WINBACK / manejarWinback en api/superadmin.js). Mismo criterio que
+// el KPI "Trial vencido" del resumen (salud trial_vencido, sin negocios demo), menos
+// los que ya recibieron la campaña antes (winbackEnviado) y los que no tienen mail de
+// dueño cargado (no hay a quién mandarle).
+function CampanaReactivacion({ negocios, onEnviarPrueba, onEnviarCampaña, enviandoPrueba, enviandoCampaña, resultado }) {
+  const candidatos = negocios.filter(n => n.salud === 'trial_vencido' && !n.esDemo && !n.winbackEnviado && n.email);
+  const sinEmail = negocios.filter(n => n.salud === 'trial_vencido' && !n.esDemo && !n.winbackEnviado && !n.email).length;
+
+  return (
+    <div style={{ marginBottom: 26, background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: '16px 18px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+        <h2 style={{ fontSize: 15, fontWeight: 800 }}>Campaña de reactivación — trials vencidos</h2>
+        <span style={{ background: 'var(--rv-danger-soft)', color: 'var(--rv-danger)', fontSize: 11.5, fontWeight: 800, borderRadius: 99, padding: '2px 9px' }}>{candidatos.length}</span>
+      </div>
+      <p style={{ color: 'var(--rv-text-dim)', fontSize: 12.5, lineHeight: 1.5, marginBottom: 12 }}>
+        Les manda un mail contando las novedades (Reparaciones, cancelación real, plan único, modo oscuro, etc.) y les reactiva 7 días de prueba gratis, de una sola vez. No se repite: quien ya lo recibió no aparece más acá.
+        {sinEmail > 0 ? ` (${sinEmail} más están vencidos pero sin email de dueño cargado, así que no se les puede mandar.)` : ''}
+      </p>
+
+      {candidatos.length > 0 && (
+        <details style={{ marginBottom: 12 }}>
+          <summary style={{ cursor: 'pointer', color: 'var(--rv-text-mid)', fontSize: 12.5, fontWeight: 700 }}>Ver a quiénes se les mandaría</summary>
+          <ul style={{ marginTop: 8, paddingLeft: 18, color: 'var(--rv-text-dim)', fontSize: 12.5, lineHeight: 1.8 }}>
+            {candidatos.map(n => <li key={n.id}>{n.nombreDueño || n.nombre} — {n.email} <span style={{ opacity: 0.7 }}>(venció el {fmtFecha(n.venceTrial)})</span></li>)}
+          </ul>
+        </details>
+      )}
+
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button
+          onClick={onEnviarPrueba}
+          disabled={enviandoPrueba}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--rv-surface-alt)', color: 'var(--rv-text)', border: '1px solid var(--rv-border)', borderRadius: 9, padding: '9px 14px', fontSize: 12.5, fontWeight: 700, cursor: enviandoPrueba ? 'default' : 'pointer', opacity: enviandoPrueba ? 0.6 : 1 }}
+        >
+          <IconMail size={13} /> {enviandoPrueba ? 'Enviando prueba…' : 'Mandarme una prueba a mí'}
+        </button>
+        <button
+          onClick={onEnviarCampaña}
+          disabled={enviandoCampaña || candidatos.length === 0}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 14px', fontSize: 12.5, fontWeight: 700, cursor: (enviandoCampaña || candidatos.length === 0) ? 'default' : 'pointer', opacity: (enviandoCampaña || candidatos.length === 0) ? 0.6 : 1 }}
+        >
+          <IconMail size={13} /> {enviandoCampaña ? 'Enviando…' : `Enviar a los ${candidatos.length}`}
+        </button>
+      </div>
+
+      {resultado && (
+        <p style={{ marginTop: 10, fontSize: 12.5, color: resultado.errores?.length ? 'var(--rv-danger)' : '#1a9c6b' }}>
+          {resultado.testEnviado ? `Prueba enviada a ${resultado.testEnviado}.` : `Enviados: ${resultado.enviados?.length || 0}.`}
+          {resultado.errores?.length > 0 ? ` Errores: ${resultado.errores.length} (ver consola).` : ''}
+        </p>
+      )}
+    </div>
+  );
+}
+
 const ESTADO_PAGO_COLOR = {
   exitoso: '#1a9c6b', cancelado_voluntario: '#6b7686', cancelado_sin_pago: '#d43d3d', reintentando: '#c8790a',
 };
@@ -291,6 +347,9 @@ export default function SuperAdmin() {
   const [guardandoNota, setGuardandoNota] = useState(false);
   const [diasExtender, setDiasExtender] = useState('7');
   const [extendiendoTrial, setExtendiendoTrial] = useState(false);
+  const [enviandoPruebaWinback, setEnviandoPruebaWinback] = useState(false);
+  const [enviandoCampañaWinback, setEnviandoCampañaWinback] = useState(false);
+  const [resultadoWinback, setResultadoWinback] = useState(null);
 
   useEffect(() => {
     if (!user || user.email !== EMAIL_SUPERADMIN) { setLoading(false); return; }
@@ -386,6 +445,52 @@ export default function SuperAdmin() {
       setError(e.message);
     } finally {
       setExtendiendoTrial(false);
+    }
+  };
+
+  const enviarPruebaWinback = async () => {
+    setEnviandoPruebaWinback(true);
+    setResultadoWinback(null);
+    try {
+      const idToken = await user.getIdToken();
+      const res = await fetch('/api/superadmin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ winback: true, testEmail: user.email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+      setResultadoWinback(data);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setEnviandoPruebaWinback(false);
+    }
+  };
+
+  const enviarCampañaWinback = async () => {
+    const candidatos = (datos?.negocios || []).filter(n => n.salud === 'trial_vencido' && !n.esDemo && !n.winbackEnviado && n.email);
+    if (candidatos.length === 0) return;
+    if (!window.confirm(`Esto le manda un mail real a ${candidatos.length} persona(s) y les reactiva 7 días de trial. ¿Confirmás?`)) return;
+
+    setEnviandoCampañaWinback(true);
+    setResultadoWinback(null);
+    try {
+      const idToken = await user.getIdToken();
+      const res = await fetch('/api/superadmin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ winback: true, negocioIds: candidatos.map(n => n.id) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+      setResultadoWinback(data);
+      if (data.errores?.length) console.warn('[winback] errores:', data.errores);
+      await cargar();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setEnviandoCampañaWinback(false);
     }
   };
 
@@ -499,7 +604,17 @@ export default function SuperAdmin() {
             </div>
 
             {vista === 'seguimiento' && (
-              <PendientesContacto negocios={datos.negocios} onMarcar={marcarContacto} marcando={marcando} />
+              <>
+                <CampanaReactivacion
+                  negocios={datos.negocios}
+                  onEnviarPrueba={enviarPruebaWinback}
+                  onEnviarCampaña={enviarCampañaWinback}
+                  enviandoPrueba={enviandoPruebaWinback}
+                  enviandoCampaña={enviandoCampañaWinback}
+                  resultado={resultadoWinback}
+                />
+                <PendientesContacto negocios={datos.negocios} onMarcar={marcarContacto} marcando={marcando} />
+              </>
             )}
 
             {vista === 'resumen' && (

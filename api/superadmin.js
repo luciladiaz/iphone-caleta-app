@@ -1,6 +1,10 @@
 import { adminDb, usuarioDeRequest } from './_firebase.js';
+import { FieldValue } from 'firebase-admin/firestore';
 
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const APP_URL = 'https://reventapp.com.ar';
+const WHATSAPP_SOPORTE = '5493364400111';
 
 // Panel de superadmin — visión de todos los negocios (trial, plan, vencimientos,
 // estado de la suscripción) en un solo lugar. Acceso restringido a la dueña de la
@@ -19,6 +23,49 @@ const MENSAJES_WHATSAPP = {
   4: (nombre) => `Hola ${nombre}! Van 4 días de tu prueba 👀 Te quedan 3. ¿Cómo la venís pasando — te sirvió, te trabaste en algo puntual, o todavía no tuviste tiempo de probarla bien? Contame así te ayudo con lo que necesites en lo que queda`,
   6: (nombre) => `Hola ${nombre}! Mañana se vence tu prueba gratis de ReventApp. Si querés seguir, el plan completo son $29.900/mes, con todo incluido, cancelás cuando quieras. ¿Tuviste algún problema con el pago o dudas del plan? Y si decidís no seguir, contame por qué — me ayuda un montón a mejorar la app`,
 };
+
+function botonWhatsapp(mensaje) {
+  const url = `https://wa.me/${WHATSAPP_SOPORTE}?text=${encodeURIComponent(mensaje)}`;
+  return `<p><a href="${url}" style="display:inline-block;background:#25D366;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">💬 Escribinos por WhatsApp</a></p>`;
+}
+
+// Campaña de reactivación para negocios cuyo trial venció sin convertir a pago
+// (manejarWinback más abajo). Solo se menciona lo que cambió DE VERDAD desde que se
+// simplificó a un plan único (fuente: WIKI/changelog real del proyecto, no inventado):
+// módulo de reparaciones (2026-08-16), cancelación real con botón (2026-08-16), modo
+// oscuro (2026-08-17), mejoras de Stock/Studio (2026-09-09/10). El incentivo (7 días
+// más de prueba) se aplica de verdad en Firestore ANTES de mandar el mail, en
+// manejarWinback -- nunca prometer algo que no se ejecutó en el mismo paso.
+function EMAIL_WINBACK(nombre) {
+  return {
+    subject: `${nombre}, te reactivamos 7 días gratis en ReventApp 🎁`,
+    html: `
+      <p>Hola ${nombre},</p>
+      <p>Probaste ReventApp hace un tiempo y no llegaste a decidirte. Pasa, y antes de asumir que no era para vos, quisimos darte otra chance.</p>
+      <p>Desde entonces cambiamos bastante la plataforma:</p>
+      <ul style="padding-left:18px;line-height:1.7">
+        <li>🔧 <strong>Módulo de Reparaciones nuevo</strong>: si además reparás equipos, ahora llevás todo el flujo (ingreso → diagnóstico → presupuesto → entrega) en la misma app.</li>
+        <li>✅ <strong>Cancelación real con un botón</strong>: "cancelás cuando quieras" ahora es un botón de verdad adentro de la app, no un trámite manual.</li>
+        <li>💰 <strong>Un solo plan simple</strong>: $29.900/mes con todo incluido (antes había varios niveles confusos).</li>
+        <li>🌙 Modo oscuro, mejoras en Stock (orden por fecha, modelo o precio) y en Studio (contenido listo para Instagram).</li>
+        <li>📋 Copiar tu stock completo como texto con un clic, para mandarlo por donde quieras.</li>
+      </ul>
+      <p>Y para que puedas probar todo esto sin apuro: <strong>ya te reactivamos 7 días de prueba gratis</strong>, sin necesidad de cargar tarjeta. Solo tenés que entrar.</p>
+      <p><a href="${APP_URL}/login" style="display:inline-block;background:#2563EB;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold;margin:8px 0">Entrar a ReventApp →</a></p>
+      <p>Si tenés una duda puntual (precio, cómo migrar tu stock viejo, lo que sea), escribinos directo y te ayudamos personalmente:</p>
+      ${botonWhatsapp(`Hola! Me llegó el mail de reactivación de ReventApp (${nombre}) y tengo una duda`)}
+      <p style="color:#888;font-size:12px;margin-top:28px">Si preferís no recibir más este tipo de mails, respondé este correo y te sacamos de la lista.</p>`,
+  };
+}
+
+async function enviarEmail({ to, subject, html }) {
+  const resendRes = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: 'ReventApp <hola@reventapp.com.ar>', to, subject, html }),
+  });
+  if (!resendRes.ok) throw new Error(`Resend ${resendRes.status}: ${await resendRes.text()}`);
+}
 
 function aFecha(valor) {
   if (!valor) return null;
@@ -195,6 +242,7 @@ async function manejarGet(req, res) {
         pendienteContacto,
         mensajeSugerido,
         notaAdmin: n.notaAdmin || '',
+        winbackEnviado: !!n.winbackEnviado,
       };
 
       return { ...base, salud: calcularSalud(base) };
@@ -297,11 +345,76 @@ async function manejarGuardarNota(req, res) {
   }
 }
 
+// Campaña de reactivación (ver EMAIL_WINBACK más arriba). Dos modos:
+// - testEmail: manda UN mail de prueba a esa dirección (sin tocar Firestore), para
+//   revisar cómo se ve antes de mandarlo en serio.
+// - negocioIds: la lista exacta que Lucila ya vio y confirmó en el panel (nunca
+//   recalculada a ciegas del lado del servidor) -- por cada uno, extiende el trial 7
+//   días desde hoy (mismo criterio que manejarExtenderTrial: si por algo ya no
+//   estuviera vencido, no le resta días), manda el mail y recién ahí marca
+//   winbackEnviado, para que un reintento por error de red no lo mande dos veces a
+//   quien ya lo recibió.
+async function manejarWinback(req, res) {
+  const { testEmail, negocioIds } = req.body || {};
+  if (!RESEND_API_KEY) return res.status(500).json({ error: 'Resend no configurado en el servidor' });
+
+  if (testEmail) {
+    try {
+      await enviarEmail({ to: testEmail, ...EMAIL_WINBACK('Ejemplo') });
+      return res.status(200).json({ ok: true, testEnviado: testEmail });
+    } catch (e) {
+      return res.status(502).json({ error: e.message });
+    }
+  }
+
+  if (!Array.isArray(negocioIds) || negocioIds.length === 0)
+    return res.status(400).json({ error: 'Falta negocioIds (lista) o testEmail' });
+
+  const enviados = [];
+  const errores = [];
+
+  for (const negocioId of negocioIds) {
+    try {
+      const negRef = adminDb.doc(`negocios/${negocioId}`);
+      const negSnap = await negRef.get();
+      if (!negSnap.exists) { errores.push({ negocioId, error: 'No encontrado' }); continue; }
+      const n = negSnap.data();
+      if (n.winbackEnviado) { errores.push({ negocioId, error: 'Ya se le había enviado' }); continue; }
+      if (n.plan !== 'trial') { errores.push({ negocioId, error: 'Ya no está en trial' }); continue; }
+
+      let usuario = {};
+      if (n.ownerUid) {
+        const uSnap = await adminDb.doc(`usuarios/${n.ownerUid}`).get();
+        if (uSnap.exists) usuario = uSnap.data();
+      }
+      if (!usuario.email) { errores.push({ negocioId, error: 'Sin email de dueño' }); continue; }
+
+      const venceActual = aFecha(n.venceTrial);
+      const base = venceActual && venceActual.getTime() > Date.now() ? venceActual : new Date();
+      const nuevaFecha = new Date(base.getTime() + 7 * MS_DIA);
+
+      const nombrePersona = usuario.nombre || n.nombre || '';
+      await enviarEmail({ to: usuario.email, ...EMAIL_WINBACK(nombrePersona) });
+      await negRef.update({
+        venceTrial: nuevaFecha,
+        winbackEnviado: true,
+        winbackFecha: FieldValue.serverTimestamp(),
+      });
+      enviados.push({ negocioId, email: usuario.email });
+    } catch (e) {
+      errores.push({ negocioId, error: e.message });
+    }
+  }
+
+  return res.status(200).json({ ok: true, enviados, errores });
+}
+
 async function manejarPost(req, res) {
-  const { dia, nota, dias } = req.body || {};
+  const { dia, nota, dias, winback } = req.body || {};
   if (dia !== undefined) return manejarMarcarContacto(req, res);
   if (nota !== undefined) return manejarGuardarNota(req, res);
   if (dias !== undefined) return manejarExtenderTrial(req, res);
+  if (winback !== undefined) return manejarWinback(req, res);
   return res.status(400).json({ error: 'Body inválido' });
 }
 

@@ -469,9 +469,9 @@ const ICONOS_DESTACADAS = {
   telefono: <path d="M8 2h8a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Zm4 17h.01" />,
 };
 
-function IconoLineal({ children, size = 40 }) {
+function IconoLineal({ children, size = 40, strokeWidth = 1.6 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
       {children}
     </svg>
   );
@@ -480,6 +480,12 @@ function IconoLineal({ children, size = 40 }) {
 // Portada de destacada: círculo con degradé de marca + ícono centrado. Instagram
 // recorta a círculo lo que se suba, así que el diseño ya nace pensado para eso (ícono
 // chico y centrado, sin texto pegado al borde que se corte).
+//
+// El ícono va grande (190px, ~48% del círculo) y con trazo grueso (3.2) a propósito:
+// las portadas de destacadas se ven MINÚSCULAS en el perfil de Instagram (círculo
+// chico bajo la foto), así que un ícono fino de 90px/1.6 de trazo (como estaba antes)
+// se volvía invisible ahí -- se veía como una mancha sin forma reconocible en vez de
+// un ícono. Confirmado visualmente por Lucila ("esto es horrible") con el de "cohete".
 function HighlightCover({ icono }) {
   return (
     <div style={{ width: 400, height: 400, background: B.navy, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif' }}>
@@ -488,7 +494,7 @@ function HighlightCover({ icono }) {
         background: `linear-gradient(150deg, ${B.deep} 0%, ${B.blue} 100%)`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <IconoLineal size={90}>{ICONOS_DESTACADAS[icono]}</IconoLineal>
+        <IconoLineal size={190} strokeWidth={3.2}>{ICONOS_DESTACADAS[icono]}</IconoLineal>
       </div>
     </div>
   );

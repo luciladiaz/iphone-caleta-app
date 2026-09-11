@@ -47,7 +47,12 @@ function botonWhatsapp(mensaje, label = '💬 Escribinos por WhatsApp') {
 //    real. La activación queda manual (Lucila usa el botón "Extender trial" que ya
 //    existe en el detalle del negocio en el panel), así que manejarWinback ya NO
 //    toca venceTrial -- solo manda el mail y marca winbackEnviado.
-function EMAIL_WINBACK(nombre) {
+// 3) El mensaje de WhatsApp lleva el email con el que esa cuenta está registrada
+//    (sacado de Firestore al armar el mail, no algo que la persona escriba) -- sirve
+//    como confirmación liviana de que el mensaje corresponde a esa cuenta real, y
+//    Lucila lo pega directo en el buscador del panel (ya matchea por email) para
+//    encontrar el negocio exacto sin tener que preguntarlo.
+function EMAIL_WINBACK(nombre, email) {
   return {
     subject: `${nombre}, te guardamos 7 días de prueba gratis 🎁`,
     html: `
@@ -60,7 +65,7 @@ function EMAIL_WINBACK(nombre) {
         <li>🔧 <strong>Módulo de Reparaciones</strong>: si además reparás equipos, ahora llevás todo el flujo (ingreso → diagnóstico → presupuesto → entrega) en la misma app.</li>
       </ul>
       <p>Si te interesa darle otra vuelta, avisanos y te reactivamos 7 días de prueba gratis al toque, sin necesidad de cargar tarjeta:</p>
-      ${botonWhatsapp(`Hola! Me llegó el mail de ReventApp y quiero reactivar mi prueba (${nombre})`, '🎁 Quiero mis 7 días gratis')}
+      ${botonWhatsapp(`Hola! Me llegó el mail de ReventApp y quiero reactivar mi prueba. Mi cuenta es ${email} (${nombre})`, '🎁 Quiero mis 7 días gratis')}
       <p style="color:#666;font-size:13px">También podés responder directamente este correo.</p>
       <p style="color:#888;font-size:12px;margin-top:28px">Si preferís no recibir más este tipo de mails, respondé este correo y te sacamos de la lista.</p>`,
   };
@@ -374,7 +379,7 @@ async function manejarWinback(req, res) {
 
   if (testEmail) {
     try {
-      await enviarEmail({ to: testEmail, ...EMAIL_WINBACK('Ejemplo') });
+      await enviarEmail({ to: testEmail, ...EMAIL_WINBACK('Ejemplo', testEmail) });
       return res.status(200).json({ ok: true, testEnviado: testEmail });
     } catch (e) {
       return res.status(502).json({ error: e.message });
@@ -404,7 +409,7 @@ async function manejarWinback(req, res) {
       if (!usuario.email) { errores.push({ negocioId, error: 'Sin email de dueño' }); continue; }
 
       const nombrePersona = usuario.nombre || n.nombre || '';
-      await enviarEmail({ to: usuario.email, ...EMAIL_WINBACK(nombrePersona) });
+      await enviarEmail({ to: usuario.email, ...EMAIL_WINBACK(nombrePersona, usuario.email) });
       await negRef.update({
         winbackEnviado: true,
         winbackFecha: FieldValue.serverTimestamp(),

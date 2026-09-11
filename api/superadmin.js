@@ -65,7 +65,7 @@ function EMAIL_WINBACK(nombre, email) {
         <li>🔧 <strong>Módulo de Reparaciones</strong>: si además reparás equipos, ahora llevás todo el flujo (ingreso → diagnóstico → presupuesto → entrega) en la misma app.</li>
       </ul>
       <p>Si te interesa darle otra vuelta, avisanos y te reactivamos 7 días de prueba gratis al toque, sin necesidad de cargar tarjeta:</p>
-      ${botonWhatsapp(`Hola! Me llegó el mail de ReventApp y quiero reactivar mi prueba. Mi cuenta es ${email} (${nombre})`, '🎁 Quiero mis 7 días gratis')}
+      ${botonWhatsapp(`Hola! Me llegó el mail de ReventApp y quiero reactivar mi prueba. Me registré con el mail ${email} (${nombre})`, '🎁 Quiero mis 7 días gratis')}
       <p style="color:#666;font-size:13px">También podés responder directamente este correo.</p>
       <p style="color:#888;font-size:12px;margin-top:28px">Si preferís no recibir más este tipo de mails, respondé este correo y te sacamos de la lista.</p>`,
   };

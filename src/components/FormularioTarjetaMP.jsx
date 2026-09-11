@@ -200,7 +200,7 @@ export default function FormularioTarjetaMP({ email, onToken, onCancelar, proces
 
         <button type="submit" disabled={procesando || enviando}
           style={{ width: '100%', marginTop: 4, padding: '12px 20px', background: 'var(--rv-accent)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-          {procesando || enviando ? 'Procesando...' : 'Confirmar pago'}
+          {procesando || enviando ? 'Procesando...' : 'Pagar seguro'}
         </button>
       </form>
 

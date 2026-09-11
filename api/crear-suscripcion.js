@@ -37,12 +37,76 @@ const MOTIVOS_RECHAZO = {
   cc_rejected_other_reason: 'Tu banco no autorizó el pago. Contactá a tu banco para más info, o probá con otra tarjeta.',
 };
 
+// Actualiza la tarjeta de una suscripción YA existente (PUT /preapproval/{id} con
+// card_token_id, confirmado en la documentación oficial de MP: "Gestión de
+// suscripciones" -- modifica el medio de pago sin interrumpir la suscripción). Vive acá
+// en vez de en un archivo aparte para no sumar otra función serverless (límite de 12 en
+// el plan Hobby de Vercel), reutilizando el mismo chequeo de dueño del negocio y el
+// mismo MOTIVOS_RECHAZO que ya tiene crear-suscripcion.js. Disponible para cualquier
+// suscriptor con preapprovalId, esté al día o con el cobro fallando -- no se distingue
+// un caso del otro a propósito (pedido explícito: sin detección de "moroso", el botón
+// simplemente está siempre disponible).
+async function actualizarMedioPago(req, res) {
+  if (limitado(req, { ventanaMs: 10 * 60_000, maximo: 8 })) {
+    return res.status(429).json({ error: 'Demasiados intentos seguidos. Esperá unos minutos antes de reintentar.' });
+  }
+
+  const { negocioId, cardTokenId } = req.body || {};
+  if (!negocioId || !cardTokenId)
+    return res.status(400).json({ error: 'Faltan datos: negocioId, cardTokenId' });
+
+  const usuario = await usuarioDeRequest(req);
+  if (!usuario || usuario.negocioId !== negocioId)
+    return res.status(403).json({ error: 'No autorizado para este negocio' });
+
+  if (!MP_ACCESS_TOKEN)
+    return res.status(500).json({ error: 'MercadoPago no configurado en el servidor' });
+
+  try {
+    const negSnap = await adminDb.doc(`negocios/${negocioId}`).get();
+    const preapprovalId = negSnap.exists ? negSnap.data().preapprovalId : null;
+    if (!preapprovalId)
+      return res.status(400).json({ error: 'Este negocio no tiene una suscripción activa para actualizar' });
+
+    const response = await fetch(`https://api.mercadopago.com/preapproval/${preapprovalId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json',
+        'X-Idempotency-Key': cardTokenId,
+      },
+      body: JSON.stringify({ card_token_id: cardTokenId }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('MP preapproval PUT error:', JSON.stringify(data));
+      const causaConocida = Array.isArray(data.cause) && data.cause.find((c) => MOTIVOS_RECHAZO[c.code]);
+      if (causaConocida) {
+        return res.status(502).json({ error: MOTIVOS_RECHAZO[causaConocida.code] });
+      }
+      const causa = Array.isArray(data.cause) && data.cause.length
+        ? ' | causa: ' + data.cause.map((c) => `${c.code}:${c.description}`).join(', ')
+        : '';
+      return res.status(502).json({ error: `MP ${response.status}: ${data.message || data.error || JSON.stringify(data)}${causa}` });
+    }
+
+    console.log(`[actualizar-medio-pago] preapproval=${preapprovalId} tarjeta actualizada | negocio=${negocioId}`);
+    return res.json({ ok: true, status: data.status });
+  } catch (err) {
+    console.error('actualizar-medio-pago error:', err);
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', APP_URL);
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method === 'PUT') return actualizarMedioPago(req, res);
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
 
   // Este es justo el endpoint más expuesto al motor antifraude de MP (CC_VAL_433, ver

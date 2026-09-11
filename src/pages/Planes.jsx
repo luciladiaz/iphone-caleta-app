@@ -52,6 +52,10 @@ export default function Planes() {
   const [modalTarjeta, setModalTarjeta] = useState(false);
   const [creandoSuscripcion, setCreandoSuscripcion] = useState(false);
   const [errorTarjeta, setErrorTarjeta] = useState('');
+  const [modalActualizarTarjeta, setModalActualizarTarjeta] = useState(false);
+  const [actualizandoTarjeta, setActualizandoTarjeta] = useState(false);
+  const [errorActualizarTarjeta, setErrorActualizarTarjeta] = useState('');
+  const [tarjetaActualizada, setTarjetaActualizada] = useState(false);
   const [suscripcionRecienCreada, setSuscripcionRecienCreada] = useState(false);
   const proRef = useRef(null);
   const verificacionRef = useRef(null);
@@ -178,6 +182,34 @@ export default function Planes() {
     }
   };
 
+  // Actualiza la tarjeta de una suscripción ya existente (PUT /preapproval/{id}) --
+  // disponible para cualquier suscriptor con preapprovalId, esté al día o con el cobro
+  // fallando, sin distinguir un caso del otro (a diferencia de confirmarConToken, esto
+  // NO crea una suscripción nueva).
+  const actualizarConToken = async (cardTokenId) => {
+    setActualizandoTarjeta(true);
+    setErrorActualizarTarjeta('');
+    try {
+      const idToken = await user.getIdToken();
+      const res = await fetch('/api/crear-suscripcion', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+        body: JSON.stringify({ negocioId, cardTokenId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setErrorActualizarTarjeta(data.error || 'No pudimos actualizar tu tarjeta. Verificá los datos o contactanos por WhatsApp.');
+        return;
+      }
+      setModalActualizarTarjeta(false);
+      setTarjetaActualizada(true);
+    } catch {
+      setErrorActualizarTarjeta('Error al conectar con Mercado Pago. Contactanos por WhatsApp.');
+    } finally {
+      setActualizandoTarjeta(false);
+    }
+  };
+
   // Compra directa desde la landing (?comprar=1): salta el trial y abre el formulario de
   // tarjeta apenas el negocio recién creado está disponible. No usar planActivo como
   // guarda: el trial recién creado también cuenta como "activo", así que bloquearía esto.
@@ -280,12 +312,33 @@ export default function Planes() {
             Tu último pago no pudo procesarse y MercadoPago agotó los reintentos automáticos.
             Tus datos están guardados. Actualizá tu método de pago para recuperar el acceso inmediatamente.
           </div>
-          <button
-            onClick={() => { const msg = encodeURIComponent('Hola, necesito actualizar mi método de pago en ReventApp'); window.open(`https://wa.me/${WHATSAPP_SOPORTE}?text=${msg}`, '_blank'); }}
-            style={{ background: 'var(--rv-danger)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-          >
-            Actualizar método de pago →
-          </button>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => { setErrorActualizarTarjeta(''); setModalActualizarTarjeta(true); }}
+              style={{ background: 'var(--rv-danger)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            >
+              Actualizar método de pago →
+            </button>
+            <button
+              onClick={() => { const msg = encodeURIComponent('Hola, necesito actualizar mi método de pago en ReventApp'); window.open(`https://wa.me/${WHATSAPP_SOPORTE}?text=${msg}`, '_blank'); }}
+              style={{ background: 'none', border: '1px solid var(--rv-border)', color: 'var(--rv-text-dim)', borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            >
+              O escribinos por WhatsApp
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Banner: tarjeta actualizada con éxito ──────────────────────────── */}
+      {tarjetaActualizada && (
+        <div style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: '20px 24px', marginBottom: 32 }}>
+          <div style={{ marginBottom: 6 }}><IconCheckCircle size={20} style={{ color: 'var(--rv-accent)' }} /></div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--rv-text)', marginBottom: 6 }}>
+            Tu método de pago fue actualizado
+          </div>
+          <div style={{ color: 'var(--rv-text-dim)', fontSize: 14 }}>
+            MercadoPago va a usar esta tarjeta para tu próximo cobro. Si tenías el acceso cortado por un pago rechazado, se va a reactivar automáticamente en cuanto se acredite.
+          </div>
         </div>
       )}
 
@@ -351,8 +404,13 @@ export default function Planes() {
           {puedeCancel ? (
             <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--rv-text-dim)' }}>
               Ya tenés este plan activo.
-              <button onClick={() => setModalCancelar(true)}
+              <button onClick={() => { setErrorActualizarTarjeta(''); setModalActualizarTarjeta(true); }}
                 style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', textDecoration: 'underline', fontSize: 13, cursor: 'pointer', padding: 0, marginLeft: 6 }}>
+                Actualizar método de pago
+              </button>
+              {' · '}
+              <button onClick={() => setModalCancelar(true)}
+                style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', textDecoration: 'underline', fontSize: 13, cursor: 'pointer', padding: 0 }}>
                 Cancelar suscripción
               </button>
             </div>
@@ -424,6 +482,33 @@ export default function Planes() {
                 onCancelar={() => setModalTarjeta(false)}
                 procesando={creandoSuscripcion}
                 error={errorTarjeta}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: actualizar tarjeta de una suscripción ya existente (no crea una nueva) ── */}
+      {modalActualizarTarjeta && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
+          <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 440, margin: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Actualizar método de pago</h2>
+                <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, margin: '4px 0 0' }}>Cargá una tarjeta nueva para tu suscripción.</p>
+              </div>
+              <button onClick={() => setModalActualizarTarjeta(false)} disabled={actualizandoTarjeta}
+                style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}>
+                <IconX size={18} />
+              </button>
+            </div>
+            <div style={{ marginTop: 20 }}>
+              <FormularioTarjetaMP
+                email={user?.email || perfil?.email}
+                onToken={actualizarConToken}
+                onCancelar={() => setModalActualizarTarjeta(false)}
+                procesando={actualizandoTarjeta}
+                error={errorActualizarTarjeta}
               />
             </div>
           </div>

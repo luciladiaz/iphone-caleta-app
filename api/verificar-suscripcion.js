@@ -78,6 +78,26 @@ export default async function handler(req, res) {
       if (negData.plan === planSolicitado && negData.estado === 'activo') {
         return res.status(200).json({ activado: true, yaEstaba: true });
       }
+
+      // 'authorized' es el estado del MANDATO de la suscripción, no prueba de que el
+      // cobro real ya se haya efectivizado -- queda en 'authorized' desde que se crea la
+      // suscripción, incluso si el cobro real del mes viene siendo rechazado. Activar acá
+      // solo por ver 'authorized' le dio 31 días de acceso gratis a un cliente real (caso
+      // detectado 2026-09-11: cobro real rechazado 4 veces, pero este endpoint lo seguía
+      // reactivando). Antes de activar como respaldo, se exige encontrar al menos un
+      // cobro REALMENTE aprobado contra MP (mismo endpoint que ya usa el panel de
+      // superadmin para el historial real de cobros).
+      const facturasRes = await fetch(`https://api.mercadopago.com/authorized_payments/search?preapproval_id=${preapprovalId}`, {
+        headers: { 'Authorization': `Bearer ${MP_ACCESS_TOKEN}` },
+      });
+      const facturas = facturasRes.ok ? await facturasRes.json() : { results: [] };
+      const hayCobroAprobado = (facturas.results || []).some(f => f.payment?.status === 'approved');
+
+      if (!hayCobroAprobado) {
+        console.log(`[verificar-suscripcion] negocio=${negocioId} status=authorized pero sin cobro aprobado todavía -- no se activa`);
+        return res.status(200).json({ activado: false, motivo: 'Suscripción autorizada pero sin cobro aprobado todavía' });
+      }
+
       // El webhook falló → activar ahora como respaldo
       await activarPlan(negocioId, planSolicitado, preapprovalId);
       return res.status(200).json({ activado: true, fuente: 'verificacion_respaldo' });

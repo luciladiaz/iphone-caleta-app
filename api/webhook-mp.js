@@ -213,10 +213,18 @@ export default async function handler(req, res) {
       const parsed = parsearRef(sub.external_reference);
       if (!parsed) return res.status(200).json({ ok: true });
 
-      if (sub.status === 'authorized') {
-        // Suscripción activa/reactivada (cliente actualizó tarjeta, etc.)
-        await activarPlan(parsed.negocioId, parsed.plan, data.id);
-      } else if (sub.status === 'paused') {
+      // 'authorized' es el estado del MANDATO de la suscripción (el permiso para
+      // cobrarle), no la prueba de que el cobro real del mes se haya efectivizado -- se
+      // pone en 'authorized' ni bien se crea la suscripción y se mantiene ahí aunque el
+      // cobro real venga siendo rechazado. Activar el plan acá solo por ver 'authorized'
+      // le dio 31 días de acceso pagado gratis a un cliente real (caso detectado
+      // 2026-09-11: Joaquín, cobro real rechazado 4 veces con cc_rejected_high_risk →
+      // payment_method_not_ready, pero el plan se seguía renovando solo). Un cobro real
+      // aprobado siempre notifica por 'payment' o 'subscription_authorized_payment' (ver
+      // arriba), que sí traen el pago real y activan el plan correctamente -- por eso
+      // sacar la activación de acá no pierde ningún caso legítimo de reactivación, solo
+      // saca el falso positivo.
+      if (sub.status === 'paused') {
         // MP reintentando cobro — NO bloquear todavía, solo registrar
         await logPagoRechazado(parsed.negocioId, data.id);
       } else if (sub.status === 'cancelled') {

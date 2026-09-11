@@ -343,6 +343,40 @@ async function manejarExtenderTrial(req, res) {
   }
 }
 
+// Corte/restauración manual de acceso, independiente de MP -- para casos como el de
+// Joaquín (cobro real fallando pero todavía dentro del período ya cubierto por
+// vencePlan) donde Lucila quiere cortar antes de que se resuelva solo. Usa el mismo
+// campo `estado` que ya lee catalogo.js/AuthContext para bloquear acceso, así que no
+// hace falta ninguna lógica nueva de gateo -- es el mismo interruptor que ya usan el
+// webhook y el cron, solo que accionado a mano. Reversible: reactivar solo saca el
+// bloqueo manual, no regala días de plan (para eso está "Extender trial").
+async function manejarSuspenderManual(req, res) {
+  const { negocioId, suspenderManual } = req.body || {};
+  if (!negocioId || typeof suspenderManual !== 'boolean')
+    return res.status(400).json({ error: 'Faltan o son inválidos: negocioId, suspenderManual' });
+
+  try {
+    const negRef = adminDb.doc(`negocios/${negocioId}`);
+    if (suspenderManual) {
+      await negRef.update({
+        estado: 'suspendido',
+        motivoSuspension: 'manual_admin',
+        fechaSuspension: FieldValue.serverTimestamp(),
+      });
+    } else {
+      await negRef.update({
+        estado: 'activo',
+        motivoSuspension: FieldValue.delete(),
+        fechaSuspension: FieldValue.delete(),
+      });
+    }
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error('[superadmin] Error suspendiendo/reactivando manualmente:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
 // Nota libre por negocio (mini-CRM: "ya hablé, dijo que necesita tiempo", etc.).
 async function manejarGuardarNota(req, res) {
   const { negocioId, nota } = req.body || {};
@@ -424,11 +458,12 @@ async function manejarWinback(req, res) {
 }
 
 async function manejarPost(req, res) {
-  const { dia, nota, dias, winback } = req.body || {};
+  const { dia, nota, dias, winback, suspenderManual } = req.body || {};
   if (dia !== undefined) return manejarMarcarContacto(req, res);
   if (nota !== undefined) return manejarGuardarNota(req, res);
   if (dias !== undefined) return manejarExtenderTrial(req, res);
   if (winback !== undefined) return manejarWinback(req, res);
+  if (suspenderManual !== undefined) return manejarSuspenderManual(req, res);
   return res.status(400).json({ error: 'Body inválido' });
 }
 

@@ -191,7 +191,7 @@ const ESTADO_PAGO_COLOR = {
   exitoso: '#1a9c6b', cancelado_voluntario: '#6b7686', cancelado_sin_pago: '#d43d3d', reintentando: '#c8790a',
 };
 
-function DetalleModal({ negocio, data, loading, notaEditada, setNotaEditada, guardando, onGuardarNota, onCerrar, diasExtender, setDiasExtender, extendiendo, onExtenderTrial }) {
+function DetalleModal({ negocio, data, loading, notaEditada, setNotaEditada, guardando, onGuardarNota, onCerrar, diasExtender, setDiasExtender, extendiendo, onExtenderTrial, suspendiendo, onSuspenderManual }) {
   return (
     <div onClick={onCerrar} style={{ position: 'fixed', inset: 0, background: 'rgba(15,20,32,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'var(--rv-surface)', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.25)' }}>
@@ -258,6 +258,40 @@ function DetalleModal({ negocio, data, loading, notaEditada, setNotaEditada, gua
               </div>
             </div>
           )}
+
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+              <IconLock size={14} style={{ color: 'var(--rv-text-dim)' }} />
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--rv-text-dim)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Acceso manual</span>
+            </div>
+            {negocio.estado === 'suspendido' ? (
+              <>
+                <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginBottom: 10 }}>
+                  Suspendido{negocio.motivoSuspension ? ` (${negocio.motivoSuspension})` : ''}{negocio.fechaSuspension ? ` desde el ${fmtFecha(negocio.fechaSuspension)}` : ''}.
+                </div>
+                <button
+                  onClick={() => onSuspenderManual(false)}
+                  disabled={suspendiendo}
+                  style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 12.5, fontWeight: 700, cursor: suspendiendo ? 'default' : 'pointer', opacity: suspendiendo ? 0.6 : 1 }}
+                >
+                  {suspendiendo ? 'Reactivando…' : 'Reactivar acceso'}
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginBottom: 10 }}>
+                  Corta el acceso ahora mismo, independiente de lo que diga Mercado Pago o de si el plan sigue vigente hasta {fmtFecha(negocio.vencePlan)}.
+                </div>
+                <button
+                  onClick={() => onSuspenderManual(true)}
+                  disabled={suspendiendo}
+                  style={{ background: 'var(--rv-danger-soft)', color: 'var(--rv-danger)', border: '1px solid rgba(212,61,61,0.3)', borderRadius: 8, padding: '8px 14px', fontSize: 12.5, fontWeight: 700, cursor: suspendiendo ? 'default' : 'pointer', opacity: suspendiendo ? 0.6 : 1 }}
+                >
+                  {suspendiendo ? 'Cortando…' : 'Cortar acceso ahora'}
+                </button>
+              </>
+            )}
+          </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
             <IconEdit size={14} style={{ color: 'var(--rv-text-dim)' }} />
@@ -350,6 +384,7 @@ export default function SuperAdmin() {
   const [enviandoPruebaWinback, setEnviandoPruebaWinback] = useState(false);
   const [enviandoCampañaWinback, setEnviandoCampañaWinback] = useState(false);
   const [resultadoWinback, setResultadoWinback] = useState(null);
+  const [suspendiendo, setSuspendiendo] = useState(false);
 
   useEffect(() => {
     if (!user || user.email !== EMAIL_SUPERADMIN) { setLoading(false); return; }
@@ -445,6 +480,26 @@ export default function SuperAdmin() {
       setError(e.message);
     } finally {
       setExtendiendoTrial(false);
+    }
+  };
+
+  const suspenderManual = async (suspender) => {
+    if (suspender && !window.confirm(`Esto le corta el acceso a ${negocioDetalle?.nombre || 'este negocio'} ahora mismo, aunque su plan siga vigente hasta ${fmtFecha(negocioDetalle?.vencePlan)}. ¿Confirmás?`)) return;
+
+    setSuspendiendo(true);
+    try {
+      const idToken = await user.getIdToken();
+      const res = await fetch('/api/superadmin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ negocioId: detalleId, suspenderManual: suspender }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || `Error ${res.status}`);
+      await cargar();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSuspendiendo(false);
     }
   };
 
@@ -773,6 +828,8 @@ export default function SuperAdmin() {
             setDiasExtender={setDiasExtender}
             extendiendo={extendiendoTrial}
             onExtenderTrial={extenderTrial}
+            suspendiendo={suspendiendo}
+            onSuspenderManual={suspenderManual}
           />
         )}
       </div>

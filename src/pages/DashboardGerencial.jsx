@@ -71,7 +71,7 @@ export default function DashboardGerencial() {
     </div>
   );
 
-  const estadoLabel = { pendiente: 'Pendiente', entregado: 'Entregado', cancelado: 'Cancelado' };
+  const estadoLabel = { pendiente: 'Pendiente', entregado: 'Entregado', cancelado: 'Anulada' };
 
   return (
     <div>

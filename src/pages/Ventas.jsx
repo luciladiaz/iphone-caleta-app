@@ -17,6 +17,7 @@ import { descargarExcel } from '../lib/excel';
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 const estadoColor = { pendiente: 'var(--rv-text-mid)', entregado: 'var(--rv-text)', cancelado: 'var(--rv-text-dim)' };
+const estadoLabel = { pendiente: 'Pendiente', entregado: 'Entregado', cancelado: 'Anulada' };
 
 const ORIGENES = ['Instagram ReventApp', 'WhatsApp', 'Local físico', 'Referido', 'Facebook', 'TikTok', 'Otro'];
 const FORMAS_PAGO = ['Efectivo ARS', 'Efectivo USD', 'Transferencia ARS', 'Transferencia USD', 'Cuotas personales', 'Equipo como parte de pago'];
@@ -628,8 +629,17 @@ export default function Ventas() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 99, border: '1px solid var(--rv-border)', color: estadoColor[v.estado] }}>
-                    {v.estado}
+                    {estadoLabel[v.estado] || v.estado}
                   </span>
+                  {v.estado !== 'cancelado' && v.equipoId && (() => {
+                    const { saldoUSD } = resumenVenta(v);
+                    const saldado = saldoUSD <= 0.5;
+                    return (
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 99, background: saldado ? 'var(--rv-accent-soft)' : 'var(--rv-danger-soft)', color: saldado ? 'var(--rv-accent)' : 'var(--rv-danger)' }}>
+                        {saldado ? 'Saldado' : `Saldo: USD ${Math.round(saldoUSD).toLocaleString('es-AR')}`}
+                      </span>
+                    );
+                  })()}
                   <button onClick={() => abrirComprobante(v)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: v.comprobante ? 'var(--rv-text)' : 'var(--rv-text-mid)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <IconFile size={13} />{v.comprobante ? 'Ver comprobante' : 'Comprobante'}
                   </button>
@@ -762,7 +772,7 @@ export default function Ventas() {
                   <select value={form.estado} onChange={e => setForm({ ...form, estado: e.target.value })} style={inputStyle}>
                     <option value="pendiente">Pendiente</option>
                     <option value="entregado">Entregado</option>
-                    <option value="cancelado">Cancelado</option>
+                    <option value="cancelado">Anulada</option>
                   </select>
                 </div>
                 {esVentaEquipoActual && (

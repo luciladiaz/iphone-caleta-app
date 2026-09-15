@@ -217,8 +217,20 @@ export default function Stock() {
     const precioARS = eq.pvUsd && tipoCambio ? `$${(eq.pvUsd * tipoCambio).toLocaleString('es-AR')} ARS` : '';
     const emoji = EMOJI_POR_CATEGORIA[eq.categoria] || '📱';
     const specs = [eq.gb ? formatCapacidad(eq.gb) : '', eq.color].filter(Boolean).join(' ');
-    const bateriaLinea = eq.bateria ? `🔋 Batería: ${eq.bateria}%\n` : '';
-    return `${emoji} *${eq.modelo}${specs ? ' ' + specs : ''}*\n${bateriaLinea}✅ Libre de operador\n${eq.pvUsd ? `💵 USD ${eq.pvUsd}` : ''}\n${precioARS ? `💵 ${precioARS}` : ''}\n📩 Consultá disponibilidad por este medio`;
+    // Antes cada línea (batería, USD, ARS) se armaba con un "\n" pegado en el template,
+    // así que si al equipo le faltaba ese dato (ej: sin precio cargado) el salto de línea
+    // quedaba igual y se veía un hueco en blanco -- reportado por un cliente. Armando cada
+    // línea aparte y filtrando las vacías antes de unirlas, un dato faltante simplemente no
+    // deja rastro, en vez de un renglón en blanco.
+    const lineas = [
+      `${emoji} *${eq.modelo}${specs ? ' ' + specs : ''}*`,
+      eq.bateria ? `🔋 Batería: ${eq.bateria}%` : '',
+      '✅ Libre de operador',
+      eq.pvUsd ? `💵 USD ${eq.pvUsd}` : '',
+      precioARS ? `💵 ${precioARS}` : '',
+      '📩 Consultá disponibilidad por este medio',
+    ].filter(Boolean);
+    return lineas.join('\n');
   };
 
   const copiarFicha = (eq) => {

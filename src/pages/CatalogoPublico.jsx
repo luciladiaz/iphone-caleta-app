@@ -4,6 +4,7 @@ import { PLANES } from '../config/planes';
 import PlanCanjeModal from '../components/PlanCanjeModal';
 import { IconWarning, IconArrowSwap, IconBox } from '../components/Icons';
 import { formatCapacidad } from '../lib/categoriasProducto';
+import { comparadorOrden } from '../lib/ordenStock';
 
 // Normaliza un teléfono argentino cargado en cualquier formato común
 // (con 0 nacional, 15 de celular, con o sin código de país) al formato
@@ -23,6 +24,9 @@ export default function CatalogoPublico() {
   const { negocioId } = useParams();
   const [searchParams] = useSearchParams();
   const categoriasFiltro = (searchParams.get('cat') || '').split(',').map(c => c.trim()).filter(Boolean);
+  // Mismo orden que eligió el vendedor en Stock.jsx al generar el link (query param
+  // "orden", ver Stock.jsx) -- default 'fecha_desc' si no viene (mismo default que allá).
+  const orden = searchParams.get('orden') || 'fecha_desc';
   const [negocio, setNegocio] = useState(null);
   const [equipos, setEquipos] = useState([]);
   const [tipoCambio, setTipoCambio] = useState(0);
@@ -46,7 +50,8 @@ export default function CatalogoPublico() {
         const planConfig = PLANES[plan];
         setCatalogoHabilitado(planConfig?.features?.catalogoPublico === true);
         setEquipos((data.equipos || [])
-          .filter(e => categoriasFiltro.length === 0 || categoriasFiltro.includes(e.categoria)));
+          .filter(e => categoriasFiltro.length === 0 || categoriasFiltro.includes(e.categoria))
+          .sort(comparadorOrden(orden)));
         setTipoCambio(data.tipoCambio || 0);
         setListaCanje(data.listaCanje || []);
       } catch (e) { console.error(e); }

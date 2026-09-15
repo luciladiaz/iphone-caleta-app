@@ -68,6 +68,10 @@ export default async function handler(req, res) {
         color: e.color || '',
         bateria: e.bateria || '',
         pvUsd: e.pvUsd || 0,
+        // Fecha de adquisición, no de venta -- dato operativo (cuándo entró al stock),
+        // no algo sensible como costo/IMEI/proveedor. Hace falta para que el catálogo
+        // público pueda ordenarse "más nuevo primero" igual que en Stock.jsx.
+        fechaIngreso: e.fechaIngreso?.toDate?.()?.toISOString() || e.fechaIngreso || null,
       };
     });
 

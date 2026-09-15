@@ -10,13 +10,12 @@ import SelectorModelo from '../components/SelectorModelo';
 import CampoPrecio from '../components/CampoPrecio';
 import { convertirMoneda, faltaTipoCambio } from '../lib/moneda';
 import { fechaLocalDesdeInput } from '../lib/fechas';
+import { fechaMs, comparadorOrden } from '../lib/ordenStock';
 
 const COLORES = ['Negro','Blanco','Azul','Natural','Desert','Desert Titanium','Natural Titanium','Naranja','Rosa','Verde','Morado','Rojo','Gris','Plata','Dorado'];
 const TIPOS = ['compra','consignacion'];
 const ESTADOS = ['disponible','asignado','vendido'];
 const estadoColor = { disponible: 'var(--rv-accent)', asignado: 'var(--rv-text-mid)', vendido: 'var(--rv-text-dim)' };
-
-const fechaMs = (f) => { if (!f) return 0; const d = f.toDate ? f.toDate() : new Date(f); return d.getTime(); };
 const formatFecha = (f) => { if (!f) return 'Sin fecha'; const d = f.toDate ? f.toDate() : new Date(f); return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }); };
 const ESTADO_VENTA_LABEL = { pendiente: 'Pendiente', entregado: 'Entregado', cancelado: 'Cancelado' };
 
@@ -231,11 +230,14 @@ export default function Stock() {
   // Mismo filtro de categorías que ya usa el link del catálogo (catalogoCategorias vacío
   // = todas) -- así "copiar todo como texto" siempre muestra exactamente lo mismo que el
   // link que se está por compartir en el mismo modal, nunca stock de más ni de menos.
+  // También en el mismo orden elegido arriba (pedido de cliente), no en el orden crudo
+  // de Firestore.
   const copiarStockCompleto = () => {
     const disponibles = equipos.filter(e => e.estado === 'disponible');
-    const filtrados = catalogoCategorias.length > 0
+    const filtrados = (catalogoCategorias.length > 0
       ? disponibles.filter(e => catalogoCategorias.includes(e.categoria))
-      : disponibles;
+      : disponibles
+    ).sort(comparadorOrden(orden));
     const texto = filtrados.map(generarFichaWA).join('\n\n');
     navigator.clipboard.writeText(texto);
     setCopiadoTodo(true);
@@ -257,27 +259,23 @@ export default function Stock() {
       `${e.categoria} ${e.modelo} ${e.color} ${e.gb} ${e.imei} ${e.puntoVenta} ${e.asignadoA} ${e.proveedor || ''} ${e.origen?.proveedorNombre || ''} ${e.origen?.clienteNombre || ''}`.toLowerCase().includes(filtro.toLowerCase())
     )
     // Pedido de un cliente: ordenar por fecha de adquisición o por modelo -- sumados acá
-    // precio y batería, los otros dos criterios más comunes para stock de celulares. La
-    // consulta a Firestore ya trae todo por fechaIngreso desc (línea ~63), así que
-    // "fecha_desc" no necesita reordenar -- se deja el .sort() igual para los demás
-    // casos, sin mutar el array original de `equipos`.
-    .sort((a, b) => {
-      if (orden === 'fecha_asc') return fechaMs(a.fechaIngreso) - fechaMs(b.fechaIngreso);
-      if (orden === 'modelo_asc') return (a.modelo || '').localeCompare(b.modelo || '');
-      if (orden === 'modelo_desc') return (b.modelo || '').localeCompare(a.modelo || '');
-      if (orden === 'precio_asc') return Number(a.pvUsd || 0) - Number(b.pvUsd || 0);
-      if (orden === 'precio_desc') return Number(b.pvUsd || 0) - Number(a.pvUsd || 0);
-      if (orden === 'bateria_asc') return Number(a.bateria || 0) - Number(b.bateria || 0);
-      if (orden === 'bateria_desc') return Number(b.bateria || 0) - Number(a.bateria || 0);
-      return fechaMs(b.fechaIngreso) - fechaMs(a.fechaIngreso); // fecha_desc (default)
-    });
+    // precio y batería, los otros dos criterios más comunes para stock de celulares.
+    // Comparador compartido con CatalogoPublico.jsx (ver src/lib/ordenStock.js) -- otro
+    // pedido de cliente: que el catálogo (link y texto) se vea en el mismo orden elegido
+    // acá, no en uno propio o sin ordenar.
+    .sort(comparadorOrden(orden));
   const categoriasConStock = categoriasProducto.filter(cat => equipos.some(e => e.categoria === cat && e.estado !== 'vendido'));
   const puntosVentaConStock = puntosVenta.map(p => p.nombre).filter(nombre => equipos.some(e => e.puntoVenta === nombre && e.estado !== 'vendido'));
   const hayEquiposSinPuntoVenta = equipos.some(e => !e.puntoVenta && e.estado !== 'vendido');
   const catalogoEsParcial = catalogoCategorias.length > 0 && catalogoCategorias.length < categoriasConStock.length;
-  const urlCatalogo = catalogoEsParcial
-    ? `${window.location.origin}/catalogo/${negocioId}?cat=${encodeURIComponent(catalogoCategorias.join(','))}`
-    : `${window.location.origin}/catalogo/${negocioId}`;
+  // El link lleva el orden elegido en la URL (mismo patrón que "cat" para categorías) --
+  // así el catálogo público se ve en el mismo orden sin necesitar guardar nada en la
+  // base ni tocar el backend para saber "qué orden eligió el vendedor".
+  const paramsCatalogo = new URLSearchParams();
+  if (catalogoEsParcial) paramsCatalogo.set('cat', catalogoCategorias.join(','));
+  if (orden !== 'fecha_desc') paramsCatalogo.set('orden', orden);
+  const queryCatalogo = paramsCatalogo.toString();
+  const urlCatalogo = `${window.location.origin}/catalogo/${negocioId}${queryCatalogo ? `?${queryCatalogo}` : ''}`;
   const toggleCatalogoCategoria = (cat) => {
     setCatalogoCategorias(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
   };

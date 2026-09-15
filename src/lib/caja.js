@@ -95,6 +95,33 @@ export async function eliminarMovimientosVenta(negocioId, ventaId, origen = null
   await Promise.all(dels.map(m => deleteDoc(doc(db, ...base, 'caja', m.id))));
 }
 
+// Registra en Caja UN cobro puntual agregado a una venta ya existente (ej: desde
+// Cobros.jsx al saldar una deuda de saldo pendiente) -- a diferencia de
+// registrarMovimientosVenta, que recorre y crea un movimiento por CADA cobro de la
+// venta (pensada para el alta/edición completa del formulario), esta crea uno solo
+// para el cobro nuevo, así no duplica los movimientos de los cobros que ya estaban
+// cargados antes. Mismo formato/origen ('venta') que un cobro cargado desde Ventas.jsx,
+// para que reconciliarCaja lo reconozca igual y no lo intente recrear.
+export async function registrarCobroSuelto(negocioId, ventaId, venta, cobro, cobroIdx) {
+  const base = ['negocios', negocioId];
+  if (TIPOS_SIN_CAJA.includes(cobro.tipo)) return;
+  const monto = Number(cobro.monto) || 0;
+  if (monto <= 0) return;
+  await addDoc(collection(db, ...base, 'caja'), {
+    fecha: serverTimestamp(),
+    tipo: 'ingreso',
+    moneda: cobro.moneda === 'USD' ? 'USD' : 'ARS',
+    monto,
+    concepto: `${cobro.tipo} · ${labelVenta(venta)}${venta.cliente ? ' · ' + venta.cliente : ''}`,
+    origen: 'venta',
+    categoria: CATEGORIA_POR_ORIGEN.venta,
+    ventaId,
+    cobroIdx,
+    cuotaIdx: null,
+    automatico: true,
+  });
+}
+
 export async function registrarMovimientoCuota(negocioId, ventaId, venta, cobroIdx, cuotaIdx, cobro) {
   const base = ['negocios', negocioId];
   const monto = Number(cobro.montoCuota) || 0;

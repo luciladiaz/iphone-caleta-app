@@ -3,7 +3,7 @@ import { collection, getDocs, addDoc, query, orderBy, doc, updateDoc, getDoc, se
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconWallet, IconBell, IconCheck, IconCheckCircle, IconWarning, IconPhone, IconArrowSwap } from '../components/Icons';
-import { registrarMovimientoCuota, eliminarMovimientoCuota, montoCobro } from '../lib/caja';
+import { registrarMovimientoCuota, eliminarMovimientoCuota, registrarCobroSuelto, montoCobro } from '../lib/caja';
 import { formatCapacidad } from '../lib/categoriasProducto';
 import { fechaLocalDesdeInput } from '../lib/fechas';
 import { numeroWhatsapp } from '../lib/telefono';
@@ -46,6 +46,8 @@ const abrirWA = (telefono, mensaje) => {
   window.open(url, '_blank');
 };
 
+const FORMAS_PAGO_SALDO = ['Efectivo ARS', 'Efectivo USD', 'Transferencia ARS', 'Transferencia USD'];
+
 const FILTROS = [
   { key: 'vencidas', label: 'Vencidas', dot: 'var(--rv-danger)' },
   { key: 'semana', label: 'Esta semana', dot: '#e6a700' },
@@ -65,6 +67,9 @@ export default function Cobros() {
   const [abierto, setAbierto] = useState(null); // clave del cliente con el detalle desplegado
   const [procesandoCuota, setProcesandoCuota] = useState(null);
   const [procesandoEquipo, setProcesandoEquipo] = useState(null);
+  const [procesandoPago, setProcesandoPago] = useState(null);
+  const [formPagoAbierto, setFormPagoAbierto] = useState(null); // ventaId con el form de "Registrar pago" abierto
+  const [formPago, setFormPago] = useState({ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS' });
   // Guard sincrónico (no el estado de arriba, que es asíncrono) contra doble click: dos
   // clicks muy rápidos sobre la misma cuota podían disparar dos veces
   // registrarMovimientoCuota antes de que el primer render con el botón deshabilitado
@@ -73,6 +78,8 @@ export default function Cobros() {
   // Mismo guard que cuotasEnVueloRef, para no crear el equipo en stock dos veces con un
   // doble click sobre "Marcar como entregado".
   const equiposEnVueloRef = useRef(new Set());
+  // Mismo guard, para no registrar el mismo pago dos veces con un doble click.
+  const pagosEnVueloRef = useRef(new Set());
 
   useEffect(() => {
     if (!negocioId) return;
@@ -166,6 +173,32 @@ export default function Cobros() {
     } finally {
       equiposEnVueloRef.current.delete(clave);
       setProcesandoEquipo(null);
+    }
+  };
+
+  // Registra un pago suelto (efectivo/transferencia) contra el saldo pendiente de una
+  // venta -- agrega un cobro nuevo al array existente (sin tocar los que ya había) y
+  // genera un único movimiento nuevo en Caja para ese cobro puntual.
+  const registrarPagoSaldo = async (ventaId, nuevoCobro) => {
+    if (pagosEnVueloRef.current.has(ventaId)) return;
+    pagosEnVueloRef.current.add(ventaId);
+    setProcesandoPago(ventaId);
+    try {
+      const base = ['negocios', negocioId];
+      const venta = ventas.find(v => v.id === ventaId);
+      const cobros = [...(venta.cobros || []), { ...nuevoCobro }];
+      const cobroIdx = cobros.length - 1;
+      await updateDoc(doc(db, ...base, 'ventas', ventaId), { cobros });
+      await registrarCobroSuelto(negocioId, ventaId, venta, cobros[cobroIdx], cobroIdx);
+      setVentas(vs => vs.map(v => v.id === ventaId ? { ...v, cobros } : v));
+      setFormPagoAbierto(null);
+      setFormPago({ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS' });
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos registrar el pago. Probá de nuevo.');
+    } finally {
+      pagosEnVueloRef.current.delete(ventaId);
+      setProcesandoPago(null);
     }
   };
 
@@ -499,6 +532,49 @@ export default function Cobros() {
                             }}>
                               <IconArrowSwap size={13} />{procesando ? 'Marcando...' : 'Marcar como entregado'}
                             </button>
+                          );
+                        })()}
+                        {d.tipoDeuda === 'saldo' && (() => {
+                          const procesando = procesandoPago === d.ventaId;
+                          const formAbierto = formPagoAbierto === d.ventaId;
+                          if (!formAbierto) {
+                            return (
+                              <button onClick={() => {
+                                setFormPagoAbierto(d.ventaId);
+                                setFormPago({ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS' });
+                              }} style={{
+                                padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                                border: 'none', background: 'var(--rv-accent)', color: '#fff',
+                                display: 'inline-flex', alignItems: 'center', gap: 6,
+                              }}>
+                                <IconWallet size={13} />Registrar pago
+                              </button>
+                            );
+                          }
+                          return (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                              <select value={formPago.tipo} onChange={e => {
+                                const t = e.target.value;
+                                setFormPago(f => ({ ...f, tipo: t, moneda: t.includes('USD') ? 'USD' : 'ARS' }));
+                              }} style={{ padding: '7px 10px', borderRadius: 8, border: '1px solid var(--rv-border)', background: 'var(--rv-surface)', color: 'var(--rv-text)', fontSize: 12 }}>
+                                {FORMAS_PAGO_SALDO.map(f => <option key={f}>{f}</option>)}
+                              </select>
+                              <input
+                                type="number" placeholder="Monto" value={formPago.monto}
+                                onChange={e => setFormPago(f => ({ ...f, monto: e.target.value }))}
+                                style={{ width: 100, padding: '7px 10px', borderRadius: 8, border: '1px solid var(--rv-border)', background: 'var(--rv-surface)', color: 'var(--rv-text)', fontSize: 12 }}
+                              />
+                              <button
+                                disabled={procesando || !(Number(formPago.monto) > 0)}
+                                onClick={() => registrarPagoSaldo(d.ventaId, formPago)}
+                                style={{ padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: procesando ? 'not-allowed' : 'pointer', border: 'none', background: 'var(--rv-accent)', color: '#fff', opacity: procesando || !(Number(formPago.monto) > 0) ? 0.6 : 1 }}
+                              >
+                                {procesando ? 'Guardando...' : 'Confirmar'}
+                              </button>
+                              <button onClick={() => setFormPagoAbierto(null)} disabled={procesando} style={{ padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--rv-border)', background: 'var(--rv-surface)', color: 'var(--rv-text-dim)' }}>
+                                Cancelar
+                              </button>
+                            </div>
                           );
                         })()}
                       </div>

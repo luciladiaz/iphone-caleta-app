@@ -52,11 +52,14 @@ function resumenVenta(venta) {
     formasPago.push(`${c.tipo}: ${c.moneda === 'USD' ? 'USD' : '$'} ${monto}`);
   }
   const tc = Number(venta.tipoCambio) || 0;
-  const partesUSD = (venta.partesDePago || []).reduce((s, p) => s + convertirMoneda(p.costoMonto, p.costoMoneda, 'USD', tc), 0);
+  // Un equipo todavía no entregado no cuenta como pagado -- sigue siendo saldo
+  // pendiente (Cobros.jsx lo muestra como deuda de equipo, no de plata, pero acá para
+  // el resumen/Excel entra en el mismo saldo restante hasta que se marque entregado).
+  const partesUSD = (venta.partesDePago || []).filter(p => p.entregado !== false).reduce((s, p) => s + convertirMoneda(p.costoMonto, p.costoMoneda, 'USD', tc), 0);
   const totalPagadoUSD = cobradoUSD + (tc > 0 ? cobradoARS / tc : 0) + partesUSD;
   const pvUsd = Number(venta.pvUsd) || 0;
   const saldoUSD = pvUsd - totalPagadoUSD;
-  const partesTexto = (venta.partesDePago || []).map(p => `${p.modelo || ''}${p.gb ? ' ' + p.gb : ''} (${p.costoMoneda === 'ARS' ? '$' : 'USD'} ${p.costoMonto})`).join('; ');
+  const partesTexto = (venta.partesDePago || []).map(p => `${p.modelo || ''}${p.gb ? ' ' + p.gb : ''} (${p.costoMoneda === 'ARS' ? '$' : 'USD'} ${p.costoMonto})${p.entregado === false ? ' [pendiente]' : ''}`).join('; ');
   return { cobradoARS, cobradoUSD, partesUSD, totalPagadoUSD, saldoUSD, formasPagoTexto: formasPago.join('; '), partesTexto };
 }
 
@@ -131,7 +134,7 @@ export default function Ventas() {
     cobros: [{ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS', cuotas: '', montoCuota: '', fechaInicio: '' }],
     partesDePago: []
   });
-  const [nuevaParte, setNuevaParte] = useState({ categoria: 'iPhone', modelo: '', gb: '', color: '', bateria: '', imei: '', costoMonto: '', costoMoneda: 'USD', pvMonto: '', pvMoneda: 'USD' });
+  const [nuevaParte, setNuevaParte] = useState({ categoria: 'iPhone', modelo: '', gb: '', color: '', bateria: '', imei: '', costoMonto: '', costoMoneda: 'USD', pvMonto: '', pvMoneda: 'USD', entregado: true });
 
   const cargar = async () => {
     if (!negocioId) return;
@@ -202,7 +205,7 @@ export default function Ventas() {
   const agregarParte = () => {
     if (!nuevaParte.modelo) return;
     setForm(f => ({ ...f, partesDePago: [...f.partesDePago, { ...nuevaParte }] }));
-    setNuevaParte({ categoria: 'iPhone', modelo: '', gb: '', color: '', bateria: '', imei: '', costoMonto: '', costoMoneda: 'USD', pvMonto: '', pvMoneda: 'USD' });
+    setNuevaParte({ categoria: 'iPhone', modelo: '', gb: '', color: '', bateria: '', imei: '', costoMonto: '', costoMoneda: 'USD', pvMonto: '', pvMoneda: 'USD', entregado: true });
   };
 
   const abrirComprobante = async (v) => {
@@ -496,7 +499,11 @@ export default function Ventas() {
         });
         await registrarMovimientosVenta(negocioId, ventaRef.id, ventaData);
         const clienteQueEntrega = clientes.find(c => c.id === form.clienteId);
-        for (const parte of form.partesDePago) {
+        // Si todavía no lo entregó, no se crea el equipo en stock ni se cuenta como
+        // cobrado -- queda anotado en la venta (ventaData.partesDePago, ya guardado
+        // arriba vía el spread de "form") como pendiente, y Cobros.jsx es quien lo
+        // muestra como deuda y crea el equipo recién cuando se marca como entregado.
+        for (const parte of form.partesDePago.filter(p => p.entregado !== false)) {
           await addDoc(collection(db, ...base, 'stock'), {
             ...parte,
             tipo: 'parte_de_pago',
@@ -920,7 +927,12 @@ export default function Ventas() {
                   {form.partesDePago.map((p, i) => (
                     <div key={i} style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px', marginBottom: 8, fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <span style={{ color: 'var(--rv-accent)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}><IconArrowSwap size={13} />{p.modelo} {p.gb ? formatCapacidad(p.gb) : ''} {p.color}</span>
+                        <span style={{ color: 'var(--rv-accent)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <IconArrowSwap size={13} />{p.modelo} {p.gb ? formatCapacidad(p.gb) : ''} {p.color}
+                          {p.entregado === false && (
+                            <span style={{ background: 'var(--rv-danger-soft)', color: 'var(--rv-danger)', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99 }}>PENDIENTE DE ENTREGA</span>
+                          )}
+                        </span>
                         <div style={{ color: 'var(--rv-text-dim)', fontSize: 11, marginTop: 3 }}>
                           Toma: {p.costoMoneda === 'ARS' ? '$' : 'USD'} {p.costoMonto} · Venta: {p.pvMoneda === 'ARS' ? '$' : 'USD'} {p.pvMonto}
                         </div>
@@ -959,6 +971,19 @@ export default function Ventas() {
                           </div>
                         </div>
                       </div>
+                      {/* Si todavía no lo entregó, este equipo no entra al stock ni se cuenta
+                          como cobrado hasta que se marque como entregado desde Cobros -- ahí
+                          queda anotado como que el cliente debe entregarlo, en vez de asumir
+                          que ya está en tu poder (pedido real de un cliente). */}
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, fontSize: 12.5, color: 'var(--rv-text-mid)', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={nuevaParte.entregado} onChange={e => setNuevaParte({ ...nuevaParte, entregado: e.target.checked })} />
+                        Ya me entregó el equipo
+                      </label>
+                      {!nuevaParte.entregado && (
+                        <div style={{ fontSize: 11, color: 'var(--rv-text-dim)', marginTop: 4 }}>
+                          Va a quedar anotado en Cobros como que te debe entregar este equipo, sin sumarlo al stock todavía.
+                        </div>
+                      )}
                     </div>
                     <button type="button" onClick={agregarParte} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>+ Agregar equipo</button>
                   </div>

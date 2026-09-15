@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { collection, getDocs, query, orderBy, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, query, orderBy, doc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
-import { IconWallet, IconBell, IconCheck, IconCheckCircle, IconWarning, IconPhone } from '../components/Icons';
+import { IconWallet, IconBell, IconCheck, IconCheckCircle, IconWarning, IconPhone, IconArrowSwap } from '../components/Icons';
 import { registrarMovimientoCuota, eliminarMovimientoCuota, montoCobro } from '../lib/caja';
 import { formatCapacidad } from '../lib/categoriasProducto';
 import { fechaLocalDesdeInput } from '../lib/fechas';
 import { numeroWhatsapp } from '../lib/telefono';
+import { convertirMoneda } from '../lib/moneda';
 
 function diasDesde(fecha) {
   const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -33,6 +34,7 @@ const ORDEN_SEM = { rojo: 0, amarillo: 1, verde: 2 };
 
 function textoDeuda(d) {
   if (d.tipoDeuda === 'saldo') return 'saldo pendiente';
+  if (d.tipoDeuda === 'equipo_pendiente') return 'equipo pendiente de entrega';
   return `${d.cuotasVencidas} cuota${d.cuotasVencidas > 1 ? 's' : ''} vencida${d.cuotasVencidas > 1 ? 's' : ''}`;
 }
 
@@ -62,11 +64,15 @@ export default function Cobros() {
   const [modalWA, setModalWA] = useState(null); // grupo (cliente) seleccionado para enviar WA
   const [abierto, setAbierto] = useState(null); // clave del cliente con el detalle desplegado
   const [procesandoCuota, setProcesandoCuota] = useState(null);
+  const [procesandoEquipo, setProcesandoEquipo] = useState(null);
   // Guard sincrónico (no el estado de arriba, que es asíncrono) contra doble click: dos
   // clicks muy rápidos sobre la misma cuota podían disparar dos veces
   // registrarMovimientoCuota antes de que el primer render con el botón deshabilitado
   // llegara a pintarse, duplicando el ingreso en Caja.
   const cuotasEnVueloRef = useRef(new Set());
+  // Mismo guard que cuotasEnVueloRef, para no crear el equipo en stock dos veces con un
+  // doble click sobre "Marcar como entregado".
+  const equiposEnVueloRef = useRef(new Set());
 
   useEffect(() => {
     if (!negocioId) return;
@@ -112,6 +118,54 @@ export default function Cobros() {
     } finally {
       cuotasEnVueloRef.current.delete(clave);
       setProcesandoCuota(null);
+    }
+  };
+
+  // Marca un equipo "parte de pago" como entregado: recién acá se crea de verdad en el
+  // stock (mismo formato que crea Ventas.jsx cuando el equipo se recibe al momento de
+  // la venta) y se actualiza la venta para que deje de aparecer como deuda. Antes de
+  // esto, el equipo no existe en stock ni en ningún otro lado más que en
+  // venta.partesDePago con entregado:false.
+  const marcarEquipoEntregado = async (ventaId, parteIdx) => {
+    const clave = `${ventaId}:${parteIdx}`;
+    if (equiposEnVueloRef.current.has(clave)) return;
+    equiposEnVueloRef.current.add(clave);
+    setProcesandoEquipo(clave);
+    try {
+      const base = ['negocios', negocioId];
+      const venta = ventas.find(v => v.id === ventaId);
+      const partesDePago = [...(venta.partesDePago || [])];
+      const parte = partesDePago[parteIdx];
+      if (!parte || parte.entregado === true) return;
+
+      const tc = Number(venta.tipoCambio) || tipoCambio || 0;
+      const clienteQueEntrega = clientes.find(c => c.id === venta.clienteId);
+      await addDoc(collection(db, ...base, 'stock'), {
+        ...parte,
+        tipo: 'parte_de_pago',
+        estado: 'disponible',
+        fechaIngreso: serverTimestamp(),
+        costoUsd: convertirMoneda(parte.costoMonto, parte.costoMoneda, 'USD', tc),
+        pvUsd: convertirMoneda(parte.pvMonto, parte.pvMoneda, 'USD', tc),
+        origen: {
+          tipo: 'parte_de_pago',
+          clienteId: venta.clienteId || null,
+          clienteNombre: venta.cliente || clienteQueEntrega?.nombre || '',
+          clienteNumero: clienteQueEntrega?.numero || null,
+          ventaOrigenId: ventaId,
+          ventaOrigenModelo: `${venta.modelo || ''}${venta.gb ? ' ' + venta.gb : ''}`.trim(),
+        },
+      });
+
+      partesDePago[parteIdx] = { ...parte, entregado: true };
+      await updateDoc(doc(db, ...base, 'ventas', ventaId), { partesDePago });
+      setVentas(vs => vs.map(v => v.id === ventaId ? { ...v, partesDePago } : v));
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos registrar la entrega del equipo. Probá de nuevo.');
+    } finally {
+      equiposEnVueloRef.current.delete(clave);
+      setProcesandoEquipo(null);
     }
   };
 
@@ -179,8 +233,18 @@ export default function Cobros() {
       const monto = montoCobro(c);
       return sum + (c.moneda === 'USD' ? monto : tc > 0 ? monto / tc : 0);
     }, 0);
-    const partesUsd = (venta.partesDePago || []).reduce((s, p) => s + (Number(p.costoUsd) || 0), 0);
-    const saldoUsd = (Number(venta.pvUsd) || 0) - (cobradoUsd + partesUsd);
+    // Bug real encontrado acá: usaba p.costoUsd, un campo que estos objetos nunca
+    // tienen (se guardan como costoMonto+costoMoneda) -- siempre daba 0, así que el
+    // saldo pendiente de cualquier venta con canje aparecía más alto de lo real, como
+    // si el equipo recibido no valiera nada. Corregido convirtiendo de verdad. Además,
+    // un equipo todavía no entregado no cuenta como pagado (se filtra acá) ni tampoco
+    // se suma al saldo en plata de abajo -- tiene su propia deuda de tipo
+    // "equipo_pendiente" más abajo, para no mostrarlo dos veces.
+    const partesEntregadasUsd = (venta.partesDePago || []).filter(p => p.entregado !== false)
+      .reduce((s, p) => s + convertirMoneda(p.costoMonto, p.costoMoneda, 'USD', tc), 0);
+    const partesPendientesUsd = (venta.partesDePago || []).filter(p => p.entregado === false)
+      .reduce((s, p) => s + convertirMoneda(p.costoMonto, p.costoMoneda, 'USD', tc), 0);
+    const saldoUsd = (Number(venta.pvUsd) || 0) - (cobradoUsd + partesEntregadasUsd) - partesPendientesUsd;
     if (saldoUsd <= 0.01) continue;
 
     const fechaVenta = venta.fecha.toDate ? venta.fecha.toDate() : new Date(venta.fecha);
@@ -199,6 +263,38 @@ export default function Cobros() {
       totalCuotas: 1, cobro: null,
       venta,
     });
+  }
+
+  // Equipos recibidos "como parte de pago" que el cliente todavía no entregó (pedido
+  // real de un cliente: antes solo se podía anotar que debía plata, no un equipo
+  // puntual). Independiente del loop de arriba (no se salta por tener cuotas
+  // personales) porque un equipo pendiente puede convivir con cualquier otra forma de
+  // pago. Se resuelve con marcarEquipoEntregado más abajo, que recién ahí crea el
+  // equipo en stock -- hasta entonces no existe en ningún lado más que acá.
+  for (const venta of ventas) {
+    const tc = Number(venta.tipoCambio) || tipoCambio || 0;
+    const partes = venta.partesDePago || [];
+    for (let pi = 0; pi < partes.length; pi++) {
+      const parte = partes[pi];
+      if (parte.entregado !== false) continue;
+      const valorUsd = convertirMoneda(parte.costoMonto, parte.costoMoneda, 'USD', tc);
+      const fechaVenta = venta.fecha?.toDate ? venta.fecha.toDate() : (venta.fecha ? new Date(venta.fecha) : new Date());
+      const diasDesdeVenta = diasDesde(fechaVenta);
+      const sem = calcSemaforo(diasDesdeVenta);
+
+      deudas.push({
+        tipoDeuda: 'equipo_pendiente',
+        ventaId: venta.id, cobroIdx: null, parteIdx: pi,
+        clienteId: venta.clienteId || null,
+        cliente: venta.cliente || 'Sin nombre',
+        telefono: venta.telefono || '',
+        modelo: `${parte.modelo || ''}${parte.gb ? ' ' + formatCapacidad(parte.gb) : ''}${parte.color ? ' ' + parte.color : ''}`.trim(),
+        cuotasVencidas: 1, montoVencido: valorUsd,
+        moneda: 'USD', maxDias: diasDesdeVenta, sem, pendientesFuturo: 0,
+        totalCuotas: 1, cobro: null,
+        venta,
+      });
+    }
   }
 
   // Agrupar por cliente (por clienteId si la venta lo tiene, si no por nombre+teléfono)
@@ -393,6 +489,18 @@ export default function Cobros() {
                             })}
                           </div>
                         )}
+                        {d.tipoDeuda === 'equipo_pendiente' && (() => {
+                          const procesando = procesandoEquipo === `${d.ventaId}:${d.parteIdx}`;
+                          return (
+                            <button disabled={procesando} onClick={() => marcarEquipoEntregado(d.ventaId, d.parteIdx)} style={{
+                              padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: procesando ? 'not-allowed' : 'pointer',
+                              border: 'none', background: 'var(--rv-accent)', color: '#fff',
+                              display: 'inline-flex', alignItems: 'center', gap: 6, opacity: procesando ? 0.6 : 1,
+                            }}>
+                              <IconArrowSwap size={13} />{procesando ? 'Marcando...' : 'Marcar como entregado'}
+                            </button>
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>

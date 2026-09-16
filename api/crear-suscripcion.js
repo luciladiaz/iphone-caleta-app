@@ -51,7 +51,7 @@ async function actualizarMedioPago(req, res) {
     return res.status(429).json({ error: 'Demasiados intentos seguidos. Esperá unos minutos antes de reintentar.' });
   }
 
-  const { negocioId, cardTokenId } = req.body || {};
+  const { negocioId, cardTokenId, deviceId } = req.body || {};
   if (!negocioId || !cardTokenId)
     return res.status(400).json({ error: 'Faltan datos: negocioId, cardTokenId' });
 
@@ -68,13 +68,20 @@ async function actualizarMedioPago(req, res) {
     if (!preapprovalId)
       return res.status(400).json({ error: 'Este negocio no tiene una suscripción activa para actualizar' });
 
+    const headersActualizar = {
+      'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
+      'Content-Type': 'application/json',
+      'X-Idempotency-Key': cardTokenId,
+    };
+    // Mismo Device ID que ya manda crear-suscripcion.js en el alta nueva -- acá también
+    // hay riesgo real de rechazo por antifraude (un cliente actualizando la tarjeta
+    // porque el cobro le venía fallando), así que le da a MP la misma señal de
+    // dispositivo. Antes se descartaba silenciosamente (Planes.jsx no lo mandaba).
+    if (deviceId) headersActualizar['X-meli-session-id'] = deviceId;
+
     const response = await fetch(`https://api.mercadopago.com/preapproval/${preapprovalId}`, {
       method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
-        'Content-Type': 'application/json',
-        'X-Idempotency-Key': cardTokenId,
-      },
+      headers: headersActualizar,
       body: JSON.stringify({ card_token_id: cardTokenId }),
     });
 

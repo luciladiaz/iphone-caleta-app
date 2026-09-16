@@ -158,7 +158,7 @@ export default function Planes() {
   // disponible para cualquier suscriptor con preapprovalId, esté al día o con el cobro
   // fallando, sin distinguir un caso del otro (a diferencia de confirmarConToken, esto
   // NO crea una suscripción nueva).
-  const actualizarConToken = async (cardTokenId) => {
+  const actualizarConToken = async (cardTokenId, deviceId) => {
     setActualizandoTarjeta(true);
     setErrorActualizarTarjeta('');
     try {
@@ -166,7 +166,7 @@ export default function Planes() {
       const res = await fetch('/api/crear-suscripcion', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-        body: JSON.stringify({ negocioId, cardTokenId }),
+        body: JSON.stringify({ negocioId, cardTokenId, deviceId }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {

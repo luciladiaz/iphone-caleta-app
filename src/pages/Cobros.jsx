@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { collection, getDocs, addDoc, query, orderBy, doc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
-import { IconWallet, IconBell, IconCheck, IconCheckCircle, IconWarning, IconPhone, IconArrowSwap } from '../components/Icons';
-import { registrarMovimientoCuota, eliminarMovimientoCuota, registrarCobroSuelto, montoCobro } from '../lib/caja';
+import { IconWallet, IconBell, IconCheck, IconCheckCircle, IconWarning, IconPhone, IconArrowSwap, IconPackage } from '../components/Icons';
+import { registrarMovimientoCuota, eliminarMovimientoCuota, registrarCobroSuelto, registrarCobroConsignacionCliente, montoCobro } from '../lib/caja';
 import { formatCapacidad } from '../lib/categoriasProducto';
 import { fechaLocalDesdeInput } from '../lib/fechas';
 import { numeroWhatsapp } from '../lib/telefono';
@@ -35,6 +35,7 @@ const ORDEN_SEM = { rojo: 0, amarillo: 1, verde: 2 };
 function textoDeuda(d) {
   if (d.tipoDeuda === 'saldo') return 'saldo pendiente';
   if (d.tipoDeuda === 'equipo_pendiente') return 'equipo pendiente de entrega';
+  if (d.tipoDeuda === 'consignacion_vendida') return 'consignación vendida';
   return `${d.cuotasVencidas} cuota${d.cuotasVencidas > 1 ? 's' : ''} vencida${d.cuotasVencidas > 1 ? 's' : ''}`;
 }
 
@@ -60,6 +61,7 @@ export default function Cobros() {
   const { negocioId } = useAuth();
   const [ventas, setVentas] = useState([]);
   const [clientes, setClientes] = useState([]);
+  const [stock, setStock] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('todas');
   const [tipoCambio, setTipoCambio] = useState(null);
@@ -80,18 +82,24 @@ export default function Cobros() {
   const equiposEnVueloRef = useRef(new Set());
   // Mismo guard, para no registrar el mismo pago dos veces con un doble click.
   const pagosEnVueloRef = useRef(new Set());
+  // Mismo guard, para no marcar dos veces "vendió"/"devolvió" un equipo en consignación
+  // con un doble click.
+  const consignEnVueloRef = useRef(new Set());
+  const [procesandoConsign, setProcesandoConsign] = useState(null);
 
   useEffect(() => {
     if (!negocioId) return;
     const base = ['negocios', negocioId];
     const cargar = async () => {
-      const [ventasSnap, cliSnap, cfgSnap] = await Promise.all([
+      const [ventasSnap, cliSnap, stockSnap, cfgSnap] = await Promise.all([
         getDocs(query(collection(db, ...base, 'ventas'), orderBy('fecha', 'desc'))),
         getDocs(collection(db, ...base, 'clientes')),
+        getDocs(collection(db, ...base, 'stock')),
         getDoc(doc(db, ...base, 'config', 'general')),
       ]);
       setVentas(ventasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setClientes(cliSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setStock(stockSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       const tc = cfgSnap.data()?.tipoCambio;
       if (tc) setTipoCambio(Number(tc));
       setLoading(false);
@@ -198,6 +206,73 @@ export default function Cobros() {
       alert('No pudimos registrar el pago. Probá de nuevo.');
     } finally {
       pagosEnVueloRef.current.delete(ventaId);
+      setProcesandoPago(null);
+    }
+  };
+
+  // El cliente (mayorista) avisó que vendió un equipo que le diste en consignación --
+  // recién acá pasa a "vendido" y empieza a contar como algo que te debe (no antes,
+  // mismo criterio que la consignación de un proveedor: no genera deuda hasta la venta).
+  const marcarConsignVendida = async (stockId) => {
+    const clave = `${stockId}:vendido`;
+    if (consignEnVueloRef.current.has(clave)) return;
+    consignEnVueloRef.current.add(clave);
+    setProcesandoConsign(clave);
+    try {
+      const base = ['negocios', negocioId];
+      await updateDoc(doc(db, ...base, 'stock', stockId), { estado: 'vendido', fechaConsignacionVendida: serverTimestamp() });
+      setStock(ss => ss.map(s => s.id === stockId ? { ...s, estado: 'vendido', fechaConsignacionVendida: new Date() } : s));
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos registrar la venta. Probá de nuevo.');
+    } finally {
+      consignEnVueloRef.current.delete(clave);
+      setProcesandoConsign(null);
+    }
+  };
+
+  // El cliente devolvió el equipo sin venderlo -- vuelve al stock disponible como si
+  // nunca hubiera salido, sin dejar ninguna deuda.
+  const marcarConsignDevuelta = async (stockId) => {
+    if (!window.confirm('¿El cliente te devolvió este equipo sin venderlo? Vuelve a tu stock disponible.')) return;
+    const clave = `${stockId}:devuelto`;
+    if (consignEnVueloRef.current.has(clave)) return;
+    consignEnVueloRef.current.add(clave);
+    setProcesandoConsign(clave);
+    try {
+      const base = ['negocios', negocioId];
+      await updateDoc(doc(db, ...base, 'stock', stockId), { estado: 'disponible', consignacionCliente: null });
+      setStock(ss => ss.map(s => s.id === stockId ? { ...s, estado: 'disponible', consignacionCliente: null } : s));
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos registrar la devolución. Probá de nuevo.');
+    } finally {
+      consignEnVueloRef.current.delete(clave);
+      setProcesandoConsign(null);
+    }
+  };
+
+  // Registra el pago de una consignación ya vendida -- reutiliza el mismo guard/estado
+  // de "Registrar pago" del saldo (formPagoAbierto/formPago/procesandoPago), solo que acá
+  // la clave es el stockId en vez del ventaId, porque este tipo de deuda no está atada a
+  // ninguna venta propia.
+  const registrarPagoConsignacion = async (stockId, nuevoCobro) => {
+    if (pagosEnVueloRef.current.has(stockId)) return;
+    pagosEnVueloRef.current.add(stockId);
+    setProcesandoPago(stockId);
+    try {
+      const base = ['negocios', negocioId];
+      const item = stock.find(s => s.id === stockId);
+      await updateDoc(doc(db, ...base, 'stock', stockId), { pagadoConsignacion: true });
+      await registrarCobroConsignacionCliente(negocioId, stockId, item, nuevoCobro);
+      setStock(ss => ss.map(s => s.id === stockId ? { ...s, pagadoConsignacion: true } : s));
+      setFormPagoAbierto(null);
+      setFormPago({ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS' });
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos registrar el pago. Probá de nuevo.');
+    } finally {
+      pagosEnVueloRef.current.delete(stockId);
       setProcesandoPago(null);
     }
   };
@@ -330,6 +405,49 @@ export default function Cobros() {
     }
   }
 
+  // Consignación a un cliente (mayorista): equipos que le diste y que YA vendió, pero
+  // todavía no te pagó lo que te debe por ese equipo puntual. No está atado a ninguna
+  // venta propia (nunca pasó por Ventas.jsx) -- vive directo en el documento de stock,
+  // y recién se resuelve como deuda una vez que se marca "vendido" desde acá abajo.
+  for (const item of stock) {
+    if (!item.consignacionCliente || item.estado !== 'vendido' || item.pagadoConsignacion === true) continue;
+    const c = item.consignacionCliente;
+    const valorUsd = convertirMoneda(c.precioMonto, c.precioMoneda, 'USD', tipoCambio || 0);
+    if (valorUsd <= 0.01) continue;
+    const fechaVendida = item.fechaConsignacionVendida?.toDate ? item.fechaConsignacionVendida.toDate() : new Date();
+    const diasDesdeVenta = diasDesde(fechaVendida);
+    const sem = calcSemaforo(diasDesdeVenta);
+    const clienteDoc = clientes.find(cl => cl.id === c.clienteId);
+
+    deudas.push({
+      tipoDeuda: 'consignacion_vendida',
+      stockId: item.id, ventaId: null, cobroIdx: null,
+      clienteId: c.clienteId || null,
+      cliente: c.clienteNombre || 'Sin nombre',
+      telefono: clienteDoc?.telefono || '',
+      modelo: `${item.categoria || ''} ${item.modelo || ''}${item.gb ? ' ' + formatCapacidad(item.gb) : ''}`.trim(),
+      cuotasVencidas: 1, montoVencido: valorUsd,
+      moneda: 'USD', maxDias: diasDesdeVenta, sem, pendientesFuturo: 0,
+      totalCuotas: 1, cobro: null,
+      venta: null,
+    });
+  }
+
+  // Equipos que le diste a un cliente en consignación y todavía NO vendió -- informativo,
+  // no es una deuda (mismo criterio que un equipo de proveedor en consignación sin
+  // vender: no genera nada hasta que se concreta la venta). Se resuelve acá abajo con
+  // marcarConsignVendida / marcarConsignDevuelta.
+  const consignacionesPendientes = stock
+    .filter(item => item.estado === 'en_consignacion_cliente' && item.consignacionCliente)
+    .map(item => ({
+      stockId: item.id,
+      clienteId: item.consignacionCliente.clienteId,
+      clienteNombre: item.consignacionCliente.clienteNombre,
+      modelo: `${item.categoria || ''} ${item.modelo || ''}${item.gb ? ' ' + formatCapacidad(item.gb) : ''}`.trim(),
+      precioMonto: item.consignacionCliente.precioMonto,
+      precioMoneda: item.consignacionCliente.precioMoneda,
+    }));
+
   // Agrupar por cliente (por clienteId si la venta lo tiene, si no por nombre+teléfono)
   // — esto es lo que convierte la lista suelta en una cuenta corriente por cliente.
   const gruposMap = new Map();
@@ -343,13 +461,23 @@ export default function Cobros() {
     g.totalesPorMoneda[d.moneda] = (g.totalesPorMoneda[d.moneda] || 0) + d.montoVencido;
     if (!g.telefono && d.telefono) g.telefono = d.telefono;
   });
+  // Un cliente puede tener equipos en consignación sin vender todavía y ninguna otra
+  // deuda -- sin este paso no aparecería en ningún lado hasta que vendiera algo.
+  consignacionesPendientes.forEach(cp => {
+    const clave = cp.clienteId || `${cp.clienteNombre}|`;
+    if (!gruposMap.has(clave)) {
+      const clienteDoc = clientes.find(c => c.id === cp.clienteId);
+      gruposMap.set(clave, { clave, clienteId: cp.clienteId, nombre: cp.clienteNombre, telefono: clienteDoc?.telefono || '', deudas: [], totalesPorMoneda: {} });
+    }
+  });
 
   const grupos = Array.from(gruposMap.values()).map(g => {
     const vencidas = g.deudas.filter(d => d.cuotasVencidas > 0);
     const semPeor = vencidas.some(d => d.sem === 'rojo') ? 'rojo' : vencidas.some(d => d.sem === 'amarillo') ? 'amarillo' : 'verde';
     const maxDias = Math.max(0, ...g.deudas.map(d => d.maxDias));
     const clienteDoc = clientes.find(c => c.id === g.clienteId);
-    return { ...g, semPeor, maxDias, numero: clienteDoc?.numero || null, tieneAtraso: vencidas.length > 0 };
+    const consignaciones = consignacionesPendientes.filter(cp => cp.clienteId === g.clienteId);
+    return { ...g, semPeor, maxDias, numero: clienteDoc?.numero || null, tieneAtraso: vencidas.length > 0, consignaciones };
   }).sort((a, b) => ORDEN_SEM[a.semPeor] - ORDEN_SEM[b.semPeor] || b.maxDias - a.maxDias);
 
   const gruposFiltrados = grupos.filter(g => {
@@ -422,7 +550,7 @@ export default function Cobros() {
       <ModalWhatsApp />
       <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}><IconWallet size={22} style={{ color: 'var(--rv-accent)' }} />Cobros</h1>
       <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 24 }}>
-        Cuenta corriente de clientes: solo aparecen acá los que todavía te deben algo (cuotas o saldo). En cuanto un cliente termina de pagar, sale de esta lista solo — su historial completo lo seguís viendo en <strong>Clientes</strong>.
+        Cuenta corriente de clientes: solo aparecen acá los que todavía te deben algo (cuotas, saldo o consignación vendida) o tienen equipos en consignación sin vender. En cuanto un cliente termina de pagar, sale de esta lista solo — su historial completo lo seguís viendo en <strong>Clientes</strong>.
       </p>
 
       {grupos.length === 0 && (
@@ -466,7 +594,8 @@ export default function Cobros() {
                       {g.numero && <span style={{ color: 'var(--rv-text-dim)', fontSize: 12, fontWeight: 600 }}>Cliente #{g.numero}</span>}
                     </div>
                     <div style={{ color: 'var(--rv-text-dim)', fontSize: 12 }}>
-                      {g.deudas.length} ítem{g.deudas.length === 1 ? '' : 's'} pendiente{g.deudas.length === 1 ? '' : 's'}
+                      {g.deudas.length > 0 && <>{g.deudas.length} ítem{g.deudas.length === 1 ? '' : 's'} pendiente{g.deudas.length === 1 ? '' : 's'}</>}
+                      {g.consignaciones?.length > 0 && <>{g.deudas.length > 0 ? ' · ' : ''}{g.consignaciones.length} en consignación</>}
                       {g.tieneAtraso && <span style={{ color: colorSem[g.semPeor], fontWeight: 600 }}> · Hace {g.maxDias} días</span>}
                       {g.telefono && <a href={`tel:${g.telefono}`} style={{ color: 'var(--rv-accent)', marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 4 }}><IconPhone size={11} />{g.telefono}</a>}
                     </div>
@@ -495,6 +624,33 @@ export default function Cobros() {
 
                 {abierto === g.clave && (
                   <div style={{ marginTop: 16, borderTop: '1px solid var(--rv-border)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {g.consignaciones?.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--rv-text-dim)', textTransform: 'uppercase', letterSpacing: 0.4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <IconPackage size={12} />En consignación (todavía sin vender)
+                        </div>
+                        {g.consignaciones.map(cp => {
+                          const procVendido = procesandoConsign === `${cp.stockId}:vendido`;
+                          const procDevuelto = procesandoConsign === `${cp.stockId}:devuelto`;
+                          return (
+                            <div key={cp.stockId} style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                              <div>
+                                <div style={{ fontWeight: 600, fontSize: 13 }}>{cp.modelo || 'Equipo'}</div>
+                                <div style={{ color: 'var(--rv-text-dim)', fontSize: 12 }}>Te pagaría {cp.precioMoneda === 'ARS' ? '$' : 'USD'} {cp.precioMonto} cuando lo venda</div>
+                              </div>
+                              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                <button disabled={procVendido} onClick={() => marcarConsignVendida(cp.stockId)} style={{ padding: '7px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: procVendido ? 'not-allowed' : 'pointer', border: 'none', background: 'var(--rv-accent)', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: 6, opacity: procVendido ? 0.6 : 1 }}>
+                                  <IconArrowSwap size={13} />{procVendido ? 'Marcando...' : 'Marcó que lo vendió'}
+                                </button>
+                                <button disabled={procDevuelto} onClick={() => marcarConsignDevuelta(cp.stockId)} style={{ padding: '7px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: procDevuelto ? 'not-allowed' : 'pointer', border: '1px solid var(--rv-border)', background: 'var(--rv-surface)', color: 'var(--rv-text-dim)', opacity: procDevuelto ? 0.6 : 1 }}>
+                                  {procDevuelto ? 'Guardando...' : 'Me lo devolvió'}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                     {g.deudas.map((d, di) => (
                       <div key={di} style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: 14 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
@@ -567,6 +723,49 @@ export default function Cobros() {
                               <button
                                 disabled={procesando || !(Number(formPago.monto) > 0)}
                                 onClick={() => registrarPagoSaldo(d.ventaId, formPago)}
+                                style={{ padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: procesando ? 'not-allowed' : 'pointer', border: 'none', background: 'var(--rv-accent)', color: '#fff', opacity: procesando || !(Number(formPago.monto) > 0) ? 0.6 : 1 }}
+                              >
+                                {procesando ? 'Guardando...' : 'Confirmar'}
+                              </button>
+                              <button onClick={() => setFormPagoAbierto(null)} disabled={procesando} style={{ padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--rv-border)', background: 'var(--rv-surface)', color: 'var(--rv-text-dim)' }}>
+                                Cancelar
+                              </button>
+                            </div>
+                          );
+                        })()}
+                        {d.tipoDeuda === 'consignacion_vendida' && (() => {
+                          const procesando = procesandoPago === d.stockId;
+                          const formAbierto = formPagoAbierto === d.stockId;
+                          if (!formAbierto) {
+                            return (
+                              <button onClick={() => {
+                                setFormPagoAbierto(d.stockId);
+                                setFormPago({ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS' });
+                              }} style={{
+                                padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                                border: 'none', background: 'var(--rv-accent)', color: '#fff',
+                                display: 'inline-flex', alignItems: 'center', gap: 6,
+                              }}>
+                                <IconWallet size={13} />Registrar pago
+                              </button>
+                            );
+                          }
+                          return (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                              <select value={formPago.tipo} onChange={e => {
+                                const t = e.target.value;
+                                setFormPago(f => ({ ...f, tipo: t, moneda: t.includes('USD') ? 'USD' : 'ARS' }));
+                              }} style={{ padding: '7px 10px', borderRadius: 8, border: '1px solid var(--rv-border)', background: 'var(--rv-surface)', color: 'var(--rv-text)', fontSize: 12 }}>
+                                {FORMAS_PAGO_SALDO.map(f => <option key={f}>{f}</option>)}
+                              </select>
+                              <input
+                                type="number" placeholder="Monto" value={formPago.monto}
+                                onChange={e => setFormPago(f => ({ ...f, monto: e.target.value }))}
+                                style={{ width: 100, padding: '7px 10px', borderRadius: 8, border: '1px solid var(--rv-border)', background: 'var(--rv-surface)', color: 'var(--rv-text)', fontSize: 12 }}
+                              />
+                              <button
+                                disabled={procesando || !(Number(formPago.monto) > 0)}
+                                onClick={() => registrarPagoConsignacion(d.stockId, formPago)}
                                 style={{ padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: procesando ? 'not-allowed' : 'pointer', border: 'none', background: 'var(--rv-accent)', color: '#fff', opacity: procesando || !(Number(formPago.monto) > 0) ? 0.6 : 1 }}
                               >
                                 {procesando ? 'Guardando...' : 'Confirmar'}

@@ -4,9 +4,10 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import CalculadoraPrecio from '../components/CalculadoraPrecio';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
-import { IconCalculator, IconLink, IconShare, IconEdit, IconTrash, IconCheck, IconX, IconBox, IconPin } from '../components/Icons';
+import { IconCalculator, IconLink, IconShare, IconEdit, IconTrash, IconCheck, IconX, IconBox, IconPin, IconArrowSwap } from '../components/Icons';
 import { CATEGORIAS_STOCK, ETIQUETA_ID_POR_CATEGORIA, SUGERENCIAS_CAPACIDAD_POR_CATEGORIA, EMOJI_POR_CATEGORIA, formatCapacidad, cargarModelosPorCategoria } from '../lib/categoriasProducto';
 import SelectorModelo from '../components/SelectorModelo';
+import SelectorCliente from '../components/SelectorCliente';
 import CampoPrecio from '../components/CampoPrecio';
 import { convertirMoneda, faltaTipoCambio } from '../lib/moneda';
 import { fechaLocalDesdeInput } from '../lib/fechas';
@@ -15,7 +16,8 @@ import { fechaMs, comparadorOrden } from '../lib/ordenStock';
 const COLORES = ['Negro','Blanco','Azul','Natural','Desert','Desert Titanium','Natural Titanium','Naranja','Rosa','Verde','Morado','Rojo','Gris','Plata','Dorado'];
 const TIPOS = ['compra','consignacion'];
 const ESTADOS = ['disponible','asignado','vendido'];
-const estadoColor = { disponible: 'var(--rv-accent)', asignado: 'var(--rv-text-mid)', vendido: 'var(--rv-text-dim)' };
+const estadoColor = { disponible: 'var(--rv-accent)', asignado: 'var(--rv-text-mid)', vendido: 'var(--rv-text-dim)', en_consignacion_cliente: 'var(--rv-text-mid)' };
+const ESTADO_LABEL_STOCK = { en_consignacion_cliente: 'en consignación' };
 const formatFecha = (f) => { if (!f) return 'Sin fecha'; const d = f.toDate ? f.toDate() : new Date(f); return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }); };
 const ESTADO_VENTA_LABEL = { pendiente: 'Pendiente', entregado: 'Entregado', cancelado: 'Anulada' };
 
@@ -29,6 +31,7 @@ export default function Stock() {
 
   const [equipos, setEquipos] = useState([]);
   const [ventas, setVentas] = useState([]);
+  const [clientes, setClientes] = useState([]);
   const [proveedores, setProveedores] = useState([]);
   const [puntosVenta, setPuntosVenta] = useState([]);
   const [vendedores, setVendedores] = useState([]);
@@ -50,6 +53,9 @@ export default function Stock() {
   const [copiado, setCopiado] = useState(false);
   const [copiadoTodo, setCopiadoTodo] = useState(false);
   const [modalLimite, setModalLimite] = useState(false);
+  const [modalConsignar, setModalConsignar] = useState(null); // equipo elegido para dar en consignación
+  const [formConsignar, setFormConsignar] = useState({ clienteId: '', clienteNombre: '', clienteNumero: null, precioMonto: '', precioMoneda: 'USD' });
+  const [guardandoConsignar, setGuardandoConsignar] = useState(false);
   const FORM_VACIO = {
     categoria: categoriasProducto[0] || 'iPhone', modelo: '', color: '', gb: '', bateria: '', imei: '',
     tipo: 'compra', proveedor: '', costoMonto: '', costoMoneda: 'USD', pvMonto: '', pvMoneda: 'USD',
@@ -59,9 +65,10 @@ export default function Stock() {
 
   const cargar = async () => {
     if (!negocioId) return;
-    const [eSnap, ventasSnap, pSnap, pvSnap, vSnap, cfgSnap] = await Promise.all([
+    const [eSnap, ventasSnap, cliSnap, pSnap, pvSnap, vSnap, cfgSnap] = await Promise.all([
       getDocs(query(collection(db, ...base, 'stock'), orderBy('fechaIngreso', 'desc'))),
       getDocs(collection(db, ...base, 'ventas')),
+      getDocs(collection(db, ...base, 'clientes')),
       getDocs(collection(db, ...base, 'proveedores')),
       getDocs(collection(db, ...base, 'puntosVenta')),
       getDocs(collection(db, ...base, 'vendedores')),
@@ -69,6 +76,7 @@ export default function Stock() {
     ]);
     setEquipos(eSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     setVentas(ventasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    setClientes(cliSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     setProveedores(pSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     setPuntosVenta(pvSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     setVendedores(vSnap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -179,10 +187,50 @@ export default function Stock() {
     } finally { setGuardando(false); }
   };
 
+  // Le da un equipo disponible a un cliente en consignación (mayorista): el equipo deja
+  // de estar disponible pero NO se considera vendido todavía -- recién genera lo que ese
+  // cliente debe cuando se marca como vendido desde Cobros (mismo criterio que la
+  // consignación de un proveedor en Proveedores.jsx, pero del lado de venta).
+  const abrirConsignar = (eq) => {
+    setModalConsignar(eq);
+    setFormConsignar({ clienteId: '', clienteNombre: '', clienteNumero: null, precioMonto: '', precioMoneda: 'USD' });
+  };
+
+  const confirmarConsignar = async () => {
+    if (!modalConsignar || !formConsignar.clienteId || !(Number(formConsignar.precioMonto) > 0)) return;
+    setGuardandoConsignar(true);
+    try {
+      await updateDoc(doc(db, ...base, 'stock', modalConsignar.id), {
+        estado: 'en_consignacion_cliente',
+        consignacionCliente: {
+          clienteId: formConsignar.clienteId,
+          clienteNombre: formConsignar.clienteNombre,
+          clienteNumero: formConsignar.clienteNumero,
+          precioMonto: Number(formConsignar.precioMonto),
+          precioMoneda: formConsignar.precioMoneda,
+          fechaEntrega: serverTimestamp(),
+        },
+      });
+      setModalConsignar(null);
+      cargar();
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos registrar la consignación. Probá de nuevo.');
+    } finally { setGuardandoConsignar(false); }
+  };
+
   // Arma la línea de "de dónde salió" un equipo, con fallback a los campos
   // sueltos legado (proveedor/tipo) para equipos cargados antes de que
   // existiera el objeto `origen` unificado.
   const origenDe = (eq) => {
+    if (eq.consignacionCliente) {
+      const c = eq.consignacionCliente;
+      const precioTxt = `${c.precioMoneda === 'ARS' ? '$' : 'USD'} ${c.precioMonto}`;
+      if (eq.estado === 'vendido') {
+        return `Vendido en consignación por ${c.clienteNombre}${c.clienteNumero ? ` (Cliente #${c.clienteNumero})` : ''} — ${eq.pagadoConsignacion ? `ya te pagó ${precioTxt}` : `te debe ${precioTxt} (ver Cobros)`}`;
+      }
+      return `En consignación con ${c.clienteNombre}${c.clienteNumero ? ` (Cliente #${c.clienteNumero})` : ''} — te debe ${precioTxt} cuando lo venda`;
+    }
     if (eq.origen?.tipo === 'parte_de_pago') {
       const cliente = eq.origen.clienteNombre ? `${eq.origen.clienteNombre}${eq.origen.clienteNumero ? ` (Cliente #${eq.origen.clienteNumero})` : ''}` : 'un cliente';
       return `Entregado por ${cliente}${eq.origen.ventaOrigenModelo ? ` — parte de pago de ${eq.origen.ventaOrigenModelo}` : ' — parte de pago'}`;
@@ -268,7 +316,7 @@ export default function Stock() {
       return e.puntoVenta === filtroPuntoVenta;
     })
     .filter(e =>
-      `${e.categoria} ${e.modelo} ${e.color} ${e.gb} ${e.imei} ${e.puntoVenta} ${e.asignadoA} ${e.proveedor || ''} ${e.origen?.proveedorNombre || ''} ${e.origen?.clienteNombre || ''}`.toLowerCase().includes(filtro.toLowerCase())
+      `${e.categoria} ${e.modelo} ${e.color} ${e.gb} ${e.imei} ${e.puntoVenta} ${e.asignadoA} ${e.proveedor || ''} ${e.origen?.proveedorNombre || ''} ${e.origen?.clienteNombre || ''} ${e.consignacionCliente?.clienteNombre || ''}`.toLowerCase().includes(filtro.toLowerCase())
     )
     // Pedido de un cliente: ordenar por fecha de adquisición o por modelo -- sumados acá
     // precio y batería, los otros dos criterios más comunes para stock de celulares.
@@ -369,7 +417,7 @@ export default function Stock() {
                   {eq.modelo}
                 </button>
               </div>
-              <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 99, textTransform: 'uppercase', border: '1px solid var(--rv-border)', color: estadoColor[eq.estado] }}>{eq.estado}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 99, textTransform: 'uppercase', border: '1px solid var(--rv-border)', color: estadoColor[eq.estado] }}>{ESTADO_LABEL_STOCK[eq.estado] || eq.estado}</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 12, color: 'var(--rv-text-mid)', marginBottom: 12 }}>
               {eq.gb && <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>{formatCapacidad(eq.gb)}</span>}
@@ -396,8 +444,13 @@ export default function Stock() {
               )}
             </div>
             {eq.estado === 'disponible' && (
-              <button onClick={() => copiarFicha(eq)} style={{ width: '100%', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: copiado === eq.id ? 'var(--rv-text)' : 'var(--rv-accent)', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+              <button onClick={() => copiarFicha(eq)} style={{ width: '100%', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: copiado === eq.id ? 'var(--rv-text)' : 'var(--rv-accent)', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginBottom: 8 }}>
                 {copiado === eq.id ? <><IconCheck size={13} />Ficha copiada</> : <><IconShare size={13} />Compartir ficha WhatsApp</>}
+              </button>
+            )}
+            {esAdmin && eq.estado === 'disponible' && (
+              <button onClick={() => abrirConsignar(eq)} style={{ width: '100%', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-accent)', borderRadius: 8, padding: '8px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginBottom: 8 }}>
+                <IconArrowSwap size={13} />Dar en consignación a un cliente
               </button>
             )}
             <div style={{ display: 'flex', gap: 8 }}>
@@ -534,6 +587,43 @@ export default function Stock() {
           cantidadActual={equipos.length}
           onCerrar={() => setModalLimite(false)}
         />
+      )}
+
+      {/* Modal dar en consignación a un cliente */}
+      {modalConsignar && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 420 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 9 }}><IconArrowSwap size={16} />Dar en consignación</h2>
+              <button onClick={() => setModalConsignar(null)} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
+            </div>
+            <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 16 }}>
+              {modalConsignar.modelo}{modalConsignar.gb ? ` ${formatCapacidad(modalConsignar.gb)}` : ''} {modalConsignar.color} deja de estar disponible, pero todavía no se considera vendido. Cuando el cliente lo venda, marcalo desde <strong>Cobros</strong> y ahí se genera lo que te debe.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <SelectorCliente
+                negocioId={negocioId}
+                clientes={clientes}
+                clienteId={formConsignar.clienteId}
+                label="Cliente"
+                onSeleccionar={c => setFormConsignar(f => ({ ...f, clienteId: c?.id || '', clienteNombre: c?.nombre || '', clienteNumero: c?.numero || null }))}
+                onClienteCreado={c => setClientes(cs => [...cs, c])}
+              />
+              <CampoPrecio
+                label="Cuánto te tiene que pagar cuando lo venda"
+                monto={formConsignar.precioMonto} moneda={formConsignar.precioMoneda}
+                onChange={({ monto, moneda }) => setFormConsignar(f => ({ ...f, precioMonto: monto, precioMoneda: moneda }))}
+                tipoCambio={tipoCambio} placeholder="450"
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button type="button" onClick={() => setModalConsignar(null)} style={{ padding: '10px 20px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
+              <button type="button" disabled={guardandoConsignar || !formConsignar.clienteId || !(Number(formConsignar.precioMonto) > 0)} onClick={confirmarConsignar} style={{ padding: '10px 24px', background: 'var(--rv-accent)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: guardandoConsignar || !formConsignar.clienteId || !(Number(formConsignar.precioMonto) > 0) ? 0.6 : 1 }}>
+                {guardandoConsignar ? 'Guardando...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal historial de equipo */}

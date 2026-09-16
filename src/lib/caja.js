@@ -122,6 +122,29 @@ export async function registrarCobroSuelto(negocioId, ventaId, venta, cobro, cob
   });
 }
 
+// Cobro de un equipo que se le dio a un cliente en consignación (mayorista) y que ese
+// cliente ya vendió -- no está atado a ninguna venta propia (nunca pasó por Ventas.jsx),
+// sino directo a un documento de stock. Mismo criterio que registrarCobroSuelto: un solo
+// movimiento por pago, sin reintentar sobre pagos previos.
+export async function registrarCobroConsignacionCliente(negocioId, stockId, stockItem, cobro) {
+  const base = ['negocios', negocioId];
+  const monto = Number(cobro.monto) || 0;
+  if (monto <= 0) return;
+  const modelo = `${stockItem.categoria || ''} ${stockItem.modelo || ''}`.trim();
+  const clienteNombre = stockItem.consignacionCliente?.clienteNombre;
+  await addDoc(collection(db, ...base, 'caja'), {
+    fecha: serverTimestamp(),
+    tipo: 'ingreso',
+    moneda: cobro.moneda === 'USD' ? 'USD' : 'ARS',
+    monto,
+    concepto: `Consignación · ${modelo}${clienteNombre ? ' · ' + clienteNombre : ''}`,
+    origen: 'consignacion_cliente',
+    categoria: CATEGORIA_POR_ORIGEN.venta,
+    stockId,
+    automatico: true,
+  });
+}
+
 export async function registrarMovimientoCuota(negocioId, ventaId, venta, cobroIdx, cuotaIdx, cobro) {
   const base = ['negocios', negocioId];
   const monto = Number(cobro.montoCuota) || 0;

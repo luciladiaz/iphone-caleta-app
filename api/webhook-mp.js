@@ -119,6 +119,18 @@ const RECHAZOS_QUE_REQUIEREN_ACCION_DEL_CLIENTE = new Set(['cc_rejected_call_for
 async function logPagoRechazado(negocioId, mpId, statusDetail) {
   const requiereAccion = RECHAZOS_QUE_REQUIEREN_ACCION_DEL_CLIENTE.has(statusDetail);
   try {
+    // MP puede reenviar la misma notificación más de una vez (comportamiento normal de
+    // sus webhooks) -- sin este chequeo, cada reenvío del mismo pago rechazado agregaba
+    // una entrada duplicada idéntica al historial. 'test' se excluye a propósito: en ese
+    // caso mpId no identifica un pago real, y dos intentos de prueba distintos no
+    // deberían fusionarse en uno solo.
+    if (mpId && mpId !== 'test') {
+      const existente = await adminDb.collection(`negocios/${negocioId}/pagos`).where('mpId', '==', mpId).limit(1).get();
+      if (!existente.empty) {
+        console.log(`[Webhook MP] Pago rechazado ya estaba registrado, no se duplica | negocio=${negocioId} | mpId=${mpId}`);
+        return;
+      }
+    }
     await adminDb.collection(`negocios/${negocioId}/pagos`).add({
       tipo: requiereAccion ? 'pago_rechazado_requiere_autorizacion_cliente' : 'pago_rechazado_reintentando',
       estado: 'reintentando',

@@ -1461,13 +1461,13 @@ const TEMPLATES = {
       ],
     },
     {
-      id: 'dest-empezar-2', nombre: 'Empezá · 2/2', desc: 'Cierre solo con la prueba gratis + link directo — el precio se muestra recién en la destacada "Precios", no acá.',
+      id: 'dest-empezar-2', nombre: 'Empezá · 2/2', desc: 'Cierre de acción: no repite "sin tarjeta/sin compromiso" (eso ya lo dijo la 1/2) — empuja el toque al link y remite a "Precios" para el costo.',
       component: StoryCTA, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: {
-        tag: 'SIN VUELTAS',
-        titulo: 'Entrá y\nprobalo ya.',
-        subtitulo: 'Sin tarjeta. Sin compromiso. Cancelás cuando quieras.',
-        precio: '¿Cuánto cuesta después? Mirá la destacada "Precios" →',
+        tag: 'ASÍ DE FÁCIL',
+        titulo: 'Un toque\ny arrancás.',
+        subtitulo: 'No hace falta nada más que tocar el link de abajo.',
+        precio: '¿Cuánto sale después? Mirá la destacada "Precios" →',
         url: 'reventapp.com.ar',
         handle: '@reventapp.iphone',
       },
@@ -1481,7 +1481,8 @@ const TEMPLATES = {
       ],
     },
 
-    // ── 2) FUNCIONES — 3 pilares del producto, uno por historia ──
+    // ── 2) FUNCIONES — 4 pilares del producto, uno por historia (stock, cobros,
+    // multi-moneda y parte de pago son los 4 fuertes reales frente a la competencia) ──
     {
       id: 'dest-cover-funciones', nombre: '📦 Portada: Funciones', desc: 'Ícono de portada para la destacada "Funciones".',
       component: HighlightCover, exportW: 1080, exportH: 1080, previewW: 400, previewH: 400,
@@ -1524,12 +1525,30 @@ const TEMPLATES = {
       ],
     },
     {
-      id: 'dest-funciones-multimoneda', nombre: 'Funciones · Multi-moneda', desc: 'Pilar 3: ganancias en ARS y USD.',
+      id: 'dest-funciones-multimoneda', nombre: 'Funciones · Multi-moneda', desc: 'Pilar 3: la actualización automática del dólar es el titular, no un detalle al final — es un diferencial real (CocosCRM no lo menciona en ningún lado de su marketing).',
       component: StoryFeature, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: {
-        tag: 'MULTI-MONEDA',
-        titulo: 'Ganás en\npesos y\ndólares.',
-        subtitulo: 'Tipo de cambio del día (Blue, Oficial o MEP), siempre actualizado solo.',
+        tag: 'TIPO DE CAMBIO AUTOMÁTICO',
+        titulo: 'El dólar,\nsiempre\nactualizado.',
+        subtitulo: 'Blue, Oficial o MEP — vos elegís, el sistema lo actualiza solo. Nada de calculismo a mano.',
+        url: 'reventapp.com.ar',
+        handle: '@reventapp.iphone',
+      },
+      campos: [
+        { key: 'tag', label: 'Etiqueta' },
+        { key: 'titulo', label: 'Título (\\n para salto)', multiline: true, rows: 3 },
+        { key: 'subtitulo', label: 'Bajada' },
+        { key: 'url', label: 'URL' },
+        { key: 'handle', label: 'Handle Instagram' },
+      ],
+    },
+    {
+      id: 'dest-funciones-consignacion', nombre: 'Funciones · Parte de pago', desc: 'Pilar 4: seguimiento automático de equipos/plata que te deben por un canje o consignación — otro fuerte real que tampoco vi en la marketing de CocosCRM.',
+      component: StoryFeature, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        tag: 'PARTE DE PAGO',
+        titulo: 'Nada se\nte escapa\nde vista.',
+        subtitulo: '¿Te deben un iPhone o plata por un canje? Queda anotado solo hasta que se resuelve.',
         url: 'reventapp.com.ar',
         handle: '@reventapp.iphone',
       },
@@ -1549,12 +1568,12 @@ const TEMPLATES = {
       defaults: { icono: 'etiqueta' }, campos: [],
     },
     {
-      id: 'dest-precios-1', nombre: 'Precios · 1/2', desc: 'Baja la guardia: un plan, sin letra chica.',
+      id: 'dest-precios-1', nombre: 'Precios · 1/2', desc: 'Baja la guardia: un solo plan, sin niveles. "Todo incluido" se reserva para la 2/2, no se repite acá.',
       component: StoryHook, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: {
-        tag: 'SIN LETRA CHICA',
+        tag: 'SIN SORPRESAS',
         titulo: 'Un solo\nplan.',
-        subtitulo: 'Todo incluido, sin funciones bloqueadas por precio.',
+        subtitulo: 'Ni básico ni premium: el sistema completo, igual para todos.',
         handle: '@reventapp.iphone',
       },
       campos: [
@@ -1565,12 +1584,12 @@ const TEMPLATES = {
       ],
     },
     {
-      id: 'dest-precios-2', nombre: 'Precios · 2/2', desc: 'El número concreto + qué incluye — referencia a "Funciones" para que el precio se sienta justificado por lo que ya vieron.',
+      id: 'dest-precios-2', nombre: 'Precios · 2/2', desc: 'El número concreto + qué incluye — referencia a "Funciones" para que el precio se sienta justificado por lo que ya vieron. "Todo incluido" vive acá, no en la 1/2.',
       component: StoryCTA, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: {
         tag: 'TODO INCLUIDO',
         titulo: '$29.900\n/mes',
-        subtitulo: 'Todo lo que viste en "Funciones", sin letra chica ni costos extra.',
+        subtitulo: 'Todo lo que viste en "Funciones", a un mismo precio.',
         precio: 'Cancelás cuando quieras, sin permanencia',
         url: 'reventapp.com.ar',
         handle: '@reventapp.iphone',

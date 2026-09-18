@@ -20,7 +20,17 @@ const estadoColor = { pendiente: 'var(--rv-text-mid)', entregado: 'var(--rv-text
 const estadoLabel = { pendiente: 'Pendiente', entregado: 'Entregado', cancelado: 'Anulada' };
 
 const ORIGENES = ['Instagram ReventApp', 'WhatsApp', 'Local físico', 'Referido', 'Facebook', 'TikTok', 'Otro'];
-const FORMAS_PAGO = ['Efectivo ARS', 'Efectivo USD', 'Transferencia ARS', 'Transferencia USD', 'Cuotas personales', 'Equipo como parte de pago'];
+// "Equipo como parte de pago" YA NO es una opción acá a propósito: era una "forma de
+// pago" sin campos de monto/moneda (se ocultaban a propósito) que además se excluía del
+// cálculo de cobrado -- elegirla no restaba nada del saldo, no cargaba nada a stock, no
+// quedaba registrada en ningún lado. Un cliente real la eligió pensando que así
+// registraba el celular que le tomó a su cliente, y el sistema simplemente no hizo nada
+// con eso (reportado 2026-09-18). El mecanismo real y funcional para esto es la sección
+// "Equipos recibidos como parte de pago" (ver partesDePago más abajo), que sí resta del
+// saldo y sí carga el equipo a stock. El string sigue soportado en el resto del archivo
+// (líneas de resumenPago/cálculo de cobrado) solo para no romper ventas viejas que ya
+// quedaron guardadas con este tipo.
+const FORMAS_PAGO = ['Efectivo ARS', 'Efectivo USD', 'Transferencia ARS', 'Transferencia USD', 'Cuotas personales'];
 
 const fechaDeVenta = (v) => v.fecha?.toDate ? v.fecha.toDate() : new Date(v.fecha);
 

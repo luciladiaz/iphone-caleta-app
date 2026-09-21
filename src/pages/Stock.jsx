@@ -14,7 +14,9 @@ import { fechaLocalDesdeInput } from '../lib/fechas';
 import { fechaMs, comparadorOrden } from '../lib/ordenStock';
 
 const COLORES = ['Negro','Blanco','Azul','Natural','Desert','Desert Titanium','Natural Titanium','Naranja','Rosa','Verde','Morado','Rojo','Gris','Plata','Dorado'];
-const TIPOS = ['compra','consignacion'];
+const TIPOS = ['compra','consignacion','parte_de_pago'];
+const LABEL_TIPO = { compra: 'Compra directa', consignacion: 'Consignación', parte_de_pago: 'Parte de pago' };
+const CLIENTE_ORIGEN_VACIO = { clienteId: '', clienteNombre: '', clienteNumero: null };
 const ESTADOS = ['disponible','asignado','vendido'];
 const estadoColor = { disponible: 'var(--rv-accent)', asignado: 'var(--rv-text-mid)', vendido: 'var(--rv-text-dim)', en_consignacion_cliente: 'var(--rv-text-mid)' };
 const ESTADO_LABEL_STOCK = { en_consignacion_cliente: 'en consignación' };
@@ -62,6 +64,10 @@ export default function Stock() {
     estado: 'disponible', puntoVenta: '', asignadoA: '', notas: '', fechaManual: ''
   };
   const [form, setForm] = useState(FORM_VACIO);
+  // Cliente que entregó el equipo cuando el tipo es "Parte de pago" cargado a mano. Va en
+  // un estado aparte (no dentro de `form`) porque guardar() esparce `form` entero en el
+  // documento del stock, y estos campos viven en `origen`, no sueltos en el equipo.
+  const [clienteOrigen, setClienteOrigen] = useState(CLIENTE_ORIGEN_VACIO);
 
   const cargar = async () => {
     if (!negocioId) return;
@@ -104,6 +110,9 @@ export default function Stock() {
       estado: eq.estado || 'disponible', puntoVenta: eq.puntoVenta || '',
       asignadoA: eq.asignadoA || '', notas: eq.notas || '', fechaManual: ''
     });
+    setClienteOrigen(eq.origen?.tipo === 'parte_de_pago'
+      ? { clienteId: eq.origen.clienteId || '', clienteNombre: eq.origen.clienteNombre || '', clienteNumero: eq.origen.clienteNumero || null }
+      : CLIENTE_ORIGEN_VACIO);
     setModal(true);
   };
 
@@ -111,6 +120,7 @@ export default function Stock() {
     setModal(false);
     setEditandoId(null);
     setForm(FORM_VACIO);
+    setClienteOrigen(CLIENTE_ORIGEN_VACIO);
   };
 
   const eliminarEquipo = async (id) => {
@@ -132,6 +142,18 @@ export default function Stock() {
       alert('No pudimos eliminar el equipo. Probá de nuevo.');
     }
   };
+
+  // Mismo formato de `origen` que arman Ventas.jsx y Cobros.jsx para un equipo que entra
+  // como parte de pago, así origenDe() lo muestra igual sin distinguir cómo se cargó. Sin
+  // venta de origen porque acá se carga a mano (ventaOrigenId/Modelo quedan vacíos).
+  const origenParteDePago = () => ({
+    tipo: 'parte_de_pago',
+    clienteId: clienteOrigen.clienteId || null,
+    clienteNombre: clienteOrigen.clienteNombre || '',
+    clienteNumero: clienteOrigen.clienteNumero || null,
+    ventaOrigenId: null,
+    ventaOrigenModelo: '',
+  });
 
   const guardar = async (e) => {
     e.preventDefault();
@@ -168,16 +190,29 @@ export default function Stock() {
         datos.costoUsd = costoUsd;
         datos.pvUsd = pvUsd;
         if (fechaManual) datos.fechaIngreso = fechaLocalDesdeInput(fechaManual);
-        // Un equipo recibido como parte de pago ya trae su origen (cliente + venta)
-        // desde Ventas — no se pisa acá al editar otros campos del equipo.
         if (form.tipo !== 'parte_de_pago') {
           datos.origen = form.proveedor ? { tipo: form.tipo, proveedorNombre: form.proveedor } : null;
+        } else {
+          // Un equipo recibido como parte de pago desde Ventas/Cobros ya trae su origen
+          // (cliente + venta): se le actualiza solo el cliente si se eligió otro, sin perder
+          // ventaOrigenId/ventaOrigenModelo. Si se cargó a mano (sin venta de origen), el
+          // origen se arma o se limpia según el cliente elegido.
+          datos.proveedor = '';
+          const actual = equipos.find(e => e.id === editandoId);
+          if (clienteOrigen.clienteId) {
+            datos.origen = { ...(actual?.origen || {}), ...origenParteDePago() };
+          } else if (!actual?.origen?.ventaOrigenId) {
+            datos.origen = null;
+          }
         }
         await updateDoc(doc(db, ...base, 'stock', editandoId), datos);
       } else {
         const fechaIngreso = form.fechaManual ? fechaLocalDesdeInput(form.fechaManual) : serverTimestamp();
-        const origen = form.proveedor ? { tipo: form.tipo, proveedorNombre: form.proveedor } : null;
-        await addDoc(collection(db, ...base, 'stock'), { ...form, costoUsd, pvUsd, fechaIngreso, origen });
+        const esParteDePago = form.tipo === 'parte_de_pago';
+        const origen = esParteDePago
+          ? (clienteOrigen.clienteId ? origenParteDePago() : null)
+          : (form.proveedor ? { tipo: form.tipo, proveedorNombre: form.proveedor } : null);
+        await addDoc(collection(db, ...base, 'stock'), { ...form, proveedor: esParteDePago ? '' : form.proveedor, costoUsd, pvUsd, fechaIngreso, origen });
       }
       cerrarModal();
       cargar();
@@ -495,8 +530,19 @@ export default function Stock() {
                 </div>
                 <div><label style={labelStyle}>Batería %</label><input type="number" min="0" max="100" value={form.bateria} onChange={e => setForm({...form, bateria: e.target.value})} placeholder="91" style={inputStyle} /></div>
                 <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>{ETIQUETA_ID_POR_CATEGORIA[form.categoria] || 'IMEI'}</label><input value={form.imei} onChange={e => setForm({...form, imei: e.target.value})} placeholder={form.categoria === 'Mac' || form.categoria === 'Drone' ? 'Número de serie' : '123456789012345'} style={inputStyle} /></div>
-                <div><label style={labelStyle}>Tipo de adquisición</label><select value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value})} style={inputStyle}>{TIPOS.map(t => <option key={t} value={t}>{t === 'consignacion' ? 'Consignación' : 'Compra directa'}</option>)}</select></div>
-                <div><label style={labelStyle}>Proveedor</label><select value={form.proveedor} onChange={e => setForm({...form, proveedor: e.target.value})} style={inputStyle}><option value="">Elegir...</option>{proveedores.map(p => <option key={p.id}>{p.nombre}</option>)}</select></div>
+                <div><label style={labelStyle}>Tipo de adquisición</label><select value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value})} style={inputStyle}>{TIPOS.map(t => <option key={t} value={t}>{LABEL_TIPO[t]}</option>)}</select></div>
+                {form.tipo === 'parte_de_pago' ? (
+                  <SelectorCliente
+                    negocioId={negocioId}
+                    clientes={clientes}
+                    clienteId={clienteOrigen.clienteId}
+                    label="Cliente que lo entregó"
+                    onSeleccionar={c => setClienteOrigen(c ? { clienteId: c.id, clienteNombre: c.nombre || '', clienteNumero: c.numero || null } : CLIENTE_ORIGEN_VACIO)}
+                    onClienteCreado={c => setClientes(cs => [...cs, c])}
+                  />
+                ) : (
+                  <div><label style={labelStyle}>Proveedor</label><select value={form.proveedor} onChange={e => setForm({...form, proveedor: e.target.value})} style={inputStyle}><option value="">Elegir...</option>{proveedores.map(p => <option key={p.id}>{p.nombre}</option>)}</select></div>
+                )}
                 {/* Costo oculto para no-admin: es el mismo dato que ya está oculto en la
                     tarjeta (línea ~300) -- el modal de editar no debía ser una puerta
                     trasera para ver/cambiar el costo real de compra. */}

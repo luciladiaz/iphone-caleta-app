@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy, getDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, setDoc, serverTimestamp, query, orderBy, getDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import CalculadoraPrecio from '../components/CalculadoraPrecio';
@@ -17,6 +17,11 @@ const COLORES = ['Negro','Blanco','Azul','Natural','Desert','Desert Titanium','N
 const TIPOS = ['compra','consignacion','parte_de_pago'];
 const LABEL_TIPO = { compra: 'Compra directa', consignacion: 'Consignación', parte_de_pago: 'Parte de pago' };
 const CLIENTE_ORIGEN_VACIO = { clienteId: '', clienteNombre: '', clienteNumero: null };
+// Cierre por defecto de la lista de stock en texto: antes cada equipo repetía su propio
+// "Consultá disponibilidad" (pedido de un cliente: que aparezca una sola vez, abajo de todo,
+// y que se pueda personalizar). Se usa mientras el negocio no guardó un pie propio.
+const PIE_LISTA_POR_DEFECTO = '📩 Consultá disponibilidad de los equipos por este medio';
+const TEXTO_LISTA_INICIAL = { encabezado: '', pie: PIE_LISTA_POR_DEFECTO, mostrarLibre: true };
 const ESTADOS = ['disponible','asignado','vendido'];
 const estadoColor = { disponible: 'var(--rv-accent)', asignado: 'var(--rv-text-mid)', vendido: 'var(--rv-text-dim)', en_consignacion_cliente: 'var(--rv-text-mid)' };
 const ESTADO_LABEL_STOCK = { en_consignacion_cliente: 'en consignación' };
@@ -61,13 +66,17 @@ export default function Stock() {
   const FORM_VACIO = {
     categoria: categoriasProducto[0] || 'iPhone', modelo: '', color: '', gb: '', bateria: '', imei: '',
     tipo: 'compra', proveedor: '', costoMonto: '', costoMoneda: 'USD', pvMonto: '', pvMoneda: 'USD',
-    estado: 'disponible', puntoVenta: '', asignadoA: '', notas: '', fechaManual: ''
+    estado: 'disponible', puntoVenta: '', asignadoA: '', notas: '', fechaManual: '', noLibreOperador: false
   };
   const [form, setForm] = useState(FORM_VACIO);
   // Cliente que entregó el equipo cuando el tipo es "Parte de pago" cargado a mano. Va en
   // un estado aparte (no dentro de `form`) porque guardar() esparce `form` entero en el
   // documento del stock, y estos campos viven en `origen`, no sueltos en el equipo.
   const [clienteOrigen, setClienteOrigen] = useState(CLIENTE_ORIGEN_VACIO);
+  // Texto personalizable de "Copiar todo el stock como texto" (se guarda en config/general).
+  const [textoLista, setTextoLista] = useState(TEXTO_LISTA_INICIAL);
+  const [guardandoTextoLista, setGuardandoTextoLista] = useState(false);
+  const [textoListaGuardado, setTextoListaGuardado] = useState(false);
 
   const cargar = async () => {
     if (!negocioId) return;
@@ -91,6 +100,13 @@ export default function Stock() {
     setCategoriasProducto(catsProducto);
     setModelosPorCategoria(await cargarModelosPorCategoria(negocioId, catsProducto, cfg.modelos));
     if (cfg.tipoCambio) setTipoCambio(cfg.tipoCambio);
+    // pie ausente = nunca lo personalizó (usa el de por defecto); pie '' = lo dejó vacío a propósito.
+    const lt = cfg.listaTexto || {};
+    setTextoLista({
+      encabezado: lt.encabezado ?? '',
+      pie: lt.pie ?? PIE_LISTA_POR_DEFECTO,
+      mostrarLibre: lt.mostrarLibre !== false,
+    });
     setLoading(false);
   };
 
@@ -108,7 +124,8 @@ export default function Stock() {
       costoMonto: eq.costoMonto ?? eq.costoUsd ?? '', costoMoneda: eq.costoMoneda || 'USD',
       pvMonto: eq.pvMonto ?? eq.pvUsd ?? '', pvMoneda: eq.pvMoneda || 'USD',
       estado: eq.estado || 'disponible', puntoVenta: eq.puntoVenta || '',
-      asignadoA: eq.asignadoA || '', notas: eq.notas || '', fechaManual: ''
+      asignadoA: eq.asignadoA || '', notas: eq.notas || '', fechaManual: '',
+      noLibreOperador: !!eq.noLibreOperador
     });
     setClienteOrigen(eq.origen?.tipo === 'parte_de_pago'
       ? { clienteId: eq.origen.clienteId || '', clienteNombre: eq.origen.clienteNombre || '', clienteNumero: eq.origen.clienteNumero || null }
@@ -296,7 +313,9 @@ export default function Stock() {
     return eventos.sort((a, b) => fechaMs(a.fecha) - fechaMs(b.fecha));
   };
 
-  const generarFichaWA = (eq) => {
+  // enLista: la ficha va dentro de "copiar todo el stock como texto" -- ahí NO se repite
+  // "Consultá disponibilidad" en cada equipo, va una sola vez en el pie de la lista.
+  const generarFichaWA = (eq, { enLista = false } = {}) => {
     const precioARS = eq.pvUsd && tipoCambio ? `$${(eq.pvUsd * tipoCambio).toLocaleString('es-AR')} ARS` : '';
     const emoji = EMOJI_POR_CATEGORIA[eq.categoria] || '📱';
     const specs = [eq.gb ? formatCapacidad(eq.gb) : '', eq.color].filter(Boolean).join(' ');
@@ -308,10 +327,12 @@ export default function Stock() {
     const lineas = [
       `${emoji} *${eq.modelo}${specs ? ' ' + specs : ''}*`,
       eq.bateria ? `🔋 Batería: ${eq.bateria}%` : '',
-      '✅ Libre de operador',
+      // Lo esperable es que un equipo esté libre: se puede dejar de mostrar ese renglón
+      // (ver "Personalizar el texto") y aclarar solo los que NO lo están.
+      eq.noLibreOperador ? '⚠️ No libre de operador' : (textoLista.mostrarLibre ? '✅ Libre de operador' : ''),
       eq.pvUsd ? `💵 USD ${eq.pvUsd}` : '',
       precioARS ? `💵 ${precioARS}` : '',
-      '📩 Consultá disponibilidad por este medio',
+      enLista ? '' : '📩 Consultá disponibilidad por este medio',
     ].filter(Boolean);
     return lineas.join('\n');
   };
@@ -333,10 +354,31 @@ export default function Stock() {
       ? disponibles.filter(e => catalogoCategorias.includes(e.categoria))
       : disponibles
     ).sort(comparadorOrden(orden));
-    const texto = filtrados.map(generarFichaWA).join('\n\n');
+    // Ojo: .map(generarFichaWA) le pasaría el índice como 2do argumento -- se llama con una
+    // función explícita para pasar las opciones.
+    const fichas = filtrados.map(e => generarFichaWA(e, { enLista: true })).join('\n\n');
+    const texto = [textoLista.encabezado.trim(), fichas, textoLista.pie.trim()].filter(Boolean).join('\n\n');
     navigator.clipboard.writeText(texto);
     setCopiadoTodo(true);
     setTimeout(() => setCopiadoTodo(false), 2000);
+  };
+
+  const guardarTextoLista = async () => {
+    setGuardandoTextoLista(true);
+    try {
+      await setDoc(doc(db, ...base, 'config', 'general'), {
+        listaTexto: {
+          encabezado: textoLista.encabezado,
+          pie: textoLista.pie,
+          mostrarLibre: textoLista.mostrarLibre,
+        },
+      }, { merge: true });
+      setTextoListaGuardado(true);
+      setTimeout(() => setTextoListaGuardado(false), 2000);
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos guardar el texto. Probá de nuevo.');
+    } finally { setGuardandoTextoLista(false); }
   };
 
   const stockDisponible = equipos.filter(e => e.estado === 'disponible');
@@ -530,6 +572,10 @@ export default function Stock() {
                 </div>
                 <div><label style={labelStyle}>Batería %</label><input type="number" min="0" max="100" value={form.bateria} onChange={e => setForm({...form, bateria: e.target.value})} placeholder="91" style={inputStyle} /></div>
                 <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>{ETIQUETA_ID_POR_CATEGORIA[form.categoria] || 'IMEI'}</label><input value={form.imei} onChange={e => setForm({...form, imei: e.target.value})} placeholder={form.categoria === 'Mac' || form.categoria === 'Drone' ? 'Número de serie' : '123456789012345'} style={inputStyle} /></div>
+                <label style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--rv-text-mid)', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={!!form.noLibreOperador} onChange={e => setForm({ ...form, noLibreOperador: e.target.checked })} />
+                  No está libre de operador (se aclara en la ficha y en la lista)
+                </label>
                 <div><label style={labelStyle}>Tipo de adquisición</label><select value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value})} style={inputStyle}>{TIPOS.map(t => <option key={t} value={t}>{LABEL_TIPO[t]}</option>)}</select></div>
                 {form.tipo === 'parte_de_pago' ? (
                   <SelectorCliente
@@ -582,7 +628,7 @@ export default function Stock() {
       {/* Modal catálogo */}
       {modalCatalogo && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 480 }}>
+          <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 9 }}><IconLink size={16} />Tu catálogo público</h2>
               <button onClick={() => setModalCatalogo(false)} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
@@ -622,6 +668,35 @@ export default function Stock() {
             <button type="button" onClick={copiarStockCompleto} style={{ width: '100%', marginTop: 10, background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: copiadoTodo ? 'var(--rv-text)' : 'var(--rv-accent)', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
               {copiadoTodo ? <><IconCheck size={13} />Stock copiado como texto</> : <><IconShare size={13} />Copiar todo el stock como texto</>}
             </button>
+            {/* Personalización del texto de la lista (pedido de un cliente): encabezado arriba,
+                pie abajo de todo (en vez de repetir "consultá disponibilidad" en cada equipo)
+                y opción de no mostrar "Libre de operador" en cada uno. Solo admin edita. */}
+            {esAdmin && (
+              <details style={{ marginTop: 12 }}>
+                <summary style={{ cursor: 'pointer', color: 'var(--rv-text-mid)', fontSize: 12.5, fontWeight: 600 }}>Personalizar el texto de la lista</summary>
+                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div>
+                    <label style={labelStyle}>Encabezado (arriba de la lista)</label>
+                    <textarea rows={5} maxLength={1000} value={textoLista.encabezado} onChange={e => setTextoLista(t => ({ ...t, encabezado: e.target.value }))}
+                      placeholder={'📱 LISTADO IPHONES USADOS\n\n📲 @tu_usuario\n📞 11 1234-5678\n\n🎁 Vidrio + funda + cable de regalo\n✅ Garantía por 30 días'}
+                      style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Pie (abajo de todo)</label>
+                    <textarea rows={2} maxLength={1000} value={textoLista.pie} onChange={e => setTextoLista(t => ({ ...t, pie: e.target.value }))}
+                      style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} />
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--rv-text-mid)', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={textoLista.mostrarLibre} onChange={e => setTextoLista(t => ({ ...t, mostrarLibre: e.target.checked }))} />
+                    Mostrar ✅ Libre de operador en cada equipo
+                  </label>
+                  <button type="button" onClick={guardarTextoLista} disabled={guardandoTextoLista}
+                    style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: guardandoTextoLista ? 0.6 : 1 }}>
+                    {guardandoTextoLista ? 'Guardando…' : textoListaGuardado ? 'Guardado ✓' : 'Guardar texto'}
+                  </button>
+                </div>
+              </details>
+            )}
           </div>
         </div>
       )}

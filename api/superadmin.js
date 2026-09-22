@@ -39,7 +39,7 @@ function botonWhatsapp(mensaje, label = '💬 Escribinos por WhatsApp') {
 //    checklist+firma (cierra el dolor de reclamos de garantía), Plan Canje (evita
 //    cuentas a mano en la parte más propensa a error de la operación) y Reparaciones
 //    (suma un negocio entero a la misma app).
-// 2) Regalar los 7 días de prueba de nuevo, ya activados de una, no sirve como señal
+// 2) Regalar días de prueba de nuevo, ya activados de una, no sirve como señal
 //    de interés real -- a alguien que ya tuvo un trial gratis y no convirtió, darle
 //    más gratis sin pedirle nada no filtra quién está genuinamente interesado. Ahora
 //    el mail PIDE una acción (responder o escribir por WhatsApp) para reactivar --
@@ -54,7 +54,7 @@ function botonWhatsapp(mensaje, label = '💬 Escribinos por WhatsApp') {
 //    encontrar el negocio exacto sin tener que preguntarlo.
 function EMAIL_WINBACK(nombre, email) {
   return {
-    subject: `${nombre}, te guardamos 7 días de prueba gratis 🎁`,
+    subject: `${nombre}, te guardamos 3 días de prueba gratis 🎁`,
     html: `
       <p>Hola ${nombre},</p>
       <p>Probaste ReventApp hace un tiempo y no llegaste a decidirte. Pasa, y antes de asumir que no era para vos, quisimos darte otra chance.</p>
@@ -64,8 +64,8 @@ function EMAIL_WINBACK(nombre, email) {
         <li>🔁 <strong>Plan Canje</strong>: calculadora automática de la diferencia cuando un cliente te entrega un equipo usado como parte de pago — sin cuentas a mano ni errores.</li>
         <li>🔧 <strong>Módulo de Reparaciones</strong>: si además reparás equipos, ahora llevás todo el flujo (ingreso → diagnóstico → presupuesto → entrega) en la misma app.</li>
       </ul>
-      <p>Si te interesa darle otra vuelta, avisanos y te reactivamos 7 días de prueba gratis al toque, sin necesidad de cargar tarjeta:</p>
-      ${botonWhatsapp(`Hola! Me llegó el mail de ReventApp y quiero reactivar mi prueba. Me registré con el mail ${email} (${nombre})`, '🎁 Quiero mis 7 días gratis')}
+      <p>Si te interesa darle otra vuelta, avisanos y te reactivamos 3 días de prueba gratis al toque, sin necesidad de cargar tarjeta:</p>
+      ${botonWhatsapp(`Hola! Me llegó el mail de ReventApp y quiero reactivar mi prueba. Me registré con el mail ${email} (${nombre})`, '🎁 Quiero mis 3 días gratis')}
       <p style="color:#666;font-size:13px">También podés responder directamente este correo.</p>
       <p style="color:#888;font-size:12px;margin-top:28px">Si preferís no recibir más este tipo de mails, respondé este correo y te sacamos de la lista.</p>`,
   };
@@ -402,7 +402,7 @@ async function manejarGuardarNota(req, res) {
 //
 // A propósito NO extiende venceTrial acá -- el mail le pide a la persona que
 // responda o escriba por WhatsApp para reactivar (ver comentario en EMAIL_WINBACK):
-// regalar los 7 días de una sin pedir nada no da ninguna señal de interés real.
+// regalar días de una sin pedir nada no da ninguna señal de interés real.
 // Cuando alguien efectivamente contesta, Lucila lo activa a mano con el botón
 // "Extender trial" que ya existe en el detalle de cada negocio (manejarExtenderTrial),
 // mismo mecanismo de siempre, solo que ahora disparado por una respuesta real en vez

@@ -147,7 +147,7 @@ function CampanaReactivacion({ negocios, onEnviarPrueba, onEnviarCampaña, envia
         <span style={{ background: 'var(--rv-danger-soft)', color: 'var(--rv-danger)', fontSize: 11.5, fontWeight: 800, borderRadius: 99, padding: '2px 9px' }}>{candidatos.length}</span>
       </div>
       <p style={{ color: 'var(--rv-text-dim)', fontSize: 12.5, lineHeight: 1.5, marginBottom: 12 }}>
-        Les manda un mail contando 3 features nuevas (comprobante con firma, Plan Canje, Reparaciones) pidiéndoles que respondan o escriban por WhatsApp si quieren reactivar 7 días de prueba gratis — no se los reactiva solo, así filtrás quién está realmente interesado. Cuando alguien te escriba, activáselo a mano desde "Extender trial" en su detalle. No se repite: quien ya lo recibió no aparece más acá.
+        Les manda un mail contando 3 features nuevas (comprobante con firma, Plan Canje, Reparaciones) pidiéndoles que respondan o escriban por WhatsApp si quieren reactivar 3 días de prueba gratis — no se los reactiva solo, así filtrás quién está realmente interesado. Cuando alguien te escriba, activáselo a mano desde "Extender trial" en su detalle. No se repite: quien ya lo recibió no aparece más acá.
         {sinEmail > 0 ? ` (${sinEmail} más están vencidos pero sin email de dueño cargado, así que no se les puede mandar.)` : ''}
       </p>
 
@@ -191,10 +191,11 @@ function CampanaReactivacion({ negocios, onEnviarPrueba, onEnviarCampaña, envia
 // de Lucila 2026-09-22) -- mismo tono/voseo que MENSAJES_WHATSAPP (días 1/4/6), pero para
 // DESPUÉS de vencido: reconoce que no decidió, sin culpa, cuenta 3 features nuevas reales
 // (mismas que en el mail de EMAIL_WINBACK de superadmin.js, no inventadas acá de nuevo) y
-// pide una respuesta de bajo esfuerzo en vez de asumir que no le interesa. Ofrece 7 días
+// pide una respuesta de bajo esfuerzo en vez de asumir que no le interesa. Ofrece 3 días
 // más solo si contesta que sí -- mismo criterio que el mail: regalarlo sin que pida nada
-// no filtra interés real (ver comentario de EMAIL_WINBACK en superadmin.js).
-const MENSAJE_TRIAL_VENCIDO = (nombre) => `Hola ${nombre}! 👋 Vi que se te venció la prueba de ReventApp y no llegaste a decidirte, tranquilo, pasa. Desde que la probaste sumamos cosas que te van a servir: comprobante de venta con checklist y firma digital del cliente, Plan Canje (calculadora automática para equipos que te dejan como parte de pago) y un módulo de Reparaciones si además reparás equipos. Si querés darle otra vuelta te reactivo 7 días más gratis, sin tarjeta. ¿Te sirve o preferís que no te vuelva a escribir?`;
+// no filtra interés real (ver comentario de EMAIL_WINBACK en superadmin.js). Bajado de 7
+// a 3 días a pedido de Lucila (2026-09-22): "para mí no deberíamos darle 7, si no es un montón".
+const MENSAJE_TRIAL_VENCIDO = (nombre) => `Hola ${nombre}! 👋 Vi que se te venció la prueba de ReventApp y no llegaste a decidirte, tranquilo, pasa. Desde que la probaste sumamos cosas que te van a servir: comprobante de venta con checklist y firma digital del cliente, Plan Canje (calculadora automática para equipos que te dejan como parte de pago) y un módulo de Reparaciones si además reparás equipos. Si querés darle otra vuelta te reactivo 3 días más gratis, sin tarjeta. ¿Te sirve o preferís que no te vuelva a escribir?`;
 
 // Lista aparte de la campaña por mail (arriba): esto es para escribir VOS a mano por
 // WhatsApp a quien tiene teléfono cargado, con el mensaje ya armado. No manda nada solo.

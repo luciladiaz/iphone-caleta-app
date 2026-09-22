@@ -187,6 +187,51 @@ function CampanaReactivacion({ negocios, onEnviarPrueba, onEnviarCampaña, envia
   );
 }
 
+// Mensaje fijo para escribirle por WhatsApp a quien terminó el trial y no compró (pedido
+// de Lucila 2026-09-22) -- mismo tono/voseo que MENSAJES_WHATSAPP (días 1/4/6), pero para
+// DESPUÉS de vencido: reconoce que no decidió, sin culpa, cuenta 3 features nuevas reales
+// (mismas que en el mail de EMAIL_WINBACK de superadmin.js, no inventadas acá de nuevo) y
+// pide una respuesta de bajo esfuerzo en vez de asumir que no le interesa. Ofrece 7 días
+// más solo si contesta que sí -- mismo criterio que el mail: regalarlo sin que pida nada
+// no filtra interés real (ver comentario de EMAIL_WINBACK en superadmin.js).
+const MENSAJE_TRIAL_VENCIDO = (nombre) => `Hola ${nombre}! 👋 Vi que se te venció la prueba de ReventApp y no llegaste a decidirte, tranquilo, pasa. Desde que la probaste sumamos cosas que te van a servir: comprobante de venta con checklist y firma digital del cliente, Plan Canje (calculadora automática para equipos que te dejan como parte de pago) y un módulo de Reparaciones si además reparás equipos. Si querés darle otra vuelta te reactivo 7 días más gratis, sin tarjeta. ¿Te sirve o preferís que no te vuelva a escribir?`;
+
+// Lista aparte de la campaña por mail (arriba): esto es para escribir VOS a mano por
+// WhatsApp a quien tiene teléfono cargado, con el mensaje ya armado. No manda nada solo.
+function TrialVencidoWhatsapp({ negocios }) {
+  const candidatos = negocios.filter(n => n.salud === 'trial_vencido' && !n.esDemo && n.telefono);
+  if (candidatos.length === 0) return null;
+
+  return (
+    <div style={{ marginBottom: 26, background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: '16px 18px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+        <h2 style={{ fontSize: 15, fontWeight: 800 }}>Escribirle por WhatsApp — trials vencidos</h2>
+        <span style={{ background: 'var(--rv-danger-soft)', color: 'var(--rv-danger)', fontSize: 11.5, fontWeight: 800, borderRadius: 99, padding: '2px 9px' }}>{candidatos.length}</span>
+      </div>
+      <p style={{ color: 'var(--rv-text-dim)', fontSize: 12.5, lineHeight: 1.5, marginBottom: 12 }}>
+        Mismo mensaje para todos, ya armado — apretás y se abre WhatsApp con el texto cargado, listo para mandar (o editar antes).
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {candidatos.map(n => {
+          const soloDigitos = (n.telefono || '').replace(/\D/g, '');
+          const link = `https://wa.me/${soloDigitos}?text=${encodeURIComponent(MENSAJE_TRIAL_VENCIDO(n.nombreDueño || n.nombre))}`;
+          return (
+            <div key={n.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 12.5 }}>
+                <strong>{n.nombreDueño || n.nombre}</strong>
+                <span style={{ color: 'var(--rv-text-dim)' }}> — {n.telefono} · venció el {fmtFecha(n.venceTrial)}</span>
+              </div>
+              <a href={link} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#22c55e18', color: '#16a34a', border: '1px solid #22c55e35', borderRadius: 9, padding: '7px 13px', fontSize: 12.5, fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}>
+                <IconPhone size={13} /> Escribir por WhatsApp
+              </a>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const ESTADO_PAGO_COLOR = {
   exitoso: '#1a9c6b', cancelado_voluntario: '#6b7686', cancelado_sin_pago: '#d43d3d', reintentando: '#c8790a',
 };
@@ -668,6 +713,7 @@ export default function SuperAdmin() {
                   enviandoCampaña={enviandoCampañaWinback}
                   resultado={resultadoWinback}
                 />
+                <TrialVencidoWhatsapp negocios={datos.negocios} />
                 <PendientesContacto negocios={datos.negocios} onMarcar={marcarContacto} marcando={marcando} />
               </>
             )}

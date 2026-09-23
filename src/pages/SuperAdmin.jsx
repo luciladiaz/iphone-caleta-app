@@ -199,9 +199,22 @@ const MENSAJE_TRIAL_VENCIDO = (nombre) => `Hola ${nombre}! 👋 Vi que se te ven
 
 // Lista aparte de la campaña por mail (arriba): esto es para escribir VOS a mano por
 // WhatsApp a quien tiene teléfono cargado, con el mensaje ya armado. No manda nada solo.
+//
+// Corregido (2026-09-23, reporte de Lucila: "los negocios nuevos no me figuran"): antes
+// dependía del orden en que ya venía `negocios` (creadoEn descendente desde el backend)
+// en vez de ordenar EXPLÍCITAMENTE por vencimiento -- con trials que no duran siempre
+// exactamente 7 días completos (extensiones manuales, "Extender trial" desde el panel),
+// el más recién creado no es siempre el más recién vencido. Ahora se ordena acá mismo por
+// venceTrial descendente, así el que venció más reciente aparece primero seguro. Además
+// se suma el mismo aviso de "sin dato cargado" que ya tenía la campaña por mail (arriba),
+// pero para teléfono en vez de email -- así un negocio nuevo que no figura acá porque le
+// falta el teléfono (en vez de por un bug) queda visible en el conteo, no desaparece sin
+// explicación.
 function TrialVencidoWhatsapp({ negocios }) {
-  const candidatos = negocios.filter(n => n.salud === 'trial_vencido' && !n.esDemo && n.telefono);
-  if (candidatos.length === 0) return null;
+  const vencidos = negocios.filter(n => n.salud === 'trial_vencido' && !n.esDemo);
+  const candidatos = vencidos.filter(n => n.telefono).sort((a, b) => (b.venceTrial || '').localeCompare(a.venceTrial || ''));
+  const sinTelefono = vencidos.length - candidatos.length;
+  if (candidatos.length === 0 && sinTelefono === 0) return null;
 
   return (
     <div style={{ marginBottom: 26, background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: '16px 18px' }}>
@@ -210,7 +223,8 @@ function TrialVencidoWhatsapp({ negocios }) {
         <span style={{ background: 'var(--rv-danger-soft)', color: 'var(--rv-danger)', fontSize: 11.5, fontWeight: 800, borderRadius: 99, padding: '2px 9px' }}>{candidatos.length}</span>
       </div>
       <p style={{ color: 'var(--rv-text-dim)', fontSize: 12.5, lineHeight: 1.5, marginBottom: 12 }}>
-        Mismo mensaje para todos, ya armado — apretás y se abre WhatsApp con el texto cargado, listo para mandar (o editar antes).
+        Mismo mensaje para todos, ya armado — apretás y se abre WhatsApp con el texto cargado, listo para mandar (o editar antes). Ordenados del vencimiento más reciente al más viejo.
+        {sinTelefono > 0 ? ` (${sinTelefono} más están vencidos pero sin teléfono cargado, así que no se les puede escribir por acá.)` : ''}
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {candidatos.map(n => {

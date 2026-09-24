@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { collection, getDocs, addDoc, query, orderBy, doc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, addDoc, query, orderBy, doc, updateDoc, getDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { IconWallet, IconBell, IconCheck, IconCheckCircle, IconWarning, IconPhone, IconArrowSwap, IconPackage } from '../components/Icons';
-import { registrarMovimientoCuota, eliminarMovimientoCuota, registrarCobroSuelto, registrarCobroConsignacionCliente, montoCobro } from '../lib/caja';
+import { registrarMovimientoCuota, eliminarMovimientoCuota, registrarCobroSuelto, registrarCobroConsignacionCliente, registrarPagoConsignacionDeCliente, montoCobro } from '../lib/caja';
 import { formatCapacidad } from '../lib/categoriasProducto';
 import { fechaLocalDesdeInput } from '../lib/fechas';
 import { numeroWhatsapp } from '../lib/telefono';
@@ -277,6 +277,58 @@ export default function Cobros() {
     }
   };
 
+  // Pago que le hacés a un cliente que te dejó un equipo en consignación y que ya se vendió
+  // (lo que LE DEBÉS, no lo que te debe). Puede ser parcial: cada pago se suma a
+  // `pagosAlCliente` del equipo y lo que queda se calcula contra el costo. Sale de Caja
+  // como egreso, en la moneda en que se pagó; el equivalente en USD se congela acá con el
+  // tipo de cambio del momento para que la deuda no se mueva después.
+  const registrarPagoAlCliente = async (stockId, pago) => {
+    const clave = `alcliente:${stockId}`;
+    if (pagosEnVueloRef.current.has(clave)) return;
+    const item = stock.find(s => s.id === stockId);
+    const monto = Number(pago.monto) || 0;
+    if (!item || monto <= 0) return;
+
+    let montoUsd = monto;
+    let tc = null;
+    if (pago.moneda === 'ARS') {
+      if (!tipoCambio) { alert('No hay tipo de cambio cargado (Configuración). Cargalo, o pagá en USD.'); return; }
+      tc = tipoCambio;
+      montoUsd = monto / tc;
+    }
+    const pagadoUsd = (item.pagosAlCliente || []).reduce((s, p) => s + (Number(p.montoUsd) || 0), 0);
+    const pendiente = Math.max(0, (Number(item.costoUsd) || 0) - pagadoUsd);
+    // 1 USD de margen: un monto en pesos redondeado no debería trabar el pago final.
+    if (montoUsd > pendiente + 1) {
+      alert(`El monto supera lo que le debés por este equipo (USD ${pendiente.toFixed(2)}).`);
+      return;
+    }
+
+    pagosEnVueloRef.current.add(clave);
+    setProcesandoPago(clave);
+    try {
+      const base = ['negocios', negocioId];
+      // Date y no serverTimestamp(): Firestore no admite serverTimestamp dentro de un array.
+      const registro = { monto, moneda: pago.moneda, formaPago: pago.tipo, montoUsd, tipoCambio: tc, fecha: new Date() };
+      await updateDoc(doc(db, ...base, 'stock', stockId), { pagosAlCliente: arrayUnion(registro) });
+      setStock(ss => ss.map(s => s.id === stockId ? { ...s, pagosAlCliente: [...(s.pagosAlCliente || []), registro] } : s));
+      setFormPagoAbierto(null);
+      setFormPago({ tipo: 'Efectivo ARS', monto: '', moneda: 'ARS' });
+      try {
+        await registrarPagoConsignacionDeCliente(negocioId, stockId, item, registro);
+      } catch (errCaja) {
+        console.error(errCaja);
+        alert('El pago quedó registrado, pero no pudimos anotarlo en Caja. Cargalo a mano en Caja como egreso.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos registrar el pago. Probá de nuevo.');
+    } finally {
+      pagosEnVueloRef.current.delete(clave);
+      setProcesandoPago(null);
+    }
+  };
+
   if (loading) return <div style={{ color: 'var(--rv-text-dim)', padding: 40 }}>Cargando...</div>;
 
   // Calcular deudas sueltas (por cuota vencida o por saldo pendiente de una venta)
@@ -448,6 +500,41 @@ export default function Cobros() {
       precioMoneda: item.consignacionCliente.precioMoneda,
     }));
 
+  // Consignación DE un cliente (él te dejó el equipo para que lo vendas): es lo que LE
+  // DEBÉS a él, en sentido contrario a todo lo de arriba. Vive en el propio equipo
+  // (consignadoPorCliente) y no genera deuda hasta que el equipo se vende; el costo es lo
+  // que le corresponde, menos lo que ya le pagaste (pagosAlCliente).
+  const equiposDeClientes = stock.filter(item => item.consignadoPorCliente?.clienteId);
+  const nombreEquipo = (item) => `${item.categoria || ''} ${item.modelo || ''}${item.gb ? ' ' + formatCapacidad(item.gb) : ''}`.trim();
+  const leDebesItems = equiposDeClientes
+    .filter(item => item.estado === 'vendido')
+    .map(item => {
+      const pagos = item.pagosAlCliente || [];
+      const costoUsd = Number(item.costoUsd) || 0;
+      const pagadoUsd = pagos.reduce((s, p) => s + (Number(p.montoUsd) || 0), 0);
+      const venta = ventas.find(v => v.equipoId === item.id);
+      const fechaVenta = venta?.fecha?.toDate ? venta.fecha.toDate() : (venta?.fecha ? new Date(venta.fecha) : null);
+      return {
+        stockId: item.id,
+        clienteId: item.consignadoPorCliente.clienteId,
+        clienteNombre: item.consignadoPorCliente.clienteNombre,
+        modelo: nombreEquipo(item),
+        costoUsd, pagadoUsd,
+        pendienteUsd: Math.max(0, costoUsd - pagadoUsd),
+        fechaVenta,
+      };
+    })
+    .filter(x => x.pendienteUsd > 0.01);
+  const enStockDeClientes = equiposDeClientes
+    .filter(item => item.estado !== 'vendido')
+    .map(item => ({
+      stockId: item.id,
+      clienteId: item.consignadoPorCliente.clienteId,
+      clienteNombre: item.consignadoPorCliente.clienteNombre,
+      modelo: nombreEquipo(item),
+      costoUsd: Number(item.costoUsd) || 0,
+    }));
+
   // Agrupar por cliente (por clienteId si la venta lo tiene, si no por nombre+teléfono)
   // — esto es lo que convierte la lista suelta en una cuenta corriente por cliente.
   const gruposMap = new Map();
@@ -471,13 +558,34 @@ export default function Cobros() {
     }
   });
 
+  // Un cliente al que solo LE DEBÉS (o que tiene equipos suyos en tu stock sin vender) y
+  // no te debe nada tampoco necesita su tarjeta -- si no, no aparecería en ningún lado.
+  [...leDebesItems, ...enStockDeClientes].forEach(x => {
+    if (!gruposMap.has(x.clienteId)) {
+      const clienteDoc = clientes.find(c => c.id === x.clienteId);
+      gruposMap.set(x.clienteId, { clave: x.clienteId, clienteId: x.clienteId, nombre: x.clienteNombre, telefono: clienteDoc?.telefono || '', deudas: [], totalesPorMoneda: {} });
+    }
+  });
+
   const grupos = Array.from(gruposMap.values()).map(g => {
     const vencidas = g.deudas.filter(d => d.cuotasVencidas > 0);
     const semPeor = vencidas.some(d => d.sem === 'rojo') ? 'rojo' : vencidas.some(d => d.sem === 'amarillo') ? 'amarillo' : 'verde';
     const maxDias = Math.max(0, ...g.deudas.map(d => d.maxDias));
     const clienteDoc = clientes.find(c => c.id === g.clienteId);
     const consignaciones = consignacionesPendientes.filter(cp => cp.clienteId === g.clienteId);
-    return { ...g, semPeor, maxDias, numero: clienteDoc?.numero || null, tieneAtraso: vencidas.length > 0, consignaciones };
+    const leDebes = g.clienteId ? leDebesItems.filter(x => x.clienteId === g.clienteId) : [];
+    const enStockDelCliente = g.clienteId ? enStockDeClientes.filter(x => x.clienteId === g.clienteId) : [];
+    const totalLeDebesUsd = leDebes.reduce((s, x) => s + x.pendienteUsd, 0);
+    // Saldo neto en USD (te debe - le debés): solo si hay deuda en los dos sentidos y, si
+    // lo que te debe está en pesos, hay tipo de cambio para llevarlo a dólares.
+    let teDebeUsd = 0, convertible = true;
+    Object.entries(g.totalesPorMoneda).forEach(([m, monto]) => {
+      if (m === 'USD') teDebeUsd += monto;
+      else if (tipoCambio) teDebeUsd += monto / tipoCambio;
+      else convertible = false;
+    });
+    const netoUsd = totalLeDebesUsd > 0.01 && teDebeUsd > 0.01 && convertible ? teDebeUsd - totalLeDebesUsd : null;
+    return { ...g, semPeor, maxDias, numero: clienteDoc?.numero || null, tieneAtraso: vencidas.length > 0, consignaciones, leDebes, enStockDelCliente, totalLeDebesUsd, netoUsd };
   }).sort((a, b) => ORDEN_SEM[a.semPeor] - ORDEN_SEM[b.semPeor] || b.maxDias - a.maxDias);
 
   const gruposFiltrados = grupos.filter(g => {
@@ -550,7 +658,7 @@ export default function Cobros() {
       <ModalWhatsApp />
       <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}><IconWallet size={22} style={{ color: 'var(--rv-accent)' }} />Cobros</h1>
       <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 24 }}>
-        Cuenta corriente de clientes: solo aparecen acá los que todavía te deben algo (cuotas, saldo o consignación vendida) o tienen equipos en consignación sin vender. En cuanto un cliente termina de pagar, sale de esta lista solo — su historial completo lo seguís viendo en <strong>Clientes</strong>.
+        Cuenta corriente de clientes: solo aparecen acá los que todavía te deben algo (cuotas, saldo o consignación vendida), los que tienen equipos en consignación sin vender, y los clientes a los que <strong>vos les debés</strong> por un equipo suyo que vendiste. En cuanto queda todo saldado, sale de esta lista solo — su historial completo lo seguís viendo en <strong>Clientes</strong>.
       </p>
 
       {grupos.length === 0 && (
@@ -565,7 +673,7 @@ export default function Cobros() {
       {grupos.length > 0 && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 15, fontWeight: 700 }}>Deudores</span>
+            <span style={{ fontSize: 15, fontWeight: 700 }}>Clientes con saldo</span>
             <span style={{ background: 'var(--rv-danger-soft)', color: 'var(--rv-danger)', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99 }}>{grupos.filter(g => g.tieneAtraso).length} con atraso</span>
           </div>
 
@@ -596,15 +704,17 @@ export default function Cobros() {
                     <div style={{ color: 'var(--rv-text-dim)', fontSize: 12 }}>
                       {g.deudas.length > 0 && <>{g.deudas.length} ítem{g.deudas.length === 1 ? '' : 's'} pendiente{g.deudas.length === 1 ? '' : 's'}</>}
                       {g.consignaciones?.length > 0 && <>{g.deudas.length > 0 ? ' · ' : ''}{g.consignaciones.length} en consignación</>}
+                      {g.leDebes?.length > 0 && <>{(g.deudas.length > 0 || g.consignaciones?.length > 0) ? ' · ' : ''}{g.leDebes.length} para pagarle</>}
+                      {g.enStockDelCliente?.length > 0 && <>{(g.deudas.length > 0 || g.consignaciones?.length > 0 || g.leDebes?.length > 0) ? ' · ' : ''}{g.enStockDelCliente.length} suyo{g.enStockDelCliente.length === 1 ? '' : 's'} en tu stock</>}
                       {g.tieneAtraso && <span style={{ color: colorSem[g.semPeor], fontWeight: 600 }}> · Hace {g.maxDias} días</span>}
                       {g.telefono && <a href={`tel:${g.telefono}`} style={{ color: 'var(--rv-accent)', marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 4 }}><IconPhone size={11} />{g.telefono}</a>}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button
-                      onClick={() => g.telefono ? setModalWA(g) : null}
-                      title={!g.telefono ? 'Agregá el teléfono del cliente en la venta' : ''}
-                      style={{ background: '#25D366', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: g.telefono ? 'pointer' : 'not-allowed', opacity: g.telefono ? 1 : 0.4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      onClick={() => (g.telefono && g.deudas.length > 0) ? setModalWA(g) : null}
+                      title={g.deudas.length === 0 ? 'Este cliente no te debe nada: no hay nada para recordarle' : !g.telefono ? 'Agregá el teléfono del cliente en la venta' : ''}
+                      style={{ background: '#25D366', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: (g.telefono && g.deudas.length > 0) ? 'pointer' : 'not-allowed', opacity: (g.telefono && g.deudas.length > 0) ? 1 : 0.4, display: 'flex', alignItems: 'center', gap: 6 }}>
                       <IconBell size={13} />WhatsApp
                     </button>
                     <button onClick={() => setAbierto(a => a === g.clave ? null : g.clave)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text-mid)', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
@@ -616,10 +726,22 @@ export default function Cobros() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10, marginTop: 16 }}>
                   {Object.entries(g.totalesPorMoneda).map(([moneda, monto]) => (
                     <div key={moneda} style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '8px 12px' }}>
-                      <div style={{ color: 'var(--rv-text-dim)', fontSize: 10, marginBottom: 2 }}>DEBE {moneda}</div>
+                      <div style={{ color: 'var(--rv-text-dim)', fontSize: 10, marginBottom: 2 }}>TE DEBE {moneda}</div>
                       <div style={{ fontWeight: 800, color: 'var(--rv-danger)' }}>{moneda} {monto.toLocaleString('es-AR')}</div>
                     </div>
                   ))}
+                  {g.totalLeDebesUsd > 0.01 && (
+                    <div style={{ background: 'var(--rv-accent-soft)', borderRadius: 8, padding: '8px 12px' }}>
+                      <div style={{ color: 'var(--rv-text-dim)', fontSize: 10, marginBottom: 2 }}>LE DEBÉS USD</div>
+                      <div style={{ fontWeight: 800, color: 'var(--rv-accent)' }}>USD {g.totalLeDebesUsd.toLocaleString('es-AR', { maximumFractionDigits: 2 })}</div>
+                    </div>
+                  )}
+                  {g.netoUsd !== null && (
+                    <div style={{ background: 'var(--rv-surface-alt)', border: '1px dashed var(--rv-border)', borderRadius: 8, padding: '8px 12px' }}>
+                      <div style={{ color: 'var(--rv-text-dim)', fontSize: 10, marginBottom: 2 }}>SALDO NETO · {g.netoUsd >= 0 ? 'TE DEBE' : 'LE DEBÉS'}</div>
+                      <div style={{ fontWeight: 800, color: g.netoUsd >= 0 ? 'var(--rv-danger)' : 'var(--rv-accent)' }}>USD {Math.abs(g.netoUsd).toLocaleString('es-AR', { maximumFractionDigits: 2 })}</div>
+                    </div>
+                  )}
                 </div>
 
                 {abierto === g.clave && (
@@ -778,6 +900,86 @@ export default function Cobros() {
                         })()}
                       </div>
                     ))}
+
+                    {/* Sentido contrario: equipos que este cliente te dejó en consignación. */}
+                    {g.leDebes?.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--rv-accent)', textTransform: 'uppercase', letterSpacing: 0.4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <IconWallet size={12} />Lo que le debés · consignación vendida
+                        </div>
+                        {g.leDebes.map(x => {
+                          const clave = `alcliente:${x.stockId}`;
+                          const procesando = procesandoPago === clave;
+                          const formAbierto = formPagoAbierto === clave;
+                          const pendienteEnMoneda = (moneda) => moneda === 'USD' ? x.pendienteUsd : (tipoCambio ? x.pendienteUsd * tipoCambio : 0);
+                          const prellenar = (tipo) => {
+                            const moneda = tipo.includes('USD') ? 'USD' : 'ARS';
+                            const v = pendienteEnMoneda(moneda);
+                            return v > 0 ? String(moneda === 'USD' ? Math.round(v * 100) / 100 : Math.round(v)) : '';
+                          };
+                          return (
+                            <div key={x.stockId} style={{ background: 'var(--rv-accent-soft)', border: '1px solid rgba(47,111,237,0.25)', borderRadius: 10, padding: 14 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap', marginBottom: formAbierto ? 10 : 0 }}>
+                                <div>
+                                  <div style={{ fontWeight: 600, fontSize: 13 }}>{x.modelo || 'Equipo'}</div>
+                                  <div style={{ color: 'var(--rv-text-dim)', fontSize: 12, marginTop: 2 }}>
+                                    {x.fechaVenta ? `Vendido el ${x.fechaVenta.toLocaleDateString('es-AR')}` : 'Vendido'}
+                                    {x.pagadoUsd > 0.01 && ` · ya le pagaste USD ${x.pagadoUsd.toLocaleString('es-AR', { maximumFractionDigits: 2 })} de ${x.costoUsd.toLocaleString('es-AR', { maximumFractionDigits: 2 })}`}
+                                  </div>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                  <div style={{ fontWeight: 800, color: 'var(--rv-accent)', fontSize: 14 }}>USD {x.pendienteUsd.toLocaleString('es-AR', { maximumFractionDigits: 2 })}</div>
+                                  {!formAbierto && (
+                                    <button onClick={() => { setFormPagoAbierto(clave); setFormPago({ tipo: 'Efectivo USD', monto: prellenar('Efectivo USD'), moneda: 'USD' }); }} style={{ marginTop: 6, padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: 'none', background: 'var(--rv-accent)', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                      <IconWallet size={12} />Pagarle
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                              {formAbierto && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                                  <select value={formPago.tipo} onChange={e => {
+                                    const t = e.target.value;
+                                    setFormPago(f => ({ ...f, tipo: t, moneda: t.includes('USD') ? 'USD' : 'ARS', monto: prellenar(t) }));
+                                  }} style={{ padding: '7px 10px', borderRadius: 8, border: '1px solid var(--rv-border)', background: 'var(--rv-surface)', color: 'var(--rv-text)', fontSize: 12 }}>
+                                    {FORMAS_PAGO_SALDO.map(f => <option key={f}>{f}</option>)}
+                                  </select>
+                                  <input
+                                    type="number" placeholder="Monto" value={formPago.monto}
+                                    onChange={e => setFormPago(f => ({ ...f, monto: e.target.value }))}
+                                    style={{ width: 110, padding: '7px 10px', borderRadius: 8, border: '1px solid var(--rv-border)', background: 'var(--rv-surface)', color: 'var(--rv-text)', fontSize: 12 }}
+                                  />
+                                  <button
+                                    disabled={procesando || !(Number(formPago.monto) > 0)}
+                                    onClick={() => registrarPagoAlCliente(x.stockId, formPago)}
+                                    style={{ padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: procesando ? 'not-allowed' : 'pointer', border: 'none', background: 'var(--rv-accent)', color: '#fff', opacity: procesando || !(Number(formPago.monto) > 0) ? 0.6 : 1 }}
+                                  >
+                                    {procesando ? 'Guardando...' : 'Confirmar pago'}
+                                  </button>
+                                  <button onClick={() => setFormPagoAbierto(null)} disabled={procesando} style={{ padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--rv-border)', background: 'var(--rv-surface)', color: 'var(--rv-text-dim)' }}>
+                                    Cancelar
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {g.enStockDelCliente?.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--rv-text-dim)', textTransform: 'uppercase', letterSpacing: 0.4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <IconPackage size={12} />Suyos en tu stock (todavía sin vender)
+                        </div>
+                        {g.enStockDelCliente.map(x => (
+                          <div key={x.stockId} style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                            <span style={{ fontWeight: 600, fontSize: 13 }}>{x.modelo || 'Equipo'}</span>
+                            <span style={{ color: 'var(--rv-text-dim)', fontSize: 12 }}>Le pagarías USD {x.costoUsd.toLocaleString('es-AR', { maximumFractionDigits: 2 })} cuando se venda</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

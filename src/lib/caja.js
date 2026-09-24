@@ -145,6 +145,30 @@ export async function registrarCobroConsignacionCliente(negocioId, stockId, stoc
   });
 }
 
+// Pago que le hacés a un CLIENTE que te dejó un equipo en consignación y que ya vendiste
+// (lo contrario de registrarCobroConsignacionCliente): sale plata de la caja. Cada pago
+// es un movimiento aparte, en la moneda real en que se pagó, atado al documento de stock.
+// Usa la misma categoría que un pago a proveedor: para Caja es plata que sale por la
+// mercadería, y así no aparece una categoría nueva que los reportes no conozcan.
+export async function registrarPagoConsignacionDeCliente(negocioId, stockId, stockItem, pago) {
+  const base = ['negocios', negocioId];
+  const monto = Number(pago.monto) || 0;
+  if (monto <= 0) return;
+  const modelo = `${stockItem.categoria || ''} ${stockItem.modelo || ''}`.trim();
+  const clienteNombre = stockItem.consignadoPorCliente?.clienteNombre;
+  await addDoc(collection(db, ...base, 'caja'), {
+    fecha: pago.fecha || serverTimestamp(),
+    tipo: 'egreso',
+    moneda: pago.moneda === 'USD' ? 'USD' : 'ARS',
+    monto,
+    concepto: `Pago a cliente · Consignación · ${modelo}${clienteNombre ? ' · ' + clienteNombre : ''}${pago.formaPago ? ' · ' + pago.formaPago : ''}`,
+    origen: 'pago_consignacion_de_cliente',
+    categoria: CATEGORIA_POR_ORIGEN.pago_proveedor,
+    stockId,
+    automatico: true,
+  });
+}
+
 export async function registrarMovimientoCuota(negocioId, ventaId, venta, cobroIdx, cuotaIdx, cobro) {
   const base = ['negocios', negocioId];
   const monto = Number(cobro.montoCuota) || 0;

@@ -73,6 +73,9 @@ export default function Stock() {
   // un estado aparte (no dentro de `form`) porque guardar() esparce `form` entero en el
   // documento del stock, y estos campos viven en `origen`, no sueltos en el equipo.
   const [clienteOrigen, setClienteOrigen] = useState(CLIENTE_ORIGEN_VACIO);
+  // En "Consignación": ¿quién lo deja, un proveedor o un cliente? (pedido de un cliente de
+  // ReventApp: muchas veces quien deja celulares en consignación es un cliente).
+  const [consignaDe, setConsignaDe] = useState('proveedor');
   // Texto personalizable de "Copiar todo el stock como texto" (se guarda en config/general).
   const [textoLista, setTextoLista] = useState(TEXTO_LISTA_INICIAL);
   const [guardandoTextoLista, setGuardandoTextoLista] = useState(false);
@@ -127,9 +130,13 @@ export default function Stock() {
       asignadoA: eq.asignadoA || '', notas: eq.notas || '', fechaManual: '',
       noLibreOperador: !!eq.noLibreOperador
     });
+    const consignadoPorCliente = eq.tipo === 'consignacion' && !!eq.origen?.clienteId;
+    setConsignaDe(consignadoPorCliente ? 'cliente' : 'proveedor');
     setClienteOrigen(eq.origen?.tipo === 'parte_de_pago'
       ? { clienteId: eq.origen.clienteId || '', clienteNombre: eq.origen.clienteNombre || '', clienteNumero: eq.origen.clienteNumero || null }
-      : CLIENTE_ORIGEN_VACIO);
+      : consignadoPorCliente
+        ? { clienteId: eq.origen.clienteId, clienteNombre: eq.origen.clienteNombre || '', clienteNumero: eq.origen.clienteNumero || null }
+        : CLIENTE_ORIGEN_VACIO);
     setModal(true);
   };
 
@@ -138,7 +145,9 @@ export default function Stock() {
     setEditandoId(null);
     setForm(FORM_VACIO);
     setClienteOrigen(CLIENTE_ORIGEN_VACIO);
+    setConsignaDe('proveedor');
   };
+
 
   const eliminarEquipo = async (id) => {
     const eq = equipos.find(e => e.id === id);
@@ -150,7 +159,14 @@ export default function Stock() {
     const advertenciaDeuda = proveedorAsociado && eq?.pagadoProveedor !== true
       ? `\n\nOjo: este equipo tiene a "${proveedorAsociado}" como proveedor y no está marcado como pagado. Si eliminás el equipo, esa deuda deja de verse en Proveedores.`
       : '';
-    if (!window.confirm(`¿Eliminás este equipo del stock? Esta acción no se puede deshacer.${advertenciaDeuda}`)) return;
+    // Consignación de un cliente ya vendida y no pagada: borrar el equipo borraría también
+    // lo que le debés a ese cliente (el dato vive en el propio equipo).
+    const debeAlCliente = eq?.consignadoPorCliente && eq.estado === 'vendido'
+      && (Number(eq.costoUsd) || 0) - (eq.pagosAlCliente || []).reduce((s, p) => s + (Number(p.montoUsd) || 0), 0) > 0.01;
+    const advertenciaCliente = debeAlCliente
+      ? `\n\nOjo: este equipo es de "${eq.consignadoPorCliente.clienteNombre}" (consignación) y todavía no le pagaste. Si lo eliminás, esa deuda deja de verse en Cobros.`
+      : '';
+    if (!window.confirm(`¿Eliminás este equipo del stock? Esta acción no se puede deshacer.${advertenciaDeuda}${advertenciaCliente}`)) return;
     try {
       await deleteDoc(doc(db, ...base, 'stock', id));
       cargar();
@@ -195,8 +211,20 @@ export default function Stock() {
         return;
       }
     }
+    const consignacionDeCliente = form.tipo === 'consignacion' && consignaDe === 'cliente';
+    if (consignacionDeCliente && !clienteOrigen.clienteId) { alert('Elegí el cliente que deja el equipo en consignación.'); return; }
+    // El costo es lo que le vas a pagar al cliente cuando se venda: sin costo la deuda
+    // quedaría en cero. Solo un admin ve/carga el costo (ver el campo "Costo" más abajo).
+    if (consignacionDeCliente && !(Number(form.costoMonto) > 0)) { alert('Cargá el Costo: es lo que le vas a pagar al cliente cuando se venda el equipo. (Si no ves ese campo, pedile a un admin que lo cargue.)'); return; }
     setGuardando(true);
     try {
+      // Consignación DE un cliente (él te deja el equipo para que lo vendas): el equipo
+      // guarda quién es el dueño en `consignadoPorCliente`, sin proveedor -- lo que le
+      // debés (el costo, recién cuando se vende) y los pagos que le hagas se ven en Cobros,
+      // en la cuenta del cliente, no en Proveedores (ver Cobros.jsx).
+      const proveedorFinal = consignacionDeCliente ? '' : form.proveedor;
+      const duenoCliente = { clienteId: clienteOrigen.clienteId, clienteNombre: clienteOrigen.clienteNombre, clienteNumero: clienteOrigen.clienteNumero || null };
+      const origenConsignacionCliente = { tipo: 'consignacion', ...duenoCliente };
       // costoUsd/pvUsd son el valor canónico en USD que usa el resto de la app (Ventas,
       // reportes, dashboard); costoMonto/costoMoneda quedan como respaldo de lo que se
       // tipeó realmente, para poder reabrir la edición sin perder si se cargó en pesos.
@@ -207,7 +235,13 @@ export default function Stock() {
         datos.costoUsd = costoUsd;
         datos.pvUsd = pvUsd;
         if (fechaManual) datos.fechaIngreso = fechaLocalDesdeInput(fechaManual);
-        if (form.tipo !== 'parte_de_pago') {
+        // Se limpia siempre que ya no sea consignación de un cliente, para que un equipo que
+        // cambia de tipo no siga figurando como deuda con ese cliente.
+        datos.consignadoPorCliente = consignacionDeCliente ? duenoCliente : null;
+        if (consignacionDeCliente) {
+          datos.proveedor = '';
+          datos.origen = origenConsignacionCliente;
+        } else if (form.tipo !== 'parte_de_pago') {
           datos.origen = form.proveedor ? { tipo: form.tipo, proveedorNombre: form.proveedor } : null;
         } else {
           // Un equipo recibido como parte de pago desde Ventas/Cobros ya trae su origen
@@ -226,10 +260,15 @@ export default function Stock() {
       } else {
         const fechaIngreso = form.fechaManual ? fechaLocalDesdeInput(form.fechaManual) : serverTimestamp();
         const esParteDePago = form.tipo === 'parte_de_pago';
-        const origen = esParteDePago
-          ? (clienteOrigen.clienteId ? origenParteDePago() : null)
-          : (form.proveedor ? { tipo: form.tipo, proveedorNombre: form.proveedor } : null);
-        await addDoc(collection(db, ...base, 'stock'), { ...form, proveedor: esParteDePago ? '' : form.proveedor, costoUsd, pvUsd, fechaIngreso, origen });
+        const origen = consignacionDeCliente
+          ? origenConsignacionCliente
+          : esParteDePago
+            ? (clienteOrigen.clienteId ? origenParteDePago() : null)
+            : (form.proveedor ? { tipo: form.tipo, proveedorNombre: form.proveedor } : null);
+        await addDoc(collection(db, ...base, 'stock'), {
+          ...form, proveedor: esParteDePago ? '' : proveedorFinal, costoUsd, pvUsd, fechaIngreso, origen,
+          ...(consignacionDeCliente ? { consignadoPorCliente: duenoCliente } : {}),
+        });
       }
       cerrarModal();
       cargar();
@@ -286,6 +325,14 @@ export default function Stock() {
     if (eq.origen?.tipo === 'parte_de_pago') {
       const cliente = eq.origen.clienteNombre ? `${eq.origen.clienteNombre}${eq.origen.clienteNumero ? ` (Cliente #${eq.origen.clienteNumero})` : ''}` : 'un cliente';
       return `Entregado por ${cliente}${eq.origen.ventaOrigenModelo ? ` — parte de pago de ${eq.origen.ventaOrigenModelo}` : ' — parte de pago'}`;
+    }
+    if (eq.consignadoPorCliente) {
+      const c = eq.consignadoPorCliente;
+      const pagadoUsd = (eq.pagosAlCliente || []).reduce((s, p) => s + (Number(p.montoUsd) || 0), 0);
+      const debe = Math.max(0, (Number(eq.costoUsd) || 0) - pagadoUsd);
+      const quien = `${c.clienteNombre}${c.clienteNumero ? ` (Cliente #${c.clienteNumero})` : ''}`;
+      if (eq.estado !== 'vendido') return `Consignación de ${quien} — todavía no genera deuda`;
+      return debe > 0.01 ? `Consignación de ${quien} — le debés USD ${debe.toFixed(0)} (ver Cobros)` : `Consignación de ${quien} — ya le pagaste`;
     }
     if (eq.origen?.proveedorNombre) {
       return `${eq.origen.tipo === 'consignacion' ? 'Consignación' : 'Proveedor'}: ${eq.origen.proveedorNombre}`;
@@ -587,7 +634,28 @@ export default function Stock() {
                     onClienteCreado={c => setClientes(cs => [...cs, c])}
                   />
                 ) : (
-                  <div><label style={labelStyle}>Proveedor</label><select value={form.proveedor} onChange={e => setForm({...form, proveedor: e.target.value})} style={inputStyle}><option value="">Elegir...</option>{proveedores.map(p => <option key={p.id}>{p.nombre}</option>)}</select></div>
+                  <>
+                    {form.tipo === 'consignacion' && (
+                      <div><label style={labelStyle}>Lo deja</label>
+                        <select value={consignaDe} onChange={e => setConsignaDe(e.target.value)} style={inputStyle}>
+                          <option value="proveedor">Un proveedor</option>
+                          <option value="cliente">Un cliente</option>
+                        </select>
+                      </div>
+                    )}
+                    {form.tipo === 'consignacion' && consignaDe === 'cliente' ? (
+                      <SelectorCliente
+                        negocioId={negocioId}
+                        clientes={clientes}
+                        clienteId={clienteOrigen.clienteId}
+                        label="Cliente que lo deja en consignación"
+                        onSeleccionar={c => setClienteOrigen(c ? { clienteId: c.id, clienteNombre: c.nombre || '', clienteNumero: c.numero || null } : CLIENTE_ORIGEN_VACIO)}
+                        onClienteCreado={c => setClientes(cs => [...cs, c])}
+                      />
+                    ) : (
+                      <div><label style={labelStyle}>Proveedor</label><select value={form.proveedor} onChange={e => setForm({...form, proveedor: e.target.value})} style={inputStyle}><option value="">Elegir...</option>{proveedores.map(p => <option key={p.id}>{p.nombre}</option>)}</select></div>
+                    )}
+                  </>
                 )}
                 {/* Costo oculto para no-admin: es el mismo dato que ya está oculto en la
                     tarjeta (línea ~300) -- el modal de editar no debía ser una puerta

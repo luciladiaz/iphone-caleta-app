@@ -461,23 +461,18 @@ function StoryCTA({ tag, titulo, subtitulo, precio, url, handle }) {
 // Set de íconos lineales propios (sin librería externa, mismo criterio que LogoMark:
 // todo CSS/SVG inline). Un ícono por categoría de destacada.
 const ICONOS_DESTACADAS = {
-  // Silueta de cohete real (nariz + cuerpo + aletas + ventanita), armada solo con líneas
-  // rectas para que el resultado sea 100% predecible -- el path anterior (una curva a
-  // mano) en realidad trazaba una forma de hoja/ojo, no un cohete, y quedó así de fábrica
-  // sin que nadie lo notara hasta agrandarlo.
-  //
-  // Relleno explícito (fill blanco, stroke none) en vez de depender del stroke pesado
-  // del IconoLineal padre (3.2 en un viewBox de 24, ~25px reales al tamaño de la portada)
-  // -- con ese trazo tan grueso el cuerpo (6 unidades de ancho) quedaba completamente
-  // cubierto por el propio trazo y se veía como un blob sólido sin definición ("muy
-  // tosco", feedback de Lucila). Cuerpo angosto (4 unidades) + relleno limpio = silueta
-  // fina y reconocible en vez de un bloque. La ventanita se "perfora" con el color más
-  // oscuro del degradé de fondo (B.deep) en lugar de blanco sobre blanco, para que se
-  // note como hueco real y no desaparezca contra el cuerpo.
-  cohete: (
+  // "Empezá acá": botón de play (▶) dentro de un círculo. Reemplaza al cohete, que a Lucila
+  // no le gustó después de dos rehechos (el primero trazaba una forma de hoja por una curva
+  // mal armada, el segundo quedaba tosco). Se eligió una figura de geometría simple a
+  // propósito -- no se puede ver el render acá, así que conviene algo que no dependa de
+  // trazos dibujados a ojo. El círculo usa el mismo path que el ícono de "pregunta" (mismo
+  // grosor y tamaño que el resto del set); el triángulo va relleno, con un trazo fino solo
+  // para redondear las esquinas, y corrido un poco a la derecha para que se vea centrado
+  // (el centro visual de un triángulo de play queda a la derecha de su caja).
+  play: (
     <>
-      <path d="M12 2 L14 8 L14 15 L17 20 L14 17.5 L12 19.5 L10 17.5 L7 20 L10 15 L10 8 Z" fill="#fff" stroke="none" />
-      <circle cx="12" cy="9.5" r="1.3" fill="#1A3A8F" stroke="none" />
+      <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" />
+      <path d="M10 8 L16.5 12 L10 16 Z" fill="#fff" stroke="#fff" strokeWidth="1.2" />
     </>
   ),
   grilla: <path d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z" />,
@@ -1442,7 +1437,7 @@ const TEMPLATES = {
     {
       id: 'dest-cover-empezar', nombre: '🚀 Portada: Empezá', desc: 'Ícono de portada para la destacada "Empezá".',
       component: HighlightCover, exportW: 1080, exportH: 1080, previewW: 400, previewH: 400,
-      defaults: { icono: 'cohete' }, campos: [],
+      defaults: { icono: 'play' }, campos: [],
     },
     {
       id: 'dest-empezar-1', nombre: 'Empezá · 1/2', desc: 'Hook de bajo compromiso: gratis, sin tarjeta.',

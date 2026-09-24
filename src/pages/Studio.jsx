@@ -424,6 +424,50 @@ function StoryFeature({ tag, titulo, subtitulo, url, handle }) {
   );
 }
 
+// Historia de presentación: qué es ReventApp, en una pantalla (pedido de Lucila para subir a
+// su estado de WhatsApp antes de la serie de "Funciones"). Mismo lenguaje visual que
+// StoryFeature (degradé navy→deep, pill de etiqueta, botón azul), pero con el logo más
+// grande porque acá la marca es la protagonista, y con tres pills que nombran lo que hace
+// el sistema. Los textos por defecto salen solo de funciones reales del producto (stock con
+// IMEI, cobros en cuotas, catálogo por WhatsApp) y de la oferta de la landing (7 días
+// gratis sin tarjeta) -- sin cifras de tracción, que no conviene afirmar en una pieza suelta.
+function StoryPresentacion({ tag, titulo, subtitulo, pill1, pill2, pill3, oferta, url, handle }) {
+  return (
+    <div style={{ width: 405, height: 720, background: `linear-gradient(160deg, ${B.navy} 0%, ${B.deep} 100%)`, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', bottom: -80, right: -80, width: 350, height: 350, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.18) 0%, transparent 65%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: -90, left: -90, width: 300, height: 300, borderRadius: '50%', border: '1px solid rgba(37,99,235,0.14)', pointerEvents: 'none' }} />
+
+      <div style={{ padding: '40px 36px 0', display: 'flex', justifyContent: 'center' }}>
+        <LogoMark iconSize={44} />
+      </div>
+
+      <div style={{ flex: 1, padding: '0 36px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ display: 'inline-flex', background: 'rgba(37,99,235,0.18)', border: '1px solid rgba(37,99,235,0.35)', borderRadius: 99, padding: '5px 14px', marginBottom: 18, width: 'fit-content', alignSelf: 'center' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: B.sky, letterSpacing: '2.5px', textTransform: 'uppercase' }}>{tag}</span>
+        </div>
+        <div style={{ fontSize: 42, fontWeight: 900, color: B.white, lineHeight: 1.08, letterSpacing: '-2px', marginBottom: 14, textAlign: 'center', whiteSpace: 'pre-line' }}>{titulo}</div>
+        <div style={{ fontSize: 15, color: B.gray, lineHeight: 1.6, textAlign: 'center', marginBottom: 22 }}>{subtitulo}</div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 26 }}>
+          {[pill1, pill2, pill3].filter(Boolean).map(p => (
+            <span key={p} style={{ background: 'rgba(37,99,235,0.15)', border: '1px solid rgba(37,99,235,0.3)', color: B.sky, borderRadius: 99, padding: '6px 14px', fontSize: 12, fontWeight: 700 }}>{p}</span>
+          ))}
+        </div>
+        <div style={{ textAlign: 'center', fontSize: 13, color: B.gray, marginBottom: 10 }}>{oferta}</div>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div style={{ background: B.blue, borderRadius: 99, padding: '12px 28px' }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{url} →</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: '0 36px 44px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+        <span style={{ fontSize: 12, color: B.gray }}>{handle}</span>
+        <div style={{ width: 36, height: 4, background: B.white, borderRadius: 2, opacity: 0.25 }} />
+      </div>
+    </div>
+  );
+}
+
 function StoryCTA({ tag, titulo, subtitulo, precio, url, handle }) {
   return (
     <div style={{ width: 405, height: 720, background: `linear-gradient(165deg, ${B.deep} 0%, ${B.blue} 100%)`, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
@@ -1479,6 +1523,32 @@ const TEMPLATES = {
       id: 'dest-cover-funciones', nombre: '📦 Portada: Funciones', desc: 'Ícono de portada para la destacada "Funciones".',
       component: HighlightCover, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: { icono: 'grilla' }, campos: [],
+    },
+    {
+      id: 'dest-funciones-presentacion', nombre: 'Funciones · Presentación', desc: 'Qué es ReventApp, en una pantalla. Va primero, antes de los 4 pilares (ideal para el estado de WhatsApp).',
+      component: StoryPresentacion, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        tag: 'REVENTAPP',
+        titulo: 'Sistema para\nrevendedores\nde iPhone.',
+        subtitulo: 'Stock, ventas, cobros y ganancias en un solo lugar. Desde el celular.',
+        pill1: 'Stock e IMEI',
+        pill2: 'Cobros y cuotas',
+        pill3: 'Catálogo por WhatsApp',
+        oferta: 'Probalo 7 días gratis, sin tarjeta',
+        url: 'reventapp.com.ar',
+        handle: '@reventapp.iphone',
+      },
+      campos: [
+        { key: 'tag', label: 'Etiqueta' },
+        { key: 'titulo', label: 'Título (\\n para salto)', multiline: true, rows: 3 },
+        { key: 'subtitulo', label: 'Bajada' },
+        { key: 'pill1', label: 'Pill 1' },
+        { key: 'pill2', label: 'Pill 2' },
+        { key: 'pill3', label: 'Pill 3' },
+        { key: 'oferta', label: 'Línea de oferta' },
+        { key: 'url', label: 'URL' },
+        { key: 'handle', label: 'Handle' },
+      ],
     },
     {
       id: 'dest-funciones-stock', nombre: 'Funciones · Stock', desc: 'Pilar 1: control de stock.',

@@ -455,26 +455,21 @@ function StoryCTA({ tag, titulo, subtitulo, precio, url, handle }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// HISTORIAS DESTACADAS  (portadas 400×400 · historias 405×720 iguales a Story)
+// HISTORIAS DESTACADAS  (portadas y historias en 405×720 -> 1080×1920, iguales a Story)
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Set de íconos lineales propios (sin librería externa, mismo criterio que LogoMark:
 // todo CSS/SVG inline). Un ícono por categoría de destacada.
 const ICONOS_DESTACADAS = {
-  // "Empezá acá": botón de play (▶) dentro de un círculo. Reemplaza al cohete, que a Lucila
-  // no le gustó después de dos rehechos (el primero trazaba una forma de hoja por una curva
-  // mal armada, el segundo quedaba tosco). Se eligió una figura de geometría simple a
-  // propósito -- no se puede ver el render acá, así que conviene algo que no dependa de
-  // trazos dibujados a ojo. El círculo usa el mismo path que el ícono de "pregunta" (mismo
-  // grosor y tamaño que el resto del set); el triángulo va relleno, con un trazo fino solo
-  // para redondear las esquinas, y corrido un poco a la derecha para que se vea centrado
-  // (el centro visual de un triángulo de play queda a la derecha de su caja).
-  play: (
-    <>
-      <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" />
-      <path d="M10 8 L16.5 12 L10 16 Z" fill="#fff" stroke="#fff" strokeWidth="1.2" />
-    </>
-  ),
+  // "Empezá acá": play (▶) sólido. Reemplaza al cohete, que a Lucila no le gustó después de
+  // dos rehechos (el primero trazaba una forma de hoja por una curva mal armada, el
+  // segundo quedaba tosco). La primera versión del play llevaba un círculo alrededor y se
+  // veía mal en la portada real (captura de Lucila): con el trazo pesado del IconoLineal el
+  // anillo parecía una dona gruesa, y un círculo dentro de una portada que ya es un círculo
+  // queda redundante. Ahora es solo el triángulo, grande y relleno, con un trazo fino para
+  // suavizar las esquinas, y corrido a la derecha para que se vea centrado (el centro visual
+  // de un triángulo de play queda a la derecha del centro de su caja).
+  play: <path d="M7.2 3 L22.2 12 L7.2 21 Z" fill="#fff" stroke="#fff" strokeWidth="1.6" />,
   grilla: <path d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z" />,
   etiqueta: <path d="M3 11.5V5a2 2 0 0 1 2-2h6.5L21 12.5 12.5 21 3 11.5Z" />,
   estrella: <path d="M12 2.5l2.9 6 6.6.7-4.9 4.5 1.3 6.5L12 16.9 6.1 20.2l1.3-6.5-4.9-4.5 6.6-.7L12 2.5Z" />,
@@ -490,25 +485,27 @@ function IconoLineal({ children, size = 40, strokeWidth = 1.6 }) {
   );
 }
 
-// Portada de destacada: círculo con degradé de marca + ícono centrado. Instagram
-// recorta a círculo lo que se suba, así que el diseño ya nace pensado para eso (ícono
-// chico y centrado, sin texto pegado al borde que se corte).
+// Portada de destacada, en formato HISTORIA (9:16, 405×720 -> exporta 1080×1920): degradé
+// de marca a pantalla completa + ícono centrado. Así es como se usa de verdad: se sube
+// como historia y desde ahí se pasa a Destacadas, donde Instagram recorta el círculo del
+// centro. Antes era un cuadrado de 400×400 con un círculo adentro -- al subirlo como
+// historia quedaba un cuadrado chico flotando sobre el fondo de la historia, con las
+// esquinas oscuras a la vista (captura de Lucila: "no está bien para historia").
+// Pantalla completa no tiene esquinas ni bordes que se vean, y el ícono centrado queda
+// dentro del círculo de recorte.
 //
-// El ícono va grande (190px, ~48% del círculo) y con trazo grueso (3.2) a propósito:
+// El ícono va grande (170px, ~42% del ancho) y con trazo grueso (3.2) a propósito:
 // las portadas de destacadas se ven MINÚSCULAS en el perfil de Instagram (círculo
-// chico bajo la foto), así que un ícono fino de 90px/1.6 de trazo (como estaba antes)
-// se volvía invisible ahí -- se veía como una mancha sin forma reconocible en vez de
-// un ícono. Confirmado visualmente por Lucila ("esto es horrible") con el de "cohete".
+// chico bajo la foto), así que un ícono fino se volvía invisible ahí.
 function HighlightCover({ icono }) {
   return (
-    <div style={{ width: 400, height: 400, background: B.navy, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif' }}>
-      <div style={{
-        width: 400, height: 400, borderRadius: '50%',
-        background: `linear-gradient(150deg, ${B.deep} 0%, ${B.blue} 100%)`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <IconoLineal size={190} strokeWidth={3.2}>{ICONOS_DESTACADAS[icono]}</IconoLineal>
-      </div>
+    <div style={{
+      width: 405, height: 720,
+      background: `linear-gradient(150deg, ${B.deep} 0%, ${B.blue} 100%)`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: 'Inter, sans-serif',
+    }}>
+      <IconoLineal size={170} strokeWidth={3.2}>{ICONOS_DESTACADAS[icono]}</IconoLineal>
     </div>
   );
 }
@@ -1436,7 +1433,7 @@ const TEMPLATES = {
     // ── 1) EMPEZÁ — primera destacada que ve alguien nuevo: baja la fricción del trial ──
     {
       id: 'dest-cover-empezar', nombre: '🚀 Portada: Empezá', desc: 'Ícono de portada para la destacada "Empezá".',
-      component: HighlightCover, exportW: 1080, exportH: 1080, previewW: 400, previewH: 400,
+      component: HighlightCover, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: { icono: 'play' }, campos: [],
     },
     {
@@ -1480,7 +1477,7 @@ const TEMPLATES = {
     // multi-moneda y parte de pago son los 4 fuertes reales frente a la competencia) ──
     {
       id: 'dest-cover-funciones', nombre: '📦 Portada: Funciones', desc: 'Ícono de portada para la destacada "Funciones".',
-      component: HighlightCover, exportW: 1080, exportH: 1080, previewW: 400, previewH: 400,
+      component: HighlightCover, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: { icono: 'grilla' }, campos: [],
     },
     {
@@ -1559,7 +1556,7 @@ const TEMPLATES = {
     // ── 3) PRECIOS — transparencia total, saca la objeción de "debe ser caro" ──
     {
       id: 'dest-cover-precios', nombre: '💰 Portada: Precios', desc: 'Ícono de portada para la destacada "Precios".',
-      component: HighlightCover, exportW: 1080, exportH: 1080, previewW: 400, previewH: 400,
+      component: HighlightCover, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: { icono: 'etiqueta' }, campos: [],
     },
     {
@@ -1602,7 +1599,7 @@ const TEMPLATES = {
     // ── 4) TESTIMONIOS — prueba social, el empujón final para el que ya está convencido ──
     {
       id: 'dest-cover-testimonios', nombre: '⭐ Portada: Testimonios', desc: 'Ícono de portada para la destacada "Testimonios".',
-      component: HighlightCover, exportW: 1080, exportH: 1080, previewW: 400, previewH: 400,
+      component: HighlightCover, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: { icono: 'estrella' }, campos: [],
     },
     {
@@ -1655,7 +1652,7 @@ const TEMPLATES = {
     // ── 5) PREGUNTAS FRECUENTES — derriba las objeciones más comunes antes de que frenen el trial ──
     {
       id: 'dest-cover-faq', nombre: '❓ Portada: FAQ', desc: 'Ícono de portada para la destacada "Preguntas".',
-      component: HighlightCover, exportW: 1080, exportH: 1080, previewW: 400, previewH: 400,
+      component: HighlightCover, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: { icono: 'pregunta' }, campos: [],
     },
     {
@@ -1704,7 +1701,7 @@ const TEMPLATES = {
     // ── 6) CÓMO FUNCIONA — recorrido rápido de 3 pasos para el que ya decidió probar ──
     {
       id: 'dest-cover-como-funciona', nombre: '📲 Portada: Cómo funciona', desc: 'Ícono de portada para la destacada "Cómo funciona".',
-      component: HighlightCover, exportW: 1080, exportH: 1080, previewW: 400, previewH: 400,
+      component: HighlightCover, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: { icono: 'telefono' }, campos: [],
     },
     {

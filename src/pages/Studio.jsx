@@ -815,13 +815,13 @@ function AdIMEI({ headline, detalle, badge, cta, url, pill1, pill2 }) {
 // anuncio del Excel). Nota: el fondo va en un div propio y sin `mask`/`filter` de CSS, porque
 // html2canvas (lo que exporta el PNG) los ignora y la imagen bajada saldría distinta de la vista
 // previa; las sombras van dentro de los SVG (feDropShadow), que sí se exportan bien.
-function AdBase({ hero, heroAlto = 170, titulo, resalte, subtitulo, extra, pills = [], oferta, acento = B.sky, cuadricula = false }) {
+function AdBase({ hero, heroAlto = 170, titulo, resalte, subtitulo, extra, pills = [], oferta, acento = B.sky, brillo = '47', cuadricula = false }) {
   return (
     <div style={{ width: 405, height: 720, background: `linear-gradient(170deg, #050c22 0%, ${B.deep} 55%, #0b1f5c 100%)`, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
       {cuadricula && (
         <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px)', backgroundSize: '34px 34px', pointerEvents: 'none' }} />
       )}
-      <div style={{ position: 'absolute', top: 100, left: '50%', transform: 'translateX(-50%)', width: 440, height: 440, borderRadius: '50%', background: `radial-gradient(circle, ${acento}47 0%, transparent 65%)`, pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: 100, left: '50%', transform: 'translateX(-50%)', width: 440, height: 440, borderRadius: '50%', background: `radial-gradient(circle, ${acento}${brillo} 0%, transparent 65%)`, pointerEvents: 'none' }} />
 
       <div style={{ flex: 1, padding: '78px 30px 172px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 2 }}>
         <LogoMark iconSize={30} />
@@ -887,73 +887,107 @@ function AdExcel({ titulo, resalte, subtitulo, pill1, pill2, pill3, oferta }) {
   return <AdBase hero={<IconoPlanillaTachada />} titulo={titulo} resalte={resalte} subtitulo={subtitulo} pills={[pill1, pill2, pill3]} oferta={oferta} acento="#4ade80" cuadricula />;
 }
 
-function AdGanancia({ etiqueta, titulo, resalte, subtitulo, pill1, pill2, oferta }) {
-  const hero = (
-    <div style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: 11, fontWeight: 800, color: B.sky, letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 8 }}>{etiqueta}</div>
-      <div style={{ fontSize: 70, fontWeight: 900, color: '#fff', letterSpacing: '-3px', lineHeight: 1, textShadow: '0 0 36px rgba(59,130,246,0.95)', whiteSpace: 'nowrap' }}>
-        USD <span style={{ color: B.sky }}>???</span>
-      </div>
-    </div>
-  );
-  return <AdBase hero={hero} titulo={titulo} resalte={resalte} subtitulo={subtitulo} pills={[pill1, pill2]} oferta={oferta} />;
-}
-
-// iPhone visto de atrás (placa de cámara con dos lentes, flash y un círculo de marca neutro).
-// Cada SVG define SUS PROPIOS gradientes y su propio filtro con ids únicos por variante: al
-// exportar el PNG, html2canvas serializa cada <svg> por separado, y una referencia a un id
-// definido en OTRO svg se rompe (el elemento dejaría de dibujarse). El viewBox tiene margen
-// alrededor del teléfono para que la sombra no quede cortada en un rectángulo.
-function TelefonoTrasero({ id, c1, c2, lente, lenteBorde, placa, flash, marca }) {
+// Monedas de oro con una insignia azul de "?" (el equivalente a la insignia roja del Excel):
+// la ganancia del mes es la incógnita. Un solo <svg> con sus propios ids (html2canvas
+// serializa cada svg por separado). Diseñado y revisado renderizado.
+function MonedasConInterrogante() {
   return (
-    <svg width="112" height="160" viewBox="-14 -6 112 160">
+    <svg width="190" height="180" viewBox="0 0 190 180">
       <defs>
-        <linearGradient id={`tel-${id}-cuerpo`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor={c1} />
-          <stop offset="1" stopColor={c2} />
+        <linearGradient id="ganancia-oro" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#fde047" />
+          <stop offset="0.55" stopColor="#f59e0b" />
+          <stop offset="1" stopColor="#b45309" />
         </linearGradient>
-        <filter id={`tel-${id}-sombra`} x="-30%" y="-20%" width="160%" height="150%">
-          <feDropShadow dx="0" dy="8" stdDeviation="7" floodColor="#000000" floodOpacity="0.45" />
+        <linearGradient id="ganancia-oro-atras" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#fcd34d" />
+          <stop offset="1" stopColor="#b45309" />
+        </linearGradient>
+        <filter id="ganancia-sombra" x="-25%" y="-25%" width="150%" height="160%">
+          <feDropShadow dx="0" dy="10" stdDeviation="9" floodColor="#000000" floodOpacity="0.5" />
         </filter>
       </defs>
-      <g filter={`url(#tel-${id}-sombra)`}>
-        <rect x="3" y="3" width="78" height="134" rx="17" fill={`url(#tel-${id}-cuerpo)`} />
-        <rect x="9" y="9" width="42" height="42" rx="11" fill={placa} />
-        <circle cx="22" cy="22" r="8" fill={lente} stroke={lenteBorde} strokeWidth="2" />
-        <circle cx="38" cy="38" r="8" fill={lente} stroke={lenteBorde} strokeWidth="2" />
-        <circle cx="40" cy="17" r="3" fill={flash} />
-        <circle cx="42" cy="88" r="9" fill={marca} />
+      <g filter="url(#ganancia-sombra)">
+        <circle cx="44" cy="132" r="32" fill="url(#ganancia-oro-atras)" />
+        <circle cx="44" cy="132" r="25" fill="none" stroke="#7c2d12" strokeOpacity="0.35" strokeWidth="3" />
+        <circle cx="148" cy="126" r="28" fill="url(#ganancia-oro-atras)" />
+        <circle cx="148" cy="126" r="21" fill="none" stroke="#7c2d12" strokeOpacity="0.35" strokeWidth="3" />
+        <circle cx="94" cy="92" r="60" fill="url(#ganancia-oro)" />
+        <circle cx="94" cy="92" r="50" fill="none" stroke="#fff7d6" strokeOpacity="0.6" strokeWidth="4" />
+        <path d="M94 58 V126" stroke="#78350f" strokeWidth="9" strokeLinecap="round" />
+        <path d="M113 76 C113 62 75 60 75 80 C75 97 113 88 113 108 C113 124 73 122 73 108" stroke="#78350f" strokeWidth="9" strokeLinecap="round" fill="none" />
       </g>
+      <circle cx="152" cy="36" r="24" fill="#2563EB" stroke="#0a1f50" strokeWidth="5" />
+      <path d="M143 30 C143 19 161 19 161 30 C161 38 152 38 152 46" stroke="#ffffff" strokeWidth="6" strokeLinecap="round" fill="none" />
+      <circle cx="152" cy="55" r="3.6" fill="#ffffff" />
     </svg>
   );
 }
 
-function AdCanje({ titulo, resalte, subtitulo, formula, etiquetaIzq, etiquetaDer, pill1, pill2, pill3, oferta }) {
-  const etiqueta = { fontSize: 10.5, fontWeight: 700, color: '#cbd5e1', textAlign: 'center', marginTop: 4, letterSpacing: '0.3px' };
-  const hero = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <TelefonoTrasero id="azul" c1="#60a5fa" c2="#1d4ed8" lente="#0a1f50" lenteBorde="rgba(255,255,255,0.45)" placa="rgba(255,255,255,0.2)" flash="rgba(255,255,255,0.7)" marca="rgba(255,255,255,0.22)" />
-        <div style={etiqueta}>{etiquetaIzq}</div>
-      </div>
-      <svg width="58" height="58" viewBox="0 0 58 58" style={{ marginBottom: 20 }}>
-        <circle cx="29" cy="29" r="26" fill="rgba(125,211,252,0.16)" stroke="#7DD3FC" strokeWidth="2.5" />
-        <path d="M15 22 H41 M34 15 L41 22 L34 29" stroke="#7DD3FC" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-        <path d="M43 37 H17 M24 30 L17 37 L24 44" stroke="#7DD3FC" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      </svg>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <TelefonoTrasero id="plata" c1="#f8fafc" c2="#94a3b8" lente="#334155" lenteBorde="rgba(255,255,255,0.6)" placa="rgba(15,23,42,0.14)" flash="rgba(255,255,255,0.9)" marca="rgba(15,23,42,0.14)" />
-        <div style={etiqueta}>{etiquetaDer}</div>
-      </div>
-    </div>
+function AdGanancia({ titulo, resalte, subtitulo, pill1, pill2, oferta }) {
+  return <AdBase hero={<MonedasConInterrogante />} heroAlto={180} titulo={titulo} resalte={resalte} subtitulo={subtitulo} pills={[pill1, pill2]} oferta={oferta} acento="#fbbf24" brillo="2b" />;
+}
+
+// Dos iPhone vistos de atrás, inclinados (uno azul y uno dorado tipo "Desert"), con el símbolo
+// de canje en el medio y una moneda verde de "$" que representa la diferencia a cobrar. Un solo
+// <svg> con sus propios ids. Diseñado y revisado renderizado.
+function CelularesCanje() {
+  return (
+    <svg width="290" height="195" viewBox="0 0 290 195">
+      <defs>
+        <linearGradient id="canje-azul" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#38bdf8" />
+          <stop offset="1" stopColor="#1d4ed8" />
+        </linearGradient>
+        <linearGradient id="canje-dorado" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#fde6c4" />
+          <stop offset="1" stopColor="#c2874a" />
+        </linearGradient>
+        <linearGradient id="canje-verde" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#4ade80" />
+          <stop offset="1" stopColor="#15803d" />
+        </linearGradient>
+        <filter id="canje-sombra" x="-25%" y="-20%" width="150%" height="150%">
+          <feDropShadow dx="0" dy="9" stdDeviation="8" floodColor="#000000" floodOpacity="0.5" />
+        </filter>
+      </defs>
+      <g filter="url(#canje-sombra)">
+        <g transform="rotate(-9 64 96)">
+          <rect x="22" y="22" width="84" height="146" rx="19" fill="url(#canje-azul)" />
+          <rect x="29" y="29" width="46" height="46" rx="12" fill="rgba(255,255,255,0.22)" />
+          <circle cx="43" cy="43" r="9" fill="#0a1f50" stroke="rgba(255,255,255,0.5)" strokeWidth="2" />
+          <circle cx="61" cy="61" r="9" fill="#0a1f50" stroke="rgba(255,255,255,0.5)" strokeWidth="2" />
+          <circle cx="64" cy="38" r="3.2" fill="rgba(255,255,255,0.8)" />
+          <circle cx="64" cy="112" r="10" fill="rgba(255,255,255,0.25)" />
+        </g>
+        <g transform="rotate(9 226 96)">
+          <rect x="184" y="22" width="84" height="146" rx="19" fill="url(#canje-dorado)" />
+          <rect x="191" y="29" width="46" height="46" rx="12" fill="rgba(120,53,15,0.2)" />
+          <circle cx="205" cy="43" r="9" fill="#3b2410" stroke="rgba(255,255,255,0.6)" strokeWidth="2" />
+          <circle cx="223" cy="61" r="9" fill="#3b2410" stroke="rgba(255,255,255,0.6)" strokeWidth="2" />
+          <circle cx="226" cy="38" r="3.2" fill="rgba(255,255,255,0.9)" />
+          <circle cx="226" cy="112" r="10" fill="rgba(120,53,15,0.2)" />
+        </g>
+      </g>
+      <circle cx="145" cy="72" r="30" fill="#0a1f50" stroke="#7DD3FC" strokeWidth="3.5" />
+      <path d="M128 64 H160 M151 56 L160 64 L151 72" stroke="#7DD3FC" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <path d="M162 82 H130 M139 74 L130 82 L139 90" stroke="#7DD3FC" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <g filter="url(#canje-sombra)">
+        <circle cx="145" cy="150" r="24" fill="url(#canje-verde)" stroke="#0a1f50" strokeWidth="5" />
+      </g>
+      <path d="M145 137 V163" stroke="#ffffff" strokeWidth="4.5" strokeLinecap="round" />
+      <path d="M153 143 C153 137 137 136 137 145 C137 152 153 148 153 156 C153 163 136 162 136 156" stroke="#ffffff" strokeWidth="4.5" strokeLinecap="round" fill="none" />
+    </svg>
   );
+}
+
+function AdCanje({ titulo, resalte, subtitulo, formula, pill1, pill2, pill3, oferta }) {
   const extra = (
     <div style={{ background: 'rgba(255,255,255,0.08)', border: '1px dashed rgba(125,211,252,0.55)', borderRadius: 10, padding: '6px 14px' }}>
       <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{formula}</span>
     </div>
   );
-  // Hero de 190: entra en la zona segura junto con la fórmula (verificado renderizado).
-  return <AdBase hero={hero} heroAlto={190} titulo={titulo} resalte={resalte} subtitulo={subtitulo} extra={extra} pills={[pill1, pill2, pill3]} oferta={oferta} />;
+  return <AdBase hero={<CelularesCanje />} heroAlto={195} titulo={titulo} resalte={resalte} subtitulo={subtitulo} extra={extra} pills={[pill1, pill2, pill3]} oferta={oferta} />;
 }
 
 function AdHook({ headline, callout, trial, cta, tagline, url }) {
@@ -1685,10 +1719,9 @@ const TEMPLATES = {
       ],
     },
     {
-      id: 'ad-ganancia', nombre: '💵 ¿Cuánto ganaste? (llamativo)', desc: 'Número gigante "USD ???" que genera curiosidad + pregunta de ganancia. Sin mockup y sin botón.',
+      id: 'ad-ganancia', nombre: '💵 ¿Cuánto ganaste? (llamativo)', desc: 'Monedas de oro con una insignia "?" + pregunta de ganancia. Sin mockup y sin botón.',
       component: AdGanancia, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: {
-        etiqueta: 'GANANCIA DEL MES',
         titulo: '¿Sabés cuánto\nganaste este mes',
         resalte: 'con tus iPhones?',
         subtitulo: 'ReventApp te lo muestra por equipo,\nen pesos y en dólares.',
@@ -1697,7 +1730,6 @@ const TEMPLATES = {
         oferta: '7 días gratis · sin tarjeta',
       },
       campos: [
-        { key: 'etiqueta', label: 'Etiqueta sobre el número' },
         { key: 'titulo', label: 'Título (\\n para salto)', multiline: true, rows: 2 },
         { key: 'resalte', label: 'Título resaltado' },
         { key: 'subtitulo', label: 'Bajada', multiline: true, rows: 2 },
@@ -1707,15 +1739,13 @@ const TEMPLATES = {
       ],
     },
     {
-      id: 'ad-canje', nombre: '🔁 Parte de pago (llamativo)', desc: 'Dos celulares con flechas de canje + la fórmula de la diferencia. Muestra el Plan Canje. Sin mockup y sin botón.',
+      id: 'ad-canje', nombre: '🔁 Parte de pago (llamativo)', desc: 'Dos iPhone de colores con el símbolo de canje y una moneda de diferencia + la fórmula. Muestra el Plan Canje. Sin mockup y sin botón.',
       component: AdCanje, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: {
         titulo: '¿Te dejan un equipo',
         resalte: 'en parte de pago?',
         subtitulo: 'El Plan Canje calcula la diferencia por vos.\nSin cuentas a mano.',
         formula: 'Precio del equipo − usado = diferencia',
-        etiquetaIzq: 'El que vendés',
-        etiquetaDer: 'El que te dejan',
         pill1: 'Comprobante con firma',
         pill2: 'Todo desde el celular',
         pill3: '',
@@ -1726,8 +1756,6 @@ const TEMPLATES = {
         { key: 'resalte', label: 'Título resaltado' },
         { key: 'subtitulo', label: 'Bajada', multiline: true, rows: 2 },
         { key: 'formula', label: 'Fórmula' },
-        { key: 'etiquetaIzq', label: 'Texto bajo el celular azul' },
-        { key: 'etiquetaDer', label: 'Texto bajo el celular plateado' },
         { key: 'pill1', label: 'Etiqueta 1' },
         { key: 'pill2', label: 'Etiqueta 2' },
         { key: 'pill3', label: 'Etiqueta 3 (opcional)' },

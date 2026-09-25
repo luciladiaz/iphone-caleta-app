@@ -1592,7 +1592,7 @@ const TEMPLATES = {
       defaults: {
         tag: 'TIPO DE CAMBIO AUTOMÁTICO',
         titulo: 'El dólar,\nsiempre\nactualizado.',
-        subtitulo: 'Blue, Oficial o MEP — vos elegís, el sistema lo actualiza solo. Nada de calculismo a mano.',
+        subtitulo: 'Blue, Oficial o MEP — vos elegís, el sistema lo actualiza solo. Nada de hacer cuentas a mano.',
         url: 'reventapp.com.ar',
         handle: '@reventapp.iphone',
       },

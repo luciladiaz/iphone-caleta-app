@@ -928,55 +928,80 @@ function AdGanancia({ titulo, resalte, subtitulo, pill1, pill2, oferta }) {
   return <AdBase hero={<MonedasConInterrogante />} heroAlto={180} titulo={titulo} resalte={resalte} subtitulo={subtitulo} pills={[pill1, pill2]} oferta={oferta} acento="#fbbf24" brillo="2b" />;
 }
 
-// Dos iPhone vistos de atrás, inclinados (uno azul y uno dorado tipo "Desert"), con el símbolo
-// de canje en el medio y una moneda verde de "$" que representa la diferencia a cobrar. Un solo
-// <svg> con sus propios ids. Diseñado y revisado renderizado.
+// Un iPhone visto de frente (marco metálico, isla dinámica, botones laterales y un fondo de
+// pantalla de color con un widget). La versión anterior los mostraba de atrás, con dos lentes,
+// y no se leían como iPhone (Lucila: "me gusta todo menos los celulares"). El fondo de pantalla
+// va recortado con un clipPath a la forma de la pantalla, si no los círculos decorativos se
+// salen del celular. Los ids son propios del <svg> que los usa (html2canvas serializa cada
+// svg por separado).
+function IPhoneFrente({ x, giro, fondo, idRecorte, brilloIzq }) {
+  return (
+    <g transform={`translate(${x} 20) rotate(${giro} 39 80)`}>
+      <rect x="-2.5" y="34" width="3" height="12" rx="1.5" fill="#9ca3af" />
+      <rect x="-2.5" y="52" width="3" height="20" rx="1.5" fill="#9ca3af" />
+      <rect x="77.5" y="58" width="3" height="26" rx="1.5" fill="#9ca3af" />
+      <rect x="0" y="0" width="78" height="160" rx="21" fill="url(#canje-marco)" />
+      <rect x="3" y="3" width="72" height="154" rx="18.5" fill="#050810" />
+      <g clipPath={`url(#${idRecorte})`}>
+        <rect x="4.5" y="4.5" width="69" height="151" rx="17" fill={`url(#${fondo})`} />
+        <circle cx={brilloIzq ? 20 : 60} cy="40" r="34" fill="#ffffff" fillOpacity="0.17" />
+        <circle cx={brilloIzq ? 62 : 18} cy="121" r="40" fill="#ffffff" fillOpacity="0.12" />
+        <rect x="12" y="34" width="54" height="30" rx="9" fill="#ffffff" fillOpacity="0.23" />
+        <rect x="17" y="40" width="26" height="5" rx="2.5" fill="#ffffff" fillOpacity="0.88" />
+        <rect x="17" y="50" width="38" height="4" rx="2" fill="#ffffff" fillOpacity="0.55" />
+        <rect x="27" y="9" width="24" height="8" rx="4" fill="#000000" />
+        <circle cx="17" cy="141" r="7" fill="#000000" fillOpacity="0.35" />
+        <circle cx="61" cy="141" r="7" fill="#000000" fillOpacity="0.35" />
+        <rect x="26" y="150" width="26" height="2.6" rx="1.3" fill="#ffffff" fillOpacity="0.88" />
+      </g>
+    </g>
+  );
+}
+
+// Dos iPhone de frente e inclinados (uno con fondo azul-violeta y otro naranja), con el
+// símbolo de canje en el medio y una moneda verde de "$" que representa la diferencia a cobrar.
+// Un solo <svg> con sus propios ids. Diseñado y revisado renderizado.
 function CelularesCanje() {
   return (
-    <svg width="290" height="195" viewBox="0 0 290 195">
+    <svg width="290" height="200" viewBox="0 0 290 200">
       <defs>
-        <linearGradient id="canje-azul" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#38bdf8" />
-          <stop offset="1" stopColor="#1d4ed8" />
+        <linearGradient id="canje-marco" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#e5e7eb" />
+          <stop offset="0.5" stopColor="#9ca3af" />
+          <stop offset="1" stopColor="#4b5563" />
         </linearGradient>
-        <linearGradient id="canje-dorado" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#fde6c4" />
-          <stop offset="1" stopColor="#c2874a" />
+        <linearGradient id="canje-fondo-azul" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#22d3ee" />
+          <stop offset="0.5" stopColor="#3b82f6" />
+          <stop offset="1" stopColor="#6d28d9" />
+        </linearGradient>
+        <linearGradient id="canje-fondo-naranja" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#fde047" />
+          <stop offset="0.5" stopColor="#fb923c" />
+          <stop offset="1" stopColor="#be123c" />
         </linearGradient>
         <linearGradient id="canje-verde" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#4ade80" />
           <stop offset="1" stopColor="#15803d" />
         </linearGradient>
+        <clipPath id="canje-recorte-a"><rect x="4.5" y="4.5" width="69" height="151" rx="17" /></clipPath>
+        <clipPath id="canje-recorte-b"><rect x="4.5" y="4.5" width="69" height="151" rx="17" /></clipPath>
         <filter id="canje-sombra" x="-25%" y="-20%" width="150%" height="150%">
-          <feDropShadow dx="0" dy="9" stdDeviation="8" floodColor="#000000" floodOpacity="0.5" />
+          <feDropShadow dx="0" dy="10" stdDeviation="9" floodColor="#000000" floodOpacity="0.55" />
         </filter>
       </defs>
       <g filter="url(#canje-sombra)">
-        <g transform="rotate(-9 64 96)">
-          <rect x="22" y="22" width="84" height="146" rx="19" fill="url(#canje-azul)" />
-          <rect x="29" y="29" width="46" height="46" rx="12" fill="rgba(255,255,255,0.22)" />
-          <circle cx="43" cy="43" r="9" fill="#0a1f50" stroke="rgba(255,255,255,0.5)" strokeWidth="2" />
-          <circle cx="61" cy="61" r="9" fill="#0a1f50" stroke="rgba(255,255,255,0.5)" strokeWidth="2" />
-          <circle cx="64" cy="38" r="3.2" fill="rgba(255,255,255,0.8)" />
-          <circle cx="64" cy="112" r="10" fill="rgba(255,255,255,0.25)" />
-        </g>
-        <g transform="rotate(9 226 96)">
-          <rect x="184" y="22" width="84" height="146" rx="19" fill="url(#canje-dorado)" />
-          <rect x="191" y="29" width="46" height="46" rx="12" fill="rgba(120,53,15,0.2)" />
-          <circle cx="205" cy="43" r="9" fill="#3b2410" stroke="rgba(255,255,255,0.6)" strokeWidth="2" />
-          <circle cx="223" cy="61" r="9" fill="#3b2410" stroke="rgba(255,255,255,0.6)" strokeWidth="2" />
-          <circle cx="226" cy="38" r="3.2" fill="rgba(255,255,255,0.9)" />
-          <circle cx="226" cy="112" r="10" fill="rgba(120,53,15,0.2)" />
-        </g>
+        <IPhoneFrente x={28} giro={-7} fondo="canje-fondo-azul" idRecorte="canje-recorte-a" brilloIzq={false} />
+        <IPhoneFrente x={184} giro={7} fondo="canje-fondo-naranja" idRecorte="canje-recorte-b" brilloIzq />
       </g>
-      <circle cx="145" cy="72" r="30" fill="#0a1f50" stroke="#7DD3FC" strokeWidth="3.5" />
-      <path d="M128 64 H160 M151 56 L160 64 L151 72" stroke="#7DD3FC" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <path d="M162 82 H130 M139 74 L130 82 L139 90" stroke="#7DD3FC" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <circle cx="145" cy="66" r="29" fill="#0a1f50" stroke="#7DD3FC" strokeWidth="3.5" />
+      <path d="M128 58 H160 M151 50 L160 58 L151 66" stroke="#7DD3FC" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <path d="M162 76 H130 M139 68 L130 76 L139 84" stroke="#7DD3FC" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
       <g filter="url(#canje-sombra)">
-        <circle cx="145" cy="150" r="24" fill="url(#canje-verde)" stroke="#0a1f50" strokeWidth="5" />
+        <circle cx="145" cy="146" r="24" fill="url(#canje-verde)" stroke="#0a1f50" strokeWidth="5" />
       </g>
-      <path d="M145 137 V163" stroke="#ffffff" strokeWidth="4.5" strokeLinecap="round" />
-      <path d="M153 143 C153 137 137 136 137 145 C137 152 153 148 153 156 C153 163 136 162 136 156" stroke="#ffffff" strokeWidth="4.5" strokeLinecap="round" fill="none" />
+      <path d="M145 133 V159" stroke="#ffffff" strokeWidth="4.5" strokeLinecap="round" />
+      <path d="M153 139 C153 133 137 132 137 141 C137 148 153 144 153 152 C153 159 136 158 136 152" stroke="#ffffff" strokeWidth="4.5" strokeLinecap="round" fill="none" />
     </svg>
   );
 }
@@ -987,7 +1012,7 @@ function AdCanje({ titulo, resalte, subtitulo, formula, pill1, pill2, pill3, ofe
       <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{formula}</span>
     </div>
   );
-  return <AdBase hero={<CelularesCanje />} heroAlto={195} titulo={titulo} resalte={resalte} subtitulo={subtitulo} extra={extra} pills={[pill1, pill2, pill3]} oferta={oferta} />;
+  return <AdBase hero={<CelularesCanje />} heroAlto={200} titulo={titulo} resalte={resalte} subtitulo={subtitulo} extra={extra} pills={[pill1, pill2, pill3]} oferta={oferta} />;
 }
 
 function AdHook({ headline, callout, trial, cta, tagline, url }) {

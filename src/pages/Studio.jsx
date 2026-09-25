@@ -1,4 +1,4 @@
-﻿import { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
@@ -811,11 +811,17 @@ function AdIMEI({ headline, detalle, badge, cta, url, pill1, pill2 }) {
 // inventada (ni ganancias ni porcentajes).
 // ═══════════════════════════════════════════════════════════════════════════
 
-function AdBase({ hero, heroAlto = 165, titulo, resalte, subtitulo, extra, pills = [], oferta, acento = B.sky }) {
+// Base común. `cuadricula` suma una textura de planilla muy tenue de fondo (se usa en el
+// anuncio del Excel). Nota: el fondo va en un div propio y sin `mask`/`filter` de CSS, porque
+// html2canvas (lo que exporta el PNG) los ignora y la imagen bajada saldría distinta de la vista
+// previa; las sombras van dentro de los SVG (feDropShadow), que sí se exportan bien.
+function AdBase({ hero, heroAlto = 170, titulo, resalte, subtitulo, extra, pills = [], oferta, acento = B.sky, cuadricula = false }) {
   return (
     <div style={{ width: 405, height: 720, background: `linear-gradient(170deg, #050c22 0%, ${B.deep} 55%, #0b1f5c 100%)`, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: 110, left: '50%', transform: 'translateX(-50%)', width: 440, height: 440, borderRadius: '50%', background: `radial-gradient(circle, ${acento}40 0%, transparent 65%)`, pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: -140, right: -110, width: 400, height: 400, borderRadius: '50%', border: '1px solid rgba(125,211,252,0.12)', pointerEvents: 'none' }} />
+      {cuadricula && (
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px)', backgroundSize: '34px 34px', pointerEvents: 'none' }} />
+      )}
+      <div style={{ position: 'absolute', top: 100, left: '50%', transform: 'translateX(-50%)', width: 440, height: 440, borderRadius: '50%', background: `radial-gradient(circle, ${acento}47 0%, transparent 65%)`, pointerEvents: 'none' }} />
 
       <div style={{ flex: 1, padding: '78px 30px 172px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 2 }}>
         <LogoMark iconSize={30} />
@@ -823,20 +829,20 @@ function AdBase({ hero, heroAlto = 165, titulo, resalte, subtitulo, extra, pills
         <div style={{ height: heroAlto, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{hero}</div>
 
         <div style={{ textAlign: 'center', width: '100%' }}>
-          <div style={{ fontSize: 31, fontWeight: 900, color: '#fff', lineHeight: 1.1, letterSpacing: '-1.5px', whiteSpace: 'pre-line' }}>{titulo}</div>
-          {resalte && <div style={{ fontSize: 31, fontWeight: 900, color: acento, lineHeight: 1.1, letterSpacing: '-1.5px', whiteSpace: 'pre-line' }}>{resalte}</div>}
-          <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.5, marginTop: 10 }}>{subtitulo}</div>
+          <div style={{ fontSize: 33, fontWeight: 900, color: '#fff', lineHeight: 1.08, letterSpacing: '-1.5px', whiteSpace: 'pre-line' }}>{titulo}</div>
+          {resalte && <div style={{ fontSize: 33, fontWeight: 900, color: acento, lineHeight: 1.08, letterSpacing: '-1.5px', whiteSpace: 'pre-line' }}>{resalte}</div>}
+          <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.5, marginTop: 10, whiteSpace: 'pre-line' }}>{subtitulo}</div>
         </div>
 
         {extra && <div style={{ display: 'flex', justifyContent: 'center' }}>{extra}</div>}
 
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'nowrap' }}>
           {pills.filter(Boolean).map(p => (
-            <span key={p} style={{ background: 'rgba(37,99,235,0.2)', border: '1px solid rgba(125,211,252,0.35)', color: B.sky, borderRadius: 99, padding: '5px 12px', fontSize: 11, fontWeight: 700 }}>{p}</span>
+            <span key={p} style={{ background: 'rgba(37,99,235,0.22)', border: '1px solid rgba(125,211,252,0.4)', color: B.sky, borderRadius: 99, padding: '5px 11px', fontSize: 10.5, fontWeight: 700, whiteSpace: 'nowrap' }}>{p}</span>
           ))}
         </div>
 
-        <div style={{ background: 'rgba(16,185,129,0.16)', border: '1px solid rgba(16,185,129,0.55)', borderRadius: 99, padding: '7px 18px' }}>
+        <div style={{ background: 'rgba(16,185,129,0.16)', border: '1px solid rgba(16,185,129,0.6)', borderRadius: 99, padding: '7px 18px' }}>
           <span style={{ fontSize: 12, fontWeight: 800, color: B.green, letterSpacing: '1.5px', textTransform: 'uppercase' }}>{oferta}</span>
         </div>
       </div>
@@ -844,40 +850,48 @@ function AdBase({ hero, heroAlto = 165, titulo, resalte, subtitulo, extra, pills
   );
 }
 
-// Ícono genérico de planilla (cuadrícula verde con una X) tachado en rojo. Es un dibujo
-// propio y no el logo oficial de ninguna marca, a propósito: en un anuncio no conviene
-// usar logos de terceros.
+// Ícono de planilla con una X sobre una hoja de cuadrícula y una insignia roja de "no". Es un
+// dibujo propio y genérico (no el logo oficial de ninguna marca): en un anuncio no conviene
+// usar logos de terceros. Diseñado y revisado renderizado (la primera versión, con un círculo
+// rojo tachando todo, se veía amateur).
 function IconoPlanillaTachada() {
   return (
-    <div style={{ position: 'relative', width: 165, height: 165, transform: 'rotate(-6deg)' }}>
-      <svg width="165" height="165" viewBox="0 0 100 100" style={{ position: 'absolute', inset: 0 }}>
-        <defs>
-          <linearGradient id="planilla-verde" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#22c55e" />
-            <stop offset="1" stopColor="#0f7a43" />
-          </linearGradient>
-        </defs>
-        <rect x="8" y="8" width="84" height="84" rx="16" fill="url(#planilla-verde)" />
-        <path d="M54 8 V92 M54 34 H92 M54 50 H92 M54 66 H92" stroke="rgba(255,255,255,0.55)" strokeWidth="2.5" fill="none" />
-        <path d="M18 34 L42 66 M42 34 L18 66" stroke="#ffffff" strokeWidth="10" strokeLinecap="round" fill="none" />
-      </svg>
-      <svg width="165" height="165" viewBox="0 0 100 100" style={{ position: 'absolute', inset: 0 }}>
-        <circle cx="50" cy="50" r="45" fill="none" stroke="#ef4444" strokeWidth="9" />
-        <path d="M18 82 L82 18" stroke="#ef4444" strokeWidth="9" strokeLinecap="round" />
-      </svg>
-    </div>
+    <svg width="176" height="176" viewBox="0 0 150 150">
+      <defs>
+        <linearGradient id="planilla-verde" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#34d17f" />
+          <stop offset="1" stopColor="#0e7a43" />
+        </linearGradient>
+        <filter id="planilla-sombra" x="-20%" y="-20%" width="140%" height="150%">
+          <feDropShadow dx="0" dy="9" stdDeviation="9" floodColor="#000000" floodOpacity="0.45" />
+        </filter>
+      </defs>
+      <g filter="url(#planilla-sombra)">
+        <rect x="44" y="12" width="92" height="118" rx="13" fill="#f8fafc" />
+        <g stroke="#1fa564" strokeWidth="4.5" strokeLinecap="round" fill="none">
+          <path d="M84 34 V112" />
+          <path d="M84 52 H124" />
+          <path d="M84 72 H124" />
+          <path d="M84 92 H124" />
+        </g>
+        <rect x="6" y="40" width="70" height="70" rx="13" fill="url(#planilla-verde)" />
+        <path d="M25 59 L57 91 M57 59 L25 91" stroke="#ffffff" strokeWidth="11" strokeLinecap="round" fill="none" />
+        <circle cx="122" cy="122" r="24" fill="#ef4444" stroke="#0a1f50" strokeWidth="5" />
+        <path d="M111 111 L133 133 M133 111 L111 133" stroke="#ffffff" strokeWidth="7" strokeLinecap="round" fill="none" />
+      </g>
+    </svg>
   );
 }
 
 function AdExcel({ titulo, resalte, subtitulo, pill1, pill2, pill3, oferta }) {
-  return <AdBase hero={<IconoPlanillaTachada />} titulo={titulo} resalte={resalte} subtitulo={subtitulo} pills={[pill1, pill2, pill3]} oferta={oferta} acento="#4ade80" />;
+  return <AdBase hero={<IconoPlanillaTachada />} titulo={titulo} resalte={resalte} subtitulo={subtitulo} pills={[pill1, pill2, pill3]} oferta={oferta} acento="#4ade80" cuadricula />;
 }
 
 function AdGanancia({ etiqueta, titulo, resalte, subtitulo, pill1, pill2, oferta }) {
   const hero = (
     <div style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: 11, fontWeight: 800, color: B.sky, letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 6 }}>{etiqueta}</div>
-      <div style={{ fontSize: 66, fontWeight: 900, color: '#fff', letterSpacing: '-3px', lineHeight: 1, textShadow: '0 0 36px rgba(59,130,246,0.95)', whiteSpace: 'nowrap' }}>
+      <div style={{ fontSize: 11, fontWeight: 800, color: B.sky, letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 8 }}>{etiqueta}</div>
+      <div style={{ fontSize: 70, fontWeight: 900, color: '#fff', letterSpacing: '-3px', lineHeight: 1, textShadow: '0 0 36px rgba(59,130,246,0.95)', whiteSpace: 'nowrap' }}>
         USD <span style={{ color: B.sky }}>???</span>
       </div>
     </div>
@@ -885,25 +899,61 @@ function AdGanancia({ etiqueta, titulo, resalte, subtitulo, pill1, pill2, oferta
   return <AdBase hero={hero} titulo={titulo} resalte={resalte} subtitulo={subtitulo} pills={[pill1, pill2]} oferta={oferta} />;
 }
 
-function AdCanje({ titulo, resalte, subtitulo, formula, pill1, pill2, pill3, oferta }) {
-  const hero = (
-    <svg width="208" height="130" viewBox="0 0 240 150">
-      <rect x="10" y="14" width="72" height="122" rx="13" fill="#2563EB" />
-      <rect x="17" y="24" width="58" height="96" rx="6" fill="#0a1f50" />
-      <rect x="158" y="14" width="72" height="122" rx="13" fill="#ffffff" />
-      <rect x="165" y="24" width="58" height="96" rx="6" fill="#cbd5e1" />
-      <path d="M96 52 H144 M132 40 L144 52 L132 64" stroke="#7DD3FC" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <path d="M144 98 H96 M108 86 L96 98 L108 110" stroke="#7DD3FC" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+// iPhone visto de atrás (placa de cámara con dos lentes, flash y un círculo de marca neutro).
+// Cada SVG define SUS PROPIOS gradientes y su propio filtro con ids únicos por variante: al
+// exportar el PNG, html2canvas serializa cada <svg> por separado, y una referencia a un id
+// definido en OTRO svg se rompe (el elemento dejaría de dibujarse). El viewBox tiene margen
+// alrededor del teléfono para que la sombra no quede cortada en un rectángulo.
+function TelefonoTrasero({ id, c1, c2, lente, lenteBorde, placa, flash, marca }) {
+  return (
+    <svg width="112" height="160" viewBox="-14 -6 112 160">
+      <defs>
+        <linearGradient id={`tel-${id}-cuerpo`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={c1} />
+          <stop offset="1" stopColor={c2} />
+        </linearGradient>
+        <filter id={`tel-${id}-sombra`} x="-30%" y="-20%" width="160%" height="150%">
+          <feDropShadow dx="0" dy="8" stdDeviation="7" floodColor="#000000" floodOpacity="0.45" />
+        </filter>
+      </defs>
+      <g filter={`url(#tel-${id}-sombra)`}>
+        <rect x="3" y="3" width="78" height="134" rx="17" fill={`url(#tel-${id}-cuerpo)`} />
+        <rect x="9" y="9" width="42" height="42" rx="11" fill={placa} />
+        <circle cx="22" cy="22" r="8" fill={lente} stroke={lenteBorde} strokeWidth="2" />
+        <circle cx="38" cy="38" r="8" fill={lente} stroke={lenteBorde} strokeWidth="2" />
+        <circle cx="40" cy="17" r="3" fill={flash} />
+        <circle cx="42" cy="88" r="9" fill={marca} />
+      </g>
     </svg>
   );
+}
+
+function AdCanje({ titulo, resalte, subtitulo, formula, etiquetaIzq, etiquetaDer, pill1, pill2, pill3, oferta }) {
+  const etiqueta = { fontSize: 10.5, fontWeight: 700, color: '#cbd5e1', textAlign: 'center', marginTop: 4, letterSpacing: '0.3px' };
+  const hero = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <TelefonoTrasero id="azul" c1="#60a5fa" c2="#1d4ed8" lente="#0a1f50" lenteBorde="rgba(255,255,255,0.45)" placa="rgba(255,255,255,0.2)" flash="rgba(255,255,255,0.7)" marca="rgba(255,255,255,0.22)" />
+        <div style={etiqueta}>{etiquetaIzq}</div>
+      </div>
+      <svg width="58" height="58" viewBox="0 0 58 58" style={{ marginBottom: 20 }}>
+        <circle cx="29" cy="29" r="26" fill="rgba(125,211,252,0.16)" stroke="#7DD3FC" strokeWidth="2.5" />
+        <path d="M15 22 H41 M34 15 L41 22 L34 29" stroke="#7DD3FC" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <path d="M43 37 H17 M24 30 L17 37 L24 44" stroke="#7DD3FC" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      </svg>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <TelefonoTrasero id="plata" c1="#f8fafc" c2="#94a3b8" lente="#334155" lenteBorde="rgba(255,255,255,0.6)" placa="rgba(15,23,42,0.14)" flash="rgba(255,255,255,0.9)" marca="rgba(15,23,42,0.14)" />
+        <div style={etiqueta}>{etiquetaDer}</div>
+      </div>
+    </div>
+  );
   const extra = (
-    <div style={{ background: 'rgba(255,255,255,0.08)', border: '1px dashed rgba(125,211,252,0.5)', borderRadius: 10, padding: '6px 14px' }}>
+    <div style={{ background: 'rgba(255,255,255,0.08)', border: '1px dashed rgba(125,211,252,0.55)', borderRadius: 10, padding: '6px 14px' }}>
       <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{formula}</span>
     </div>
   );
-  // Hero más bajo (135) porque este anuncio suma la línea de la fórmula: así todo entra en
-  // la zona segura sin apretarse.
-  return <AdBase hero={hero} heroAlto={135} titulo={titulo} resalte={resalte} subtitulo={subtitulo} extra={extra} pills={[pill1, pill2, pill3]} oferta={oferta} />;
+  // Hero de 190: entra en la zona segura junto con la fórmula (verificado renderizado).
+  return <AdBase hero={hero} heroAlto={190} titulo={titulo} resalte={resalte} subtitulo={subtitulo} extra={extra} pills={[pill1, pill2, pill3]} oferta={oferta} />;
 }
 
 function AdHook({ headline, callout, trial, cta, tagline, url }) {
@@ -1618,10 +1668,10 @@ const TEMPLATES = {
       defaults: {
         titulo: 'Tu Excel no sabe',
         resalte: 'cuánto ganaste\nen dólares.',
-        subtitulo: 'ReventApp sí: ganancia exacta por equipo, en pesos y en dólares.',
+        subtitulo: 'ReventApp sí: ganancia exacta por equipo,\nen pesos y en dólares.',
         pill1: 'Stock por IMEI',
         pill2: 'Cobros en cuotas',
-        pill3: 'Catálogo por WhatsApp',
+        pill3: 'Catálogo digital',
         oferta: '7 días gratis · sin tarjeta',
       },
       campos: [
@@ -1641,7 +1691,7 @@ const TEMPLATES = {
         etiqueta: 'GANANCIA DEL MES',
         titulo: '¿Sabés cuánto\nganaste este mes',
         resalte: 'con tus iPhones?',
-        subtitulo: 'ReventApp te lo muestra por equipo, en pesos y en dólares.',
+        subtitulo: 'ReventApp te lo muestra por equipo,\nen pesos y en dólares.',
         pill1: 'Ganancia por equipo',
         pill2: 'Pesos y dólares',
         oferta: '7 días gratis · sin tarjeta',
@@ -1662,8 +1712,10 @@ const TEMPLATES = {
       defaults: {
         titulo: '¿Te dejan un equipo',
         resalte: 'en parte de pago?',
-        subtitulo: 'El Plan Canje calcula la diferencia por vos. Sin cuentas a mano.',
+        subtitulo: 'El Plan Canje calcula la diferencia por vos.\nSin cuentas a mano.',
         formula: 'Precio del equipo − usado = diferencia',
+        etiquetaIzq: 'El que vendés',
+        etiquetaDer: 'El que te dejan',
         pill1: 'Comprobante con firma',
         pill2: 'Todo desde el celular',
         pill3: '',
@@ -1674,6 +1726,8 @@ const TEMPLATES = {
         { key: 'resalte', label: 'Título resaltado' },
         { key: 'subtitulo', label: 'Bajada', multiline: true, rows: 2 },
         { key: 'formula', label: 'Fórmula' },
+        { key: 'etiquetaIzq', label: 'Texto bajo el celular azul' },
+        { key: 'etiquetaDer', label: 'Texto bajo el celular plateado' },
         { key: 'pill1', label: 'Etiqueta 1' },
         { key: 'pill2', label: 'Etiqueta 2' },
         { key: 'pill3', label: 'Etiqueta 3 (opcional)' },

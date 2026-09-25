@@ -796,6 +796,116 @@ function AdIMEI({ headline, detalle, badge, cta, url, pill1, pill2 }) {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// META ADS "LLAMATIVOS" — sin mockup, con una figura grande como protagonista
+// (pedido de Lucila tras analizar anuncios de la competencia). Formato historia 405×720.
+//
+// Zona segura: en un anuncio de historias Instagram pone encima su propio botón ("Más
+// información") en el tercio inferior, y la barra del perfil arriba. La competencia
+// quedó con el logo/la frase final tapados por ese botón (capturas de Lucila). Por eso acá
+// TODO lo importante vive entre ~11% y ~76% del alto: padding superior de 78px y
+// inferior de 172px (24%), y no se dibuja ningún botón propio (sería un botón falso que
+// además quedaría tapado). La oferta va como pill de texto, no como botón.
+//
+// Todos los textos por defecto usan solo funciones reales del producto y ninguna cifra
+// inventada (ni ganancias ni porcentajes).
+// ═══════════════════════════════════════════════════════════════════════════
+
+function AdBase({ hero, heroAlto = 165, titulo, resalte, subtitulo, extra, pills = [], oferta, acento = B.sky }) {
+  return (
+    <div style={{ width: 405, height: 720, background: `linear-gradient(170deg, #050c22 0%, ${B.deep} 55%, #0b1f5c 100%)`, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: 110, left: '50%', transform: 'translateX(-50%)', width: 440, height: 440, borderRadius: '50%', background: `radial-gradient(circle, ${acento}40 0%, transparent 65%)`, pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: -140, right: -110, width: 400, height: 400, borderRadius: '50%', border: '1px solid rgba(125,211,252,0.12)', pointerEvents: 'none' }} />
+
+      <div style={{ flex: 1, padding: '78px 30px 172px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 2 }}>
+        <LogoMark iconSize={30} />
+
+        <div style={{ height: heroAlto, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{hero}</div>
+
+        <div style={{ textAlign: 'center', width: '100%' }}>
+          <div style={{ fontSize: 31, fontWeight: 900, color: '#fff', lineHeight: 1.1, letterSpacing: '-1.5px', whiteSpace: 'pre-line' }}>{titulo}</div>
+          {resalte && <div style={{ fontSize: 31, fontWeight: 900, color: acento, lineHeight: 1.1, letterSpacing: '-1.5px', whiteSpace: 'pre-line' }}>{resalte}</div>}
+          <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.5, marginTop: 10 }}>{subtitulo}</div>
+        </div>
+
+        {extra && <div style={{ display: 'flex', justifyContent: 'center' }}>{extra}</div>}
+
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {pills.filter(Boolean).map(p => (
+            <span key={p} style={{ background: 'rgba(37,99,235,0.2)', border: '1px solid rgba(125,211,252,0.35)', color: B.sky, borderRadius: 99, padding: '5px 12px', fontSize: 11, fontWeight: 700 }}>{p}</span>
+          ))}
+        </div>
+
+        <div style={{ background: 'rgba(16,185,129,0.16)', border: '1px solid rgba(16,185,129,0.55)', borderRadius: 99, padding: '7px 18px' }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: B.green, letterSpacing: '1.5px', textTransform: 'uppercase' }}>{oferta}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Ícono genérico de planilla (cuadrícula verde con una X) tachado en rojo. Es un dibujo
+// propio y no el logo oficial de ninguna marca, a propósito: en un anuncio no conviene
+// usar logos de terceros.
+function IconoPlanillaTachada() {
+  return (
+    <div style={{ position: 'relative', width: 165, height: 165, transform: 'rotate(-6deg)' }}>
+      <svg width="165" height="165" viewBox="0 0 100 100" style={{ position: 'absolute', inset: 0 }}>
+        <defs>
+          <linearGradient id="planilla-verde" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#22c55e" />
+            <stop offset="1" stopColor="#0f7a43" />
+          </linearGradient>
+        </defs>
+        <rect x="8" y="8" width="84" height="84" rx="16" fill="url(#planilla-verde)" />
+        <path d="M54 8 V92 M54 34 H92 M54 50 H92 M54 66 H92" stroke="rgba(255,255,255,0.55)" strokeWidth="2.5" fill="none" />
+        <path d="M18 34 L42 66 M42 34 L18 66" stroke="#ffffff" strokeWidth="10" strokeLinecap="round" fill="none" />
+      </svg>
+      <svg width="165" height="165" viewBox="0 0 100 100" style={{ position: 'absolute', inset: 0 }}>
+        <circle cx="50" cy="50" r="45" fill="none" stroke="#ef4444" strokeWidth="9" />
+        <path d="M18 82 L82 18" stroke="#ef4444" strokeWidth="9" strokeLinecap="round" />
+      </svg>
+    </div>
+  );
+}
+
+function AdExcel({ titulo, resalte, subtitulo, pill1, pill2, pill3, oferta }) {
+  return <AdBase hero={<IconoPlanillaTachada />} titulo={titulo} resalte={resalte} subtitulo={subtitulo} pills={[pill1, pill2, pill3]} oferta={oferta} acento="#4ade80" />;
+}
+
+function AdGanancia({ etiqueta, titulo, resalte, subtitulo, pill1, pill2, oferta }) {
+  const hero = (
+    <div style={{ textAlign: 'center' }}>
+      <div style={{ fontSize: 11, fontWeight: 800, color: B.sky, letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 6 }}>{etiqueta}</div>
+      <div style={{ fontSize: 66, fontWeight: 900, color: '#fff', letterSpacing: '-3px', lineHeight: 1, textShadow: '0 0 36px rgba(59,130,246,0.95)', whiteSpace: 'nowrap' }}>
+        USD <span style={{ color: B.sky }}>???</span>
+      </div>
+    </div>
+  );
+  return <AdBase hero={hero} titulo={titulo} resalte={resalte} subtitulo={subtitulo} pills={[pill1, pill2]} oferta={oferta} />;
+}
+
+function AdCanje({ titulo, resalte, subtitulo, formula, pill1, pill2, pill3, oferta }) {
+  const hero = (
+    <svg width="208" height="130" viewBox="0 0 240 150">
+      <rect x="10" y="14" width="72" height="122" rx="13" fill="#2563EB" />
+      <rect x="17" y="24" width="58" height="96" rx="6" fill="#0a1f50" />
+      <rect x="158" y="14" width="72" height="122" rx="13" fill="#ffffff" />
+      <rect x="165" y="24" width="58" height="96" rx="6" fill="#cbd5e1" />
+      <path d="M96 52 H144 M132 40 L144 52 L132 64" stroke="#7DD3FC" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <path d="M144 98 H96 M108 86 L96 98 L108 110" stroke="#7DD3FC" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </svg>
+  );
+  const extra = (
+    <div style={{ background: 'rgba(255,255,255,0.08)', border: '1px dashed rgba(125,211,252,0.5)', borderRadius: 10, padding: '6px 14px' }}>
+      <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{formula}</span>
+    </div>
+  );
+  // Hero más bajo (135) porque este anuncio suma la línea de la fórmula: así todo entra en
+  // la zona segura sin apretarse.
+  return <AdBase hero={hero} heroAlto={135} titulo={titulo} resalte={resalte} subtitulo={subtitulo} extra={extra} pills={[pill1, pill2, pill3]} oferta={oferta} />;
+}
+
 function AdHook({ headline, callout, trial, cta, tagline, url }) {
   return (
     <div style={{ width: 405, height: 720, background: 'linear-gradient(175deg, #040d20 0%, #0a1f50 45%, #060e22 100%)', display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
@@ -1066,6 +1176,35 @@ Hay una mejor forma. Y es más fácil de lo que pensás. 💡
 .
 .
 #reventapp #revendedoriphone #iphoneargentina #probalogratis #reventacelulares #negociodecelulares #celularesargentina #emprendedorargentino #pymes #iphone #argentina`,
+
+  'ad-excel': `🚫 Tu Excel no sabe cuánto ganaste en dólares.
+
+ReventApp sí: ganancia exacta por equipo, en pesos y en dólares, con el tipo de cambio del día.
+
+📦 Stock por IMEI · 💳 Cobros en cuotas · 📲 Catálogo por WhatsApp
+
+🎯 Probalo 7 días gratis, sin tarjeta → reventapp.com.ar
+
+#reventapp #revendedoriphone #iphoneargentina #stockiphone #reventacelulares #negociodecelulares`,
+
+  'ad-ganancia': `📊 ¿Sabés cuánto ganaste este mes con tus iPhones?
+
+ReventApp te lo muestra por equipo, en pesos y en dólares, con el tipo de cambio del día.
+
+🎯 Probalo 7 días gratis, sin tarjeta → reventapp.com.ar
+
+#reventapp #revendedoriphone #iphoneargentina #stockiphone #reventacelulares #negociodecelulares`,
+
+  'ad-canje': `🔁 ¿Te dejan un equipo en parte de pago?
+
+El Plan Canje de ReventApp calcula la diferencia por vos. Sin cuentas a mano.
+
+✅ Comprobante de venta con la firma del cliente
+✅ Todo desde el celular
+
+🎯 Probalo 7 días gratis, sin tarjeta → reventapp.com.ar
+
+#reventapp #revendedoriphone #iphoneargentina #plancanje #reventacelulares #negociodecelulares`,
 
   'ad-split': `🚨 ¿Te pasa esto? ReventApp lo soluciona.
 
@@ -1470,6 +1609,75 @@ const TEMPLATES = {
         { key: 'cta', label: 'Texto botón CTA' },
         { key: 'tagline', label: 'Tagline final' },
         { key: 'url', label: 'URL' },
+      ],
+    },
+    // ── Anuncios llamativos, sin mockup (ver comentario de AdBase) ──
+    {
+      id: 'ad-excel', nombre: '🚫 Tu Excel (llamativo)', desc: 'Ícono de planilla tachado + "tu Excel no sabe cuánto ganaste en dólares". Sin mockup y sin botón: deja libre la parte de abajo para el botón de Instagram.',
+      component: AdExcel, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        titulo: 'Tu Excel no sabe',
+        resalte: 'cuánto ganaste\nen dólares.',
+        subtitulo: 'ReventApp sí: ganancia exacta por equipo, en pesos y en dólares.',
+        pill1: 'Stock por IMEI',
+        pill2: 'Cobros en cuotas',
+        pill3: 'Catálogo por WhatsApp',
+        oferta: '7 días gratis · sin tarjeta',
+      },
+      campos: [
+        { key: 'titulo', label: 'Título (parte blanca)' },
+        { key: 'resalte', label: 'Título resaltado (\\n para salto)', multiline: true, rows: 2 },
+        { key: 'subtitulo', label: 'Bajada', multiline: true, rows: 2 },
+        { key: 'pill1', label: 'Etiqueta 1' },
+        { key: 'pill2', label: 'Etiqueta 2' },
+        { key: 'pill3', label: 'Etiqueta 3' },
+        { key: 'oferta', label: 'Oferta' },
+      ],
+    },
+    {
+      id: 'ad-ganancia', nombre: '💵 ¿Cuánto ganaste? (llamativo)', desc: 'Número gigante "USD ???" que genera curiosidad + pregunta de ganancia. Sin mockup y sin botón.',
+      component: AdGanancia, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        etiqueta: 'GANANCIA DEL MES',
+        titulo: '¿Sabés cuánto\nganaste este mes',
+        resalte: 'con tus iPhones?',
+        subtitulo: 'ReventApp te lo muestra por equipo, en pesos y en dólares.',
+        pill1: 'Ganancia por equipo',
+        pill2: 'Pesos y dólares',
+        oferta: '7 días gratis · sin tarjeta',
+      },
+      campos: [
+        { key: 'etiqueta', label: 'Etiqueta sobre el número' },
+        { key: 'titulo', label: 'Título (\\n para salto)', multiline: true, rows: 2 },
+        { key: 'resalte', label: 'Título resaltado' },
+        { key: 'subtitulo', label: 'Bajada', multiline: true, rows: 2 },
+        { key: 'pill1', label: 'Etiqueta 1' },
+        { key: 'pill2', label: 'Etiqueta 2' },
+        { key: 'oferta', label: 'Oferta' },
+      ],
+    },
+    {
+      id: 'ad-canje', nombre: '🔁 Parte de pago (llamativo)', desc: 'Dos celulares con flechas de canje + la fórmula de la diferencia. Muestra el Plan Canje. Sin mockup y sin botón.',
+      component: AdCanje, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        titulo: '¿Te dejan un equipo',
+        resalte: 'en parte de pago?',
+        subtitulo: 'El Plan Canje calcula la diferencia por vos. Sin cuentas a mano.',
+        formula: 'Precio del equipo − usado = diferencia',
+        pill1: 'Comprobante con firma',
+        pill2: 'Todo desde el celular',
+        pill3: '',
+        oferta: '7 días gratis · sin tarjeta',
+      },
+      campos: [
+        { key: 'titulo', label: 'Título (parte blanca)' },
+        { key: 'resalte', label: 'Título resaltado' },
+        { key: 'subtitulo', label: 'Bajada', multiline: true, rows: 2 },
+        { key: 'formula', label: 'Fórmula' },
+        { key: 'pill1', label: 'Etiqueta 1' },
+        { key: 'pill2', label: 'Etiqueta 2' },
+        { key: 'pill3', label: 'Etiqueta 3 (opcional)' },
+        { key: 'oferta', label: 'Oferta' },
       ],
     },
   ],

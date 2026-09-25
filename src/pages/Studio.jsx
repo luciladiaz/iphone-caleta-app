@@ -1000,7 +1000,7 @@ Esto es lo que pasa cuando empezás a llevar los números en serio. 📊
 .
 #revendedoriphone #testimonios #iphoneargentina #reventacelulares #resultados #negociodecelulares #celularesargentina #reventapp #emprendedorargentino #pymes #gestiondestock #stockiphone #iphone #argentina #emprendimiento #reventadigital #revendedoresargentina`,
 
-  'feed-dato': `📊 7 de cada 10 revendedores no controla sus costos en dólares.
+  'feed-dato': `📊 7 de cada 10 revendedores no controlan sus costos en dólares.
 
 🚨 ¿El resultado? No saben si realmente están ganando o perdiendo plata en cada venta.
 
@@ -1282,7 +1282,7 @@ const TEMPLATES = {
       defaults: {
         label: 'DATO DEL MERCADO',
         numero: '7 de 10',
-        unidad: 'revendedores no controla\nsus costos en dólares.',
+        unidad: 'revendedores no controlan\nsus costos en dólares.',
         contexto: 'Eso significa que no saben si realmente están ganando plata. El tipo de cambio hace la diferencia.',
         cta: 'ReventApp lo soluciona →',
       },
@@ -1453,7 +1453,7 @@ const TEMPLATES = {
       ],
     },
     {
-      id: 'ad-hook', nombre: '🎯 Hook + Mockup', desc: 'Estilo CocoCRM: headline bold + app en pantalla + CTA.',
+      id: 'ad-hook', nombre: '🎯 Hook + Mockup', desc: 'Estilo CocosCRM: headline bold + app en pantalla + CTA.',
       component: AdHook, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: {
         headline: 'CONTROL TOTAL\nDE TU STOCK\nDE iPhones.',
@@ -1609,7 +1609,7 @@ const TEMPLATES = {
       component: StoryFeature, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: {
         tag: 'PARTE DE PAGO',
-        titulo: 'Nada se\nte escapa\nde vista.',
+        titulo: 'Nada se\nte escapa.',
         subtitulo: '¿Te deben un iPhone o plata por un canje? Queda anotado solo hasta que se resuelve.',
         url: 'reventapp.com.ar',
         handle: '@reventapp.iphone',

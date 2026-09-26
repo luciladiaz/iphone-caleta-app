@@ -815,7 +815,7 @@ function AdIMEI({ headline, detalle, badge, cta, url, pill1, pill2 }) {
 // anuncio del Excel). Nota: el fondo va en un div propio y sin `mask`/`filter` de CSS, porque
 // html2canvas (lo que exporta el PNG) los ignora y la imagen bajada saldría distinta de la vista
 // previa; las sombras van dentro de los SVG (feDropShadow), que sí se exportan bien.
-function AdBase({ hero, heroAlto = 170, titulo, resalte, subtitulo, extra, pills = [], oferta, acento = B.sky, brillo = '47', cuadricula = false }) {
+function AdBase({ hero, heroAlto = 170, etiqueta, titulo, resalte, subtitulo, extra, pills = [], oferta, acento = B.sky, brillo = '47', cuadricula = false }) {
   return (
     <div style={{ width: 405, height: 720, background: `linear-gradient(170deg, #050c22 0%, ${B.deep} 55%, #0b1f5c 100%)`, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
       {cuadricula && (
@@ -829,6 +829,9 @@ function AdBase({ hero, heroAlto = 170, titulo, resalte, subtitulo, extra, pills
         <div style={{ height: heroAlto, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{hero}</div>
 
         <div style={{ textAlign: 'center', width: '100%' }}>
+          {etiqueta && (
+            <div style={{ display: 'inline-block', marginBottom: 12, background: 'rgba(255,255,255,0.1)', border: `1px solid ${acento}`, color: acento, borderRadius: 99, padding: '5px 14px', fontSize: 11, fontWeight: 800, letterSpacing: '1.4px', textTransform: 'uppercase' }}>{etiqueta}</div>
+          )}
           <div style={{ fontSize: 33, fontWeight: 900, color: '#fff', lineHeight: 1.08, letterSpacing: '-1.5px', whiteSpace: 'pre-line' }}>{titulo}</div>
           {resalte && <div style={{ fontSize: 33, fontWeight: 900, color: acento, lineHeight: 1.08, letterSpacing: '-1.5px', whiteSpace: 'pre-line' }}>{resalte}</div>}
           <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.5, marginTop: 10, whiteSpace: 'pre-line' }}>{subtitulo}</div>
@@ -883,15 +886,15 @@ function IconoPlanillaTachada() {
   );
 }
 
-function AdExcel({ titulo, resalte, subtitulo, pill1, pill2, pill3, oferta }) {
-  return <AdBase hero={<IconoPlanillaTachada />} titulo={titulo} resalte={resalte} subtitulo={subtitulo} pills={[pill1, pill2, pill3]} oferta={oferta} acento="#4ade80" cuadricula />;
+function AdExcel({ etiqueta, titulo, resalte, subtitulo, pill1, pill2, pill3, oferta }) {
+  return <AdBase hero={<div style={{ transform: 'scale(0.78)' }}><IconoPlanillaTachada /></div>} heroAlto={134} etiqueta={etiqueta} titulo={titulo} resalte={resalte} subtitulo={subtitulo} pills={[pill1, pill2, pill3]} oferta={oferta} acento="#4ade80" cuadricula />;
 }
 
 // Versión para el feed del anuncio del Excel: formato 4:5 (1080×1350), el que más pantalla ocupa
 // en el feed de Instagram. Acá no hace falta dejar libre la parte de abajo (no hay botón de
 // Instagram encima), así que el contenido usa todo el alto. Mismo fondo, ícono y colores que el
 // anuncio vertical, para que se reconozcan como la misma campaña.
-function FeedExcel({ titulo, resalte, subtitulo, pill1, pill2, pill3, oferta }) {
+function FeedExcel({ etiqueta, titulo, resalte, subtitulo, pill1, pill2, pill3, oferta }) {
   return (
     <div style={{ width: 540, height: 675, background: `linear-gradient(170deg, #050c22 0%, ${B.deep} 55%, #0b1f5c 100%)`, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px)', backgroundSize: '40px 40px', pointerEvents: 'none' }} />
@@ -905,6 +908,9 @@ function FeedExcel({ titulo, resalte, subtitulo, pill1, pill2, pill3, oferta }) 
         </div>
 
         <div style={{ textAlign: 'center', width: '100%' }}>
+          {etiqueta && (
+            <div style={{ display: 'inline-block', marginBottom: 14, background: 'rgba(255,255,255,0.1)', border: '1px solid #4ade80', color: '#4ade80', borderRadius: 99, padding: '6px 18px', fontSize: 13, fontWeight: 800, letterSpacing: '1.6px', textTransform: 'uppercase' }}>{etiqueta}</div>
+          )}
           <div style={{ fontSize: 46, fontWeight: 900, color: '#fff', lineHeight: 1.06, letterSpacing: '-2px', whiteSpace: 'pre-line' }}>{titulo}</div>
           {resalte && <div style={{ fontSize: 46, fontWeight: 900, color: '#4ade80', lineHeight: 1.06, letterSpacing: '-2px', whiteSpace: 'pre-line' }}>{resalte}</div>}
           <div style={{ fontSize: 16, color: '#cbd5e1', lineHeight: 1.5, marginTop: 12, whiteSpace: 'pre-line' }}>{subtitulo}</div>
@@ -1435,6 +1441,7 @@ const TEMPLATES = {
       id: 'feed-excel', nombre: '🚫 Tu Excel · A «en dólares» (Feed 4:5)', desc: 'Opción A del anuncio del Excel, en formato 4:5 para el feed (1080×1350).',
       component: FeedExcel, exportW: 1080, exportH: 1350, previewW: 540, previewH: 675,
       defaults: {
+        etiqueta: 'Para revendedores de iPhone',
         titulo: 'Tu Excel no sabe',
         resalte: 'cuánto ganaste\nen dólares.',
         subtitulo: 'ReventApp sí: ganancia exacta por equipo,\nen pesos y en dólares.',
@@ -1444,6 +1451,7 @@ const TEMPLATES = {
         oferta: '7 días gratis · sin tarjeta',
       },
       campos: [
+        { key: 'etiqueta', label: 'Etiqueta de público (arriba del título)' },
         { key: 'titulo', label: 'Título (parte blanca)' },
         { key: 'resalte', label: 'Título resaltado (\\n para salto)', multiline: true, rows: 2 },
         { key: 'subtitulo', label: 'Bajada', multiline: true, rows: 2 },
@@ -1457,6 +1465,7 @@ const TEMPLATES = {
       id: 'feed-excel-b', nombre: '🚫 Tu Excel · B «de verdad» (Feed 4:5)', desc: 'Opción B del anuncio del Excel, en formato 4:5 para el feed (1080×1350).',
       component: FeedExcel, exportW: 1080, exportH: 1350, previewW: 540, previewH: 675,
       defaults: {
+        etiqueta: 'Para revendedores de iPhone',
         titulo: 'Tu Excel no sabe',
         resalte: 'cuánto ganaste\nde verdad.',
         subtitulo: 'ReventApp sí: ganancia exacta por equipo,\nen pesos y en dólares.',
@@ -1466,6 +1475,7 @@ const TEMPLATES = {
         oferta: '7 días gratis · sin tarjeta',
       },
       campos: [
+        { key: 'etiqueta', label: 'Etiqueta de público (arriba del título)' },
         { key: 'titulo', label: 'Título (parte blanca)' },
         { key: 'resalte', label: 'Título resaltado (\\n para salto)', multiline: true, rows: 2 },
         { key: 'subtitulo', label: 'Bajada', multiline: true, rows: 2 },
@@ -1836,6 +1846,7 @@ const TEMPLATES = {
       id: 'ad-excel', nombre: '🚫 Tu Excel · A «en dólares» (Historias)', desc: 'Opción A. Ícono de planilla tachado + "tu Excel no sabe cuánto ganaste en dólares". Sin mockup y sin botón: deja libre la parte de abajo para el botón de Instagram.',
       component: AdExcel, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: {
+        etiqueta: 'Para revendedores de iPhone',
         titulo: 'Tu Excel no sabe',
         resalte: 'cuánto ganaste\nen dólares.',
         subtitulo: 'ReventApp sí: ganancia exacta por equipo,\nen pesos y en dólares.',
@@ -1845,6 +1856,7 @@ const TEMPLATES = {
         oferta: '7 días gratis · sin tarjeta',
       },
       campos: [
+        { key: 'etiqueta', label: 'Etiqueta de público (arriba del título)' },
         { key: 'titulo', label: 'Título (parte blanca)' },
         { key: 'resalte', label: 'Título resaltado (\\n para salto)', multiline: true, rows: 2 },
         { key: 'subtitulo', label: 'Bajada', multiline: true, rows: 2 },
@@ -1858,6 +1870,7 @@ const TEMPLATES = {
       id: 'ad-excel-b', nombre: '🚫 Tu Excel · B «de verdad» (Historias)', desc: 'Opción B. Ícono de planilla tachado + "tu Excel no sabe cuánto ganaste de verdad". Sin mockup y sin botón: deja libre la parte de abajo para el botón de Instagram.',
       component: AdExcel, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: {
+        etiqueta: 'Para revendedores de iPhone',
         titulo: 'Tu Excel no sabe',
         resalte: 'cuánto ganaste\nde verdad.',
         subtitulo: 'ReventApp sí: ganancia exacta por equipo,\nen pesos y en dólares.',
@@ -1867,6 +1880,7 @@ const TEMPLATES = {
         oferta: '7 días gratis · sin tarjeta',
       },
       campos: [
+        { key: 'etiqueta', label: 'Etiqueta de público (arriba del título)' },
         { key: 'titulo', label: 'Título (parte blanca)' },
         { key: 'resalte', label: 'Título resaltado (\\n para salto)', multiline: true, rows: 2 },
         { key: 'subtitulo', label: 'Bajada', multiline: true, rows: 2 },

@@ -1333,7 +1333,27 @@ ReventApp sí: ganancia exacta por equipo, en pesos y en dólares, con el tipo d
 
 #reventapp #revendedoriphone #iphoneargentina #stockiphone #reventacelulares #negociodecelulares`,
 
+  'feed-excel-b': `🚫 Tu Excel no sabe cuánto ganaste de verdad.
+
+ReventApp sí: ganancia exacta por equipo, en pesos y en dólares, con el tipo de cambio del día.
+
+📦 Stock por IMEI · 💳 Cobros en cuotas · 📲 Catálogo por WhatsApp
+
+🎯 Probalo 7 días gratis, sin tarjeta. Link en la bio 👆
+
+#reventapp #revendedoriphone #iphoneargentina #stockiphone #reventacelulares #negociodecelulares`,
+
   'ad-excel': `🚫 Tu Excel no sabe cuánto ganaste en dólares.
+
+ReventApp sí: ganancia exacta por equipo, en pesos y en dólares, con el tipo de cambio del día.
+
+📦 Stock por IMEI · 💳 Cobros en cuotas · 📲 Catálogo por WhatsApp
+
+🎯 Probalo 7 días gratis, sin tarjeta → reventapp.com.ar
+
+#reventapp #revendedoriphone #iphoneargentina #stockiphone #reventacelulares #negociodecelulares`,
+
+  'ad-excel-b': `🚫 Tu Excel no sabe cuánto ganaste de verdad.
 
 ReventApp sí: ganancia exacta por equipo, en pesos y en dólares, con el tipo de cambio del día.
 
@@ -1412,11 +1432,33 @@ Con ReventApp registrás cada equipo por IMEI y en segundos sabés modelo, bater
 const TEMPLATES = {
   feed: [
     {
-      id: 'feed-excel', nombre: '🚫 Tu Excel (llamativo · 4:5)', desc: 'La misma pieza del anuncio del Excel, en formato 4:5 para el feed (1080×1350).',
+      id: 'feed-excel', nombre: '🚫 Tu Excel · A «en dólares» (Feed 4:5)', desc: 'Opción A del anuncio del Excel, en formato 4:5 para el feed (1080×1350).',
       component: FeedExcel, exportW: 1080, exportH: 1350, previewW: 540, previewH: 675,
       defaults: {
         titulo: 'Tu Excel no sabe',
         resalte: 'cuánto ganaste\nen dólares.',
+        subtitulo: 'ReventApp sí: ganancia exacta por equipo,\nen pesos y en dólares.',
+        pill1: 'Stock por IMEI',
+        pill2: 'Cobros en cuotas',
+        pill3: 'Catálogo digital',
+        oferta: '7 días gratis · sin tarjeta',
+      },
+      campos: [
+        { key: 'titulo', label: 'Título (parte blanca)' },
+        { key: 'resalte', label: 'Título resaltado (\\n para salto)', multiline: true, rows: 2 },
+        { key: 'subtitulo', label: 'Bajada', multiline: true, rows: 2 },
+        { key: 'pill1', label: 'Etiqueta 1' },
+        { key: 'pill2', label: 'Etiqueta 2' },
+        { key: 'pill3', label: 'Etiqueta 3' },
+        { key: 'oferta', label: 'Oferta' },
+      ],
+    },
+    {
+      id: 'feed-excel-b', nombre: '🚫 Tu Excel · B «de verdad» (Feed 4:5)', desc: 'Opción B del anuncio del Excel, en formato 4:5 para el feed (1080×1350).',
+      component: FeedExcel, exportW: 1080, exportH: 1350, previewW: 540, previewH: 675,
+      defaults: {
+        titulo: 'Tu Excel no sabe',
+        resalte: 'cuánto ganaste\nde verdad.',
         subtitulo: 'ReventApp sí: ganancia exacta por equipo,\nen pesos y en dólares.',
         pill1: 'Stock por IMEI',
         pill2: 'Cobros en cuotas',
@@ -1791,11 +1833,33 @@ const TEMPLATES = {
     },
     // ── Anuncios llamativos, sin mockup (ver comentario de AdBase) ──
     {
-      id: 'ad-excel', nombre: '🚫 Tu Excel (llamativo)', desc: 'Ícono de planilla tachado + "tu Excel no sabe cuánto ganaste en dólares". Sin mockup y sin botón: deja libre la parte de abajo para el botón de Instagram.',
+      id: 'ad-excel', nombre: '🚫 Tu Excel · A «en dólares» (Historias)', desc: 'Opción A. Ícono de planilla tachado + "tu Excel no sabe cuánto ganaste en dólares". Sin mockup y sin botón: deja libre la parte de abajo para el botón de Instagram.',
       component: AdExcel, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
       defaults: {
         titulo: 'Tu Excel no sabe',
         resalte: 'cuánto ganaste\nen dólares.',
+        subtitulo: 'ReventApp sí: ganancia exacta por equipo,\nen pesos y en dólares.',
+        pill1: 'Stock por IMEI',
+        pill2: 'Cobros en cuotas',
+        pill3: 'Catálogo digital',
+        oferta: '7 días gratis · sin tarjeta',
+      },
+      campos: [
+        { key: 'titulo', label: 'Título (parte blanca)' },
+        { key: 'resalte', label: 'Título resaltado (\\n para salto)', multiline: true, rows: 2 },
+        { key: 'subtitulo', label: 'Bajada', multiline: true, rows: 2 },
+        { key: 'pill1', label: 'Etiqueta 1' },
+        { key: 'pill2', label: 'Etiqueta 2' },
+        { key: 'pill3', label: 'Etiqueta 3' },
+        { key: 'oferta', label: 'Oferta' },
+      ],
+    },
+    {
+      id: 'ad-excel-b', nombre: '🚫 Tu Excel · B «de verdad» (Historias)', desc: 'Opción B. Ícono de planilla tachado + "tu Excel no sabe cuánto ganaste de verdad". Sin mockup y sin botón: deja libre la parte de abajo para el botón de Instagram.',
+      component: AdExcel, exportW: 1080, exportH: 1920, previewW: 405, previewH: 720,
+      defaults: {
+        titulo: 'Tu Excel no sabe',
+        resalte: 'cuánto ganaste\nde verdad.',
         subtitulo: 'ReventApp sí: ganancia exacta por equipo,\nen pesos y en dólares.',
         pill1: 'Stock por IMEI',
         pill2: 'Cobros en cuotas',

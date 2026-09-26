@@ -887,6 +887,43 @@ function AdExcel({ titulo, resalte, subtitulo, pill1, pill2, pill3, oferta }) {
   return <AdBase hero={<IconoPlanillaTachada />} titulo={titulo} resalte={resalte} subtitulo={subtitulo} pills={[pill1, pill2, pill3]} oferta={oferta} acento="#4ade80" cuadricula />;
 }
 
+// Versión para el feed del anuncio del Excel: formato 4:5 (1080×1350), el que más pantalla ocupa
+// en el feed de Instagram. Acá no hace falta dejar libre la parte de abajo (no hay botón de
+// Instagram encima), así que el contenido usa todo el alto. Mismo fondo, ícono y colores que el
+// anuncio vertical, para que se reconozcan como la misma campaña.
+function FeedExcel({ titulo, resalte, subtitulo, pill1, pill2, pill3, oferta }) {
+  return (
+    <div style={{ width: 540, height: 675, background: `linear-gradient(170deg, #050c22 0%, ${B.deep} 55%, #0b1f5c 100%)`, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px)', backgroundSize: '40px 40px', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: 70, left: '50%', transform: 'translateX(-50%)', width: 520, height: 520, borderRadius: '50%', background: 'radial-gradient(circle, #4ade8047 0%, transparent 65%)', pointerEvents: 'none' }} />
+
+      <div style={{ flex: 1, padding: '40px 40px 38px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 2 }}>
+        <LogoMark iconSize={34} />
+
+        <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ transform: 'scale(1.12)' }}><IconoPlanillaTachada /></div>
+        </div>
+
+        <div style={{ textAlign: 'center', width: '100%' }}>
+          <div style={{ fontSize: 46, fontWeight: 900, color: '#fff', lineHeight: 1.06, letterSpacing: '-2px', whiteSpace: 'pre-line' }}>{titulo}</div>
+          {resalte && <div style={{ fontSize: 46, fontWeight: 900, color: '#4ade80', lineHeight: 1.06, letterSpacing: '-2px', whiteSpace: 'pre-line' }}>{resalte}</div>}
+          <div style={{ fontSize: 16, color: '#cbd5e1', lineHeight: 1.5, marginTop: 12, whiteSpace: 'pre-line' }}>{subtitulo}</div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'nowrap' }}>
+          {[pill1, pill2, pill3].filter(Boolean).map(p => (
+            <span key={p} style={{ background: 'rgba(37,99,235,0.22)', border: '1px solid rgba(125,211,252,0.4)', color: B.sky, borderRadius: 99, padding: '6px 14px', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>{p}</span>
+          ))}
+        </div>
+
+        <div style={{ background: 'rgba(16,185,129,0.16)', border: '1px solid rgba(16,185,129,0.6)', borderRadius: 99, padding: '9px 24px' }}>
+          <span style={{ fontSize: 14, fontWeight: 800, color: B.green, letterSpacing: '1.5px', textTransform: 'uppercase' }}>{oferta}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Monedas de oro con una insignia azul de "?" (el equivalente a la insignia roja del Excel):
 // la ganancia del mes es la incógnita. Un solo <svg> con sus propios ids (html2canvas
 // serializa cada svg por separado). Diseñado y revisado renderizado.
@@ -1286,6 +1323,16 @@ Hay una mejor forma. Y es más fácil de lo que pensás. 💡
 .
 #reventapp #revendedoriphone #iphoneargentina #probalogratis #reventacelulares #negociodecelulares #celularesargentina #emprendedorargentino #pymes #iphone #argentina`,
 
+  'feed-excel': `🚫 Tu Excel no sabe cuánto ganaste en dólares.
+
+ReventApp sí: ganancia exacta por equipo, en pesos y en dólares, con el tipo de cambio del día.
+
+📦 Stock por IMEI · 💳 Cobros en cuotas · 📲 Catálogo por WhatsApp
+
+🎯 Probalo 7 días gratis, sin tarjeta. Link en la bio 👆
+
+#reventapp #revendedoriphone #iphoneargentina #stockiphone #reventacelulares #negociodecelulares`,
+
   'ad-excel': `🚫 Tu Excel no sabe cuánto ganaste en dólares.
 
 ReventApp sí: ganancia exacta por equipo, en pesos y en dólares, con el tipo de cambio del día.
@@ -1364,6 +1411,28 @@ Con ReventApp registrás cada equipo por IMEI y en segundos sabés modelo, bater
 
 const TEMPLATES = {
   feed: [
+    {
+      id: 'feed-excel', nombre: '🚫 Tu Excel (llamativo · 4:5)', desc: 'La misma pieza del anuncio del Excel, en formato 4:5 para el feed (1080×1350).',
+      component: FeedExcel, exportW: 1080, exportH: 1350, previewW: 540, previewH: 675,
+      defaults: {
+        titulo: 'Tu Excel no sabe',
+        resalte: 'cuánto ganaste\nen dólares.',
+        subtitulo: 'ReventApp sí: ganancia exacta por equipo,\nen pesos y en dólares.',
+        pill1: 'Stock por IMEI',
+        pill2: 'Cobros en cuotas',
+        pill3: 'Catálogo digital',
+        oferta: '7 días gratis · sin tarjeta',
+      },
+      campos: [
+        { key: 'titulo', label: 'Título (parte blanca)' },
+        { key: 'resalte', label: 'Título resaltado (\\n para salto)', multiline: true, rows: 2 },
+        { key: 'subtitulo', label: 'Bajada', multiline: true, rows: 2 },
+        { key: 'pill1', label: 'Etiqueta 1' },
+        { key: 'pill2', label: 'Etiqueta 2' },
+        { key: 'pill3', label: 'Etiqueta 3' },
+        { key: 'oferta', label: 'Oferta' },
+      ],
+    },
     {
       id: 'feed-pain', nombre: 'Pain Point', desc: 'Pregunta que genera identificación.',
       component: FeedPain, exportW: 1080, exportH: 1080, previewW: 540, previewH: 540,

@@ -157,7 +157,17 @@ export default function Configuracion() {
     cargar();
   };
 
+  // Borrar un proveedor acá no toca los equipos que ya le cargaste en Stock (siguen
+  // con su costo intacto) -- pero la pantalla de Proveedores arma su lista a partir de
+  // ESTA colección, no de los equipos. Si el proveedor tenía saldo pendiente, borrarlo
+  // sin avisar lo hacía desaparecer de esa pantalla sin ningún rastro (la deuda seguía
+  // ahí, solo dejabas de verla). Mismo criterio que ya usan Stock.jsx y Clientes.jsx
+  // para borrados que pueden esconder plata pendiente.
   const eliminar = (coleccion) => async (id) => {
+    if (coleccion === 'proveedores') {
+      const nombre = proveedores.find(p => p.id === id)?.nombre || 'este proveedor';
+      if (!window.confirm(`¿Eliminás a "${nombre}"?\n\nOjo: si todavía le debés plata (por compras o consignaciones vendidas), esa deuda deja de verse en la pantalla de Proveedores -- los equipos y su costo siguen intactos en Stock, pero acá perdés el resumen. Revisá que esté todo pagado antes de borrarlo.`)) return;
+    }
     await deleteDoc(doc(db, ...base, coleccion, id));
     cargar();
   };

@@ -247,6 +247,97 @@ function TrialVencidoWhatsapp({ negocios }) {
   );
 }
 
+const fmtNum = (n) => new Intl.NumberFormat('es-AR').format(n || 0);
+const fmtPct = (n) => `${(n || 0).toFixed(2)}%`;
+
+// Resultados en vivo de la campaña de Meta Ads (gasto, clics, registros por anuncio),
+// vía api/superadmin.js (que llama al Graph API con un token de solo lectura). Si
+// META_ACCESS_TOKEN / META_AD_ACCOUNT_ID no están cargados en Vercel, el backend
+// devuelve { configurado: false } y acá se muestra el aviso, sin romper nada más.
+function MetaAdsPanel({ datos, loading, error, onActualizar }) {
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <h2 style={{ fontSize: 15, fontWeight: 800 }}>Meta Ads — resultados de la campaña</h2>
+        <button
+          onClick={onActualizar}
+          disabled={loading}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: 'var(--rv-text)', cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.6 : 1 }}
+        >
+          <IconRefresh size={13} /> {loading ? 'Actualizando…' : 'Actualizar'}
+        </button>
+      </div>
+
+      {loading && !datos && <p style={{ color: 'var(--rv-text-dim)', fontSize: 13 }}>Cargando datos de Meta…</p>}
+
+      {error && (
+        <div style={{ background: 'var(--rv-danger-soft)', color: 'var(--rv-danger)', borderRadius: 12, padding: '14px 16px', fontSize: 13, marginBottom: 16 }}>
+          No se pudo consultar Meta Ads: {error}
+        </div>
+      )}
+
+      {datos && datos.configurado === false && (
+        <div style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 12, padding: '16px 18px', fontSize: 13, lineHeight: 1.6 }}>
+          Todavía no está conectado con Meta Ads. Hace falta cargar <code>META_ACCESS_TOKEN</code> y <code>META_AD_ACCOUNT_ID</code> en las variables de entorno de Vercel (ver WIKI para el paso a paso del token de solo lectura).
+        </div>
+      )}
+
+      {datos && datos.error && (
+        <div style={{ background: 'var(--rv-danger-soft)', color: 'var(--rv-danger)', borderRadius: 12, padding: '14px 16px', fontSize: 13, marginBottom: 16 }}>
+          Meta devolvió un error: {datos.error}
+        </div>
+      )}
+
+      {datos && datos.configurado && !datos.error && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>
+            <KPI icon={<IconWallet size={14} />} label="Gasto total" valor={fmtMoneda(datos.totales.gasto)} color="#1a9c6b" />
+            <KPI icon={<IconChart size={14} />} label="Impresiones" valor={fmtNum(datos.totales.impresiones)} color="#45505f" />
+            <KPI icon={<IconSearch size={14} />} label="Clics" valor={fmtNum(datos.totales.clics)} color="#2f6fed" />
+            <KPI icon={<IconUser size={14} />} label="Registros (Leads)" valor={fmtNum(datos.totales.leads)} color="#1a9c6b" destacado />
+            <KPI icon={<IconWallet size={15} />} label="Costo por registro" valor={datos.totales.costoPorLead !== null ? fmtMoneda(datos.totales.costoPorLead) : '—'} color="#c8790a" destacado />
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ textAlign: 'left', color: 'var(--rv-text-dim)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  <th style={{ padding: '8px 10px' }}>Anuncio</th>
+                  <th style={{ padding: '8px 10px' }}>Gasto</th>
+                  <th style={{ padding: '8px 10px' }}>Impresiones</th>
+                  <th style={{ padding: '8px 10px' }}>Clics</th>
+                  <th style={{ padding: '8px 10px' }}>CTR</th>
+                  <th style={{ padding: '8px 10px' }}>Leads</th>
+                  <th style={{ padding: '8px 10px' }}>Costo/lead</th>
+                </tr>
+              </thead>
+              <tbody>
+                {datos.anuncios.length === 0 && (
+                  <tr><td colSpan={7} style={{ padding: '16px 10px', color: 'var(--rv-text-dim)' }}>Todavía no hay datos de anuncios (la campaña puede estar en revisión).</td></tr>
+                )}
+                {datos.anuncios.map(a => (
+                  <tr key={a.id} style={{ borderTop: '1px solid var(--rv-border)' }}>
+                    <td style={{ padding: '10px' }}>{a.nombre}</td>
+                    <td style={{ padding: '10px' }}>{fmtMoneda(a.gasto)}</td>
+                    <td style={{ padding: '10px' }}>{fmtNum(a.impresiones)}</td>
+                    <td style={{ padding: '10px' }}>{fmtNum(a.clics)}</td>
+                    <td style={{ padding: '10px' }}>{fmtPct(a.ctr)}</td>
+                    <td style={{ padding: '10px', fontWeight: 700 }}>{fmtNum(a.leads)}</td>
+                    <td style={{ padding: '10px' }}>{a.costoPorLead !== null ? fmtMoneda(a.costoPorLead) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p style={{ color: 'var(--rv-text-dim)', fontSize: 11.5, marginTop: 12 }}>
+            Datos desde que empezó la cuenta publicitaria, tal como los reporta Meta. Los registros (Leads) son el evento que se dispara cuando alguien completa el registro en ReventApp.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
 const ESTADO_PAGO_COLOR = {
   exitoso: '#1a9c6b', cancelado_voluntario: '#6b7686', cancelado_sin_pago: '#d43d3d', reintentando: '#c8790a',
 };
@@ -445,6 +536,9 @@ export default function SuperAdmin() {
   const [enviandoCampañaWinback, setEnviandoCampañaWinback] = useState(false);
   const [resultadoWinback, setResultadoWinback] = useState(null);
   const [suspendiendo, setSuspendiendo] = useState(false);
+  const [metaAds, setMetaAds] = useState(null);
+  const [metaAdsLoading, setMetaAdsLoading] = useState(false);
+  const [metaAdsError, setMetaAdsError] = useState(null);
 
   useEffect(() => {
     if (!user || user.email !== EMAIL_SUPERADMIN) { setLoading(false); return; }
@@ -483,6 +577,22 @@ export default function SuperAdmin() {
       setError(e.message);
     } finally {
       setMarcando(prev => { const s = new Set(prev); s.delete(clave); return s; });
+    }
+  };
+
+  const cargarMetaAds = async () => {
+    setMetaAdsLoading(true);
+    setMetaAdsError(null);
+    try {
+      const idToken = await user.getIdToken();
+      const res = await fetch('/api/superadmin?metaAds=1', { headers: { Authorization: `Bearer ${idToken}` } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+      setMetaAds(data);
+    } catch (e) {
+      setMetaAdsError(e.message);
+    } finally {
+      setMetaAdsLoading(false);
     }
   };
 
@@ -697,10 +807,11 @@ export default function SuperAdmin() {
               {[
                 { key: 'resumen', label: 'Resumen' },
                 { key: 'seguimiento', label: 'Seguimiento de trial', badge: datos.resumen.pendientesContacto },
+                { key: 'marketing', label: 'Meta Ads' },
               ].map(t => (
                 <button
                   key={t.key}
-                  onClick={() => setVista(t.key)}
+                  onClick={() => { setVista(t.key); if (t.key === 'marketing' && !metaAds) cargarMetaAds(); }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 7,
                     background: 'transparent', border: 'none', cursor: 'pointer',
@@ -731,6 +842,10 @@ export default function SuperAdmin() {
                 <TrialVencidoWhatsapp negocios={datos.negocios} />
                 <PendientesContacto negocios={datos.negocios} onMarcar={marcarContacto} marcando={marcando} />
               </>
+            )}
+
+            {vista === 'marketing' && (
+              <MetaAdsPanel datos={metaAds} loading={metaAdsLoading} error={metaAdsError} onActualizar={cargarMetaAds} />
             )}
 
             {vista === 'resumen' && (

@@ -6,6 +6,16 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const APP_URL = 'https://reventapp.com.ar';
 const WHATSAPP_SOPORTE = '5493364400111';
 
+// Meta Ads: token de un usuario del sistema con permiso de solo lectura (ads_read),
+// generado desde Business Settings -- ver WIKI para el paso a paso. Sin esas dos env
+// vars cargadas en Vercel, el panel simplemente muestra "no configurado" (no rompe
+// nada del resto del superadmin).
+const META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN;
+const META_AD_ACCOUNT_ID_RAW = (process.env.META_AD_ACCOUNT_ID || '').trim();
+const META_AD_ACCOUNT_ID = META_AD_ACCOUNT_ID_RAW
+  ? (META_AD_ACCOUNT_ID_RAW.startsWith('act_') ? META_AD_ACCOUNT_ID_RAW : `act_${META_AD_ACCOUNT_ID_RAW}`)
+  : '';
+
 // Panel de superadmin — visión de todos los negocios (trial, plan, vencimientos,
 // estado de la suscripción) en un solo lugar. Acceso restringido a la dueña de la
 // app, verificado server-side contra el token de Firebase Auth (nunca confiar en
@@ -175,9 +185,68 @@ async function manejarDetalle(req, res, negocioId) {
   }
 }
 
+// Suma cualquier tipo de acción que contenga "lead" (el nombre exacto que devuelve
+// Meta para el evento del píxel varía: "lead", "offsite_conversion.fb_pixel_lead",
+// "onsite_conversion.lead_grouped", etc. -- sumar por coincidencia es más robusto que
+// buscar un string exacto que podría cambiar).
+function contarLeads(actions) {
+  if (!Array.isArray(actions)) return 0;
+  return actions
+    .filter(a => (a.action_type || '').toLowerCase().includes('lead'))
+    .reduce((sum, a) => sum + (Number(a.value) || 0), 0);
+}
+
+async function manejarMetaAds(req, res) {
+  if (!META_ACCESS_TOKEN || !META_AD_ACCOUNT_ID) {
+    return res.status(200).json({ configurado: false });
+  }
+  try {
+    const campos = 'ad_id,ad_name,adset_name,campaign_name,spend,impressions,clicks,ctr,actions';
+    const url = `https://graph.facebook.com/v21.0/${META_AD_ACCOUNT_ID}/insights`
+      + `?level=ad&date_preset=maximum&fields=${campos}&limit=100&access_token=${encodeURIComponent(META_ACCESS_TOKEN)}`;
+    const r = await fetch(url);
+    const data = await r.json();
+    if (!r.ok) {
+      console.error('[superadmin] Error de Meta Ads:', data);
+      return res.status(200).json({ configurado: true, error: data?.error?.message || 'Error consultando Meta' });
+    }
+
+    const anuncios = (data.data || []).map(a => {
+      const spend = Number(a.spend) || 0;
+      const leads = contarLeads(a.actions);
+      return {
+        id: a.ad_id,
+        nombre: a.ad_name,
+        conjunto: a.adset_name,
+        campaña: a.campaign_name,
+        gasto: spend,
+        impresiones: Number(a.impressions) || 0,
+        clics: Number(a.clicks) || 0,
+        ctr: Number(a.ctr) || 0,
+        leads,
+        costoPorLead: leads > 0 ? spend / leads : null,
+      };
+    });
+
+    const totales = anuncios.reduce((acc, a) => ({
+      gasto: acc.gasto + a.gasto,
+      impresiones: acc.impresiones + a.impresiones,
+      clics: acc.clics + a.clics,
+      leads: acc.leads + a.leads,
+    }), { gasto: 0, impresiones: 0, clics: 0, leads: 0 });
+    totales.costoPorLead = totales.leads > 0 ? totales.gasto / totales.leads : null;
+
+    return res.status(200).json({ configurado: true, anuncios, totales });
+  } catch (e) {
+    console.error('[superadmin] Error consultando Meta Ads:', e);
+    return res.status(200).json({ configurado: true, error: 'No se pudo conectar con Meta' });
+  }
+}
+
 async function manejarGet(req, res) {
   const detalleId = req.query?.detalle;
   if (detalleId) return manejarDetalle(req, res, detalleId);
+  if (req.query?.metaAds) return manejarMetaAds(req, res);
 
   try {
     const negociosSnap = await adminDb.collection('negocios').get();

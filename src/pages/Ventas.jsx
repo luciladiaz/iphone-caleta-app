@@ -215,7 +215,7 @@ export default function Ventas() {
 
   const agregarParte = () => {
     if (!nuevaParte.modelo) return;
-    setForm(f => ({ ...f, partesDePago: [...f.partesDePago, { ...nuevaParte }] }));
+    setForm(f => ({ ...f, partesDePago: [...f.partesDePago, editando ? { ...nuevaParte, nueva: true } : { ...nuevaParte }] }));
     setNuevaParte({ categoria: 'iPhone', modelo: '', gb: '', color: '', bateria: '', imei: '', costoMonto: '', costoMoneda: 'USD', pvMonto: '', pvMoneda: 'USD', entregado: true });
   };
 
@@ -341,8 +341,8 @@ export default function Ventas() {
       alert('Ningún monto de cobro puede ser negativo — revisá los campos de "Monto" o "Monto por cuota".');
       return;
     }
-    if (!editando && form.tipo === 'equipo') {
-      const parteConProblema = form.partesDePago.find(p =>
+    if (esVentaEquipo) {
+      const parteConProblema = form.partesDePago.filter(p => !editando || p.nueva).find(p =>
         faltaTipoCambio(p.costoMonto, p.costoMoneda, 'USD', tc) || faltaTipoCambio(p.pvMonto, p.pvMoneda, 'USD', tc)
       );
       if (parteConProblema) {
@@ -365,8 +365,12 @@ export default function Ventas() {
         };
         // pvUsd/tipoCambio solo aplican a ventas de equipo (para el saldo restante en
         // USD) — una venta de accesorio no los usa, el monto cobrado sale de "cobros".
+        // "nueva" es solo una marca de este formulario (qué equipos se sumaron recién en
+        // esta edición) -- no se guarda en la venta.
+        const partesGuardar = form.partesDePago.map(({ nueva, ...parte }) => parte); // eslint-disable-line no-unused-vars
         await updateDoc(doc(db, ...base, 'ventas', editando), esVentaEquipo ? {
           ...camposComunes,
+          partesDePago: partesGuardar,
           // Antes no se guardaban acá: si el equipo se cargó al stock sin precio de venta,
           // la venta quedaba con pvUsd vacío para siempre y el resumen de pago (cobrado/saldo)
           // no se podía mostrar nunca, ni corrigiéndolo desde este formulario. pvUsd es el
@@ -394,6 +398,31 @@ export default function Ventas() {
             cobros: form.cobros,
             fecha: ventaOriginal?.fecha,
           });
+        }
+        // Equipos en parte de pago sumados recién en esta edición: los ya entregados se
+        // cargan a stock igual que al crear la venta; los pendientes quedan solo anotados
+        // en la venta hasta que se marquen como entregados desde Cobros.
+        if (esVentaEquipo) {
+          const clienteQueEntrega = clientes.find(c => c.id === form.clienteId);
+          for (const parte of form.partesDePago.filter(p => p.nueva && p.entregado !== false)) {
+            const { nueva, ...datosParte } = parte; // eslint-disable-line no-unused-vars
+            await addDoc(collection(db, ...base, 'stock'), {
+              ...datosParte,
+              tipo: 'parte_de_pago',
+              estado: 'disponible',
+              fechaIngreso: serverTimestamp(),
+              costoUsd: convertirMoneda(parte.costoMonto, parte.costoMoneda, 'USD', tc),
+              pvUsd: convertirMoneda(parte.pvMonto, parte.pvMoneda, 'USD', tc),
+              origen: {
+                tipo: 'parte_de_pago',
+                clienteId: form.clienteId || null,
+                clienteNombre: form.cliente || clienteQueEntrega?.nombre || '',
+                clienteNumero: clienteQueEntrega?.numero || null,
+                ventaOrigenId: editando,
+                ventaOrigenModelo: `${ventaOriginal?.modelo || ''}${ventaOriginal?.gb ? ' ' + ventaOriginal.gb : ''}`.trim(),
+              },
+            });
+          }
         }
         // Mismo criterio que con un equipo, pero sobre el stock de accesorios: cancelar
         // devuelve la cantidad vendida, descancelar la vuelve a descontar (si sigue
@@ -833,7 +862,7 @@ export default function Ventas() {
                       : Number(c.monto) || 0;
                     return sum + (c.moneda === 'USD' ? monto : tc > 0 ? monto / tc : 0);
                   }, 0);
-                  const partesUsd = form.partesDePago.reduce((s, p) => s + convertirMoneda(p.costoMonto, p.costoMoneda, 'USD', tc), 0);
+                  const partesUsd = form.partesDePago.filter(p => p.entregado !== false).reduce((s, p) => s + convertirMoneda(p.costoMonto, p.costoMoneda, 'USD', tc), 0);
                   const totalPagadoUsd = cobradoUsd + partesUsd;
                   const saldoUsd = pvUsd - totalPagadoUsd;
                   const saldoArs = tc > 0 ? saldoUsd * tc : 0;
@@ -941,7 +970,7 @@ export default function Ventas() {
               </div>
 
               {/* Partes de pago (equipos recibidos) */}
-              {!editando && form.tipo === 'equipo' && (
+              {esVentaEquipoActual && (
                 <div style={{ borderTop: '1px solid var(--rv-border)', paddingTop: 16 }}>
                   <label style={{ ...labelStyle, marginBottom: 12 }}>Equipos recibidos como parte de pago</label>
                   {form.partesDePago.map((p, i) => (
@@ -957,7 +986,14 @@ export default function Ventas() {
                           Toma: {p.costoMoneda === 'ARS' ? '$' : 'USD'} {p.costoMonto} · Venta: {p.pvMoneda === 'ARS' ? '$' : 'USD'} {p.pvMonto}
                         </div>
                       </div>
-                      <button type="button" onClick={() => setForm(f => ({ ...f, partesDePago: f.partesDePago.filter((_, idx) => idx !== i) }))} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', display: 'flex' }}><IconX size={15} /></button>
+                      {/* Al editar, un equipo ya entregado ya está cargado en stock: quitarlo de acá
+                          lo dejaría en stock sin venta que lo respalde, así que solo se pueden
+                          quitar los recién agregados o los que siguen pendientes de entrega. */}
+                      {!editando || p.nueva || p.entregado === false ? (
+                        <button type="button" onClick={() => setForm(f => ({ ...f, partesDePago: f.partesDePago.filter((_, idx) => idx !== i) }))} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', display: 'flex' }}><IconX size={15} /></button>
+                      ) : (
+                        <span style={{ fontSize: 10, color: 'var(--rv-text-dim)' }}>Ya en stock</span>
+                      )}
                     </div>
                   ))}
                   <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 10, padding: 14 }}>

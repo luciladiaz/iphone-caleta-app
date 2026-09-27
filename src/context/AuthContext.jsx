@@ -80,6 +80,14 @@ export function AuthProvider({ children }) {
       }
 
       setUser(u);
+      // Volver a marcar "cargando": si el usuario venía de estar deslogueado (login recién
+      // hecho, sin recarga de página), `planActivo` todavía tiene el valor de "no hay nadie
+      // logueado" (false, seteado arriba) hasta que termine la búsqueda de abajo. Sin este
+      // reset, PrivateRoute podía alcanzar a redirigir a /planes?motivo=vencido con ese dato
+      // viejo -- reproducido y confirmado: 100% de las veces que se inicia sesión desde el
+      // formulario de login (no en una recarga con sesión ya persistida, donde `loading` ya
+      // arranca en true por defecto y este set es un no-op).
+      setLoading(true);
 
       try {
         const snap = await getDoc(doc(db, 'usuarios', u.uid));

@@ -42,7 +42,12 @@ function Tile({ Icono, label, contador, onClick }) {
   );
 }
 
-function SeccionLista({ titulo, items, onAgregar, onEliminar, placeholder }) {
+// bloquearBorrar: usado para las listas que son colecciones reales (proveedores,
+// vendedores, puntos de venta) -- ahí borrar queda solo para el admin (pedido
+// explícito: un no-admin puede agregar/usar, pero para borrar le pide al admin). Las
+// demás listas (modelos, categorías de caja, etc.) no lo usan y siguen dependiendo
+// solo del permiso de módulo, como siempre.
+function SeccionLista({ titulo, items, onAgregar, onEliminar, placeholder, bloquearBorrar }) {
   const [nuevo, setNuevo] = useState('');
   return (
     <div>
@@ -56,7 +61,9 @@ function SeccionLista({ titulo, items, onAgregar, onEliminar, placeholder }) {
         {items.map(item => (
           <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px' }}>
             <span style={{ fontSize: 14 }}>{item.nombre}</span>
-            <button onClick={() => onEliminar(item.id)} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', display: 'flex' }}><IconX size={15} /></button>
+            {!bloquearBorrar && (
+              <button onClick={() => onEliminar(item.id)} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', display: 'flex' }}><IconX size={15} /></button>
+            )}
           </div>
         ))}
         {items.length === 0 && <p style={{ color: 'var(--rv-text-dim)', fontSize: 13 }}>Nada cargado todavía</p>}
@@ -66,7 +73,8 @@ function SeccionLista({ titulo, items, onAgregar, onEliminar, placeholder }) {
 }
 
 export default function Configuracion() {
-  const { negocioId, negocio } = useAuth();
+  const { negocioId, negocio, perfil } = useAuth();
+  const esAdmin = perfil?.rol === 'admin';
   const base = ['negocios', negocioId];
 
   const [seccionAbierta, setSeccionAbierta] = useState(null);
@@ -417,19 +425,19 @@ export default function Configuracion() {
 
       {seccionAbierta === 'puntosVenta' && (
         <ModalSeccion titulo="Puntos de venta" Icono={IconPin} onClose={cerrar}>
-          <SeccionLista items={puntosVenta} onAgregar={agregar('puntosVenta')} onEliminar={eliminar('puntosVenta')} placeholder="Ej: Local Caleta, Instagram..." />
+          <SeccionLista items={puntosVenta} onAgregar={agregar('puntosVenta')} onEliminar={eliminar('puntosVenta')} placeholder="Ej: Local Caleta, Instagram..." bloquearBorrar={!esAdmin} />
         </ModalSeccion>
       )}
 
       {seccionAbierta === 'vendedores' && (
         <ModalSeccion titulo="Vendedores" Icono={IconUser} onClose={cerrar}>
-          <SeccionLista items={vendedores} onAgregar={agregar('vendedores')} onEliminar={eliminar('vendedores')} placeholder="Nombre del vendedor..." />
+          <SeccionLista items={vendedores} onAgregar={agregar('vendedores')} onEliminar={eliminar('vendedores')} placeholder="Nombre del vendedor..." bloquearBorrar={!esAdmin} />
         </ModalSeccion>
       )}
 
       {seccionAbierta === 'proveedores' && (
         <ModalSeccion titulo="Proveedores" Icono={IconTruck} onClose={cerrar}>
-          <SeccionLista items={proveedores} onAgregar={agregar('proveedores')} onEliminar={eliminar('proveedores')} placeholder="Nombre del proveedor..." />
+          <SeccionLista items={proveedores} onAgregar={agregar('proveedores')} onEliminar={eliminar('proveedores')} placeholder="Nombre del proveedor..." bloquearBorrar={!esAdmin} />
         </ModalSeccion>
       )}
 

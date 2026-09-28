@@ -124,6 +124,7 @@ function exportarVentasExcel(ventas, negocioId) {
 
 export default function Ventas() {
   const { perfil, negocioId, negocio, plan, limitesPlan } = useAuth();
+  const esAdmin = perfil?.rol === 'admin';
   const [comprobanteDe, setComprobanteDe] = useState(null);
   const [ventas, setVentas] = useState([]);
   const [stock, setStock] = useState([]);
@@ -685,9 +686,11 @@ export default function Ventas() {
                   <button onClick={() => abrirEditar(v)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-accent)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <IconEdit size={13} />Editar
                   </button>
-                  <button onClick={() => eliminarVenta(v)} style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', color: 'var(--rv-danger)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex' }}>
-                    <IconTrash size={13} />
-                  </button>
+                  {esAdmin && (
+                    <button onClick={() => eliminarVenta(v)} style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', color: 'var(--rv-danger)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex' }}>
+                      <IconTrash size={13} />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

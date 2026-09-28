@@ -124,6 +124,7 @@ function exportarCajaExcel(movimientos, negocioId) {
 
 export default function Caja() {
   const { negocioId, perfil } = useAuth();
+  const esAdmin = perfil?.rol === 'admin';
   const base = ['negocios', negocioId];
   const [movimientos, setMovimientos] = useState([]);
   const [cierreHoy, setCierreHoy] = useState(null);
@@ -556,7 +557,7 @@ export default function Caja() {
                 <span style={{ fontWeight: 800, fontSize: 15, color: m.tipo === 'ingreso' ? 'var(--rv-accent)' : 'var(--rv-danger)' }}>
                   {m.tipo === 'ingreso' ? '+' : '-'} {m.moneda === 'USD' ? 'USD' : '$'} {Number(m.monto).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                 </span>
-                {!m.automatico && (
+                {!m.automatico && esAdmin && (
                   <button onClick={() => eliminarMovimiento(m)} style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', color: 'var(--rv-danger)', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', display: 'flex' }}>
                     <IconTrash size={13} />
                   </button>

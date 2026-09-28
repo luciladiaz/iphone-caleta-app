@@ -22,7 +22,8 @@ const ESTADO_REP_LABEL = {
 };
 
 export default function Clientes() {
-  const { negocioId } = useAuth();
+  const { negocioId, perfil } = useAuth();
+  const esAdmin = perfil?.rol === 'admin';
   const base = ['negocios', negocioId];
   const [clientes, setClientes] = useState([]);
   const [ventas, setVentas] = useState([]);
@@ -172,9 +173,11 @@ export default function Clientes() {
               <button onClick={() => abrirEditar(c)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-accent)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <IconEdit size={13} />Editar
               </button>
-              <button onClick={() => eliminarCliente(c)} style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', color: 'var(--rv-danger)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex' }}>
-                <IconTrash size={13} />
-              </button>
+              {esAdmin && (
+                <button onClick={() => eliminarCliente(c)} style={{ background: 'var(--rv-danger-soft)', border: '1px solid rgba(212,61,61,0.3)', color: 'var(--rv-danger)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex' }}>
+                  <IconTrash size={13} />
+                </button>
+              )}
             </div>
           </div>
         ))}

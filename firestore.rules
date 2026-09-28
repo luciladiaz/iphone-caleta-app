@@ -107,34 +107,46 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['checklistReparacion']));
     }
 
+    // A partir de acá, "borrar" queda reservado al admin en TODA colección que tenga un
+    // botón de borrado real en la pantalla (pedido explícito: un no-admin puede crear/
+    // editar según su módulo, pero para borrar algo le tiene que pedir a un admin).
+    // "Crear" y "editar" siguen dependiendo del permiso de módulo, como antes -- no se
+    // toca eso para no romper flujos ya probados.
+
     match /negocios/{negocioId}/usuarios/{doc} {
       allow read: if esDeEsteNegocio(negocioId);
-      allow write: if tienePermiso(negocioId, 'usuarios');
+      allow create, update: if tienePermiso(negocioId, 'usuarios');
+      allow delete: if esAdminDe(negocioId);
     }
 
     match /negocios/{negocioId}/puntosVenta/{doc} {
       allow read: if esDeEsteNegocio(negocioId);
-      allow write: if tienePermiso(negocioId, 'config');
+      allow create, update: if tienePermiso(negocioId, 'config');
+      allow delete: if esAdminDe(negocioId);
     }
 
     match /negocios/{negocioId}/vendedores/{doc} {
       allow read: if esDeEsteNegocio(negocioId);
-      allow write: if tienePermiso(negocioId, 'config');
+      allow create, update: if tienePermiso(negocioId, 'config');
+      allow delete: if esAdminDe(negocioId);
     }
 
     match /negocios/{negocioId}/proveedores/{doc} {
       allow read: if esDeEsteNegocio(negocioId);
-      allow write: if tienePermiso(negocioId, 'config');
+      allow create, update: if tienePermiso(negocioId, 'config');
+      allow delete: if esAdminDe(negocioId);
     }
 
     match /negocios/{negocioId}/pagosProveedores/{doc} {
       allow read: if esDeEsteNegocio(negocioId);
-      allow write: if tienePermiso(negocioId, 'proveedores');
+      allow create, update: if tienePermiso(negocioId, 'proveedores');
+      allow delete: if esAdminDe(negocioId);
     }
 
     match /negocios/{negocioId}/clientes/{doc} {
       allow read: if esDeEsteNegocio(negocioId);
-      allow update, delete: if tienePermiso(negocioId, 'clientes');
+      allow update: if tienePermiso(negocioId, 'clientes');
+      allow delete: if esAdminDe(negocioId);
       // Ventas y Reparaciones dan de alta un cliente nuevo al vuelo (selector inline),
       // pero no pueden editar/borrar uno existente sin el permiso de Clientes.
       allow create: if tienePermiso(negocioId, 'clientes')
@@ -144,12 +156,14 @@ service cloud.firestore {
 
     match /negocios/{negocioId}/reparaciones/{doc} {
       allow read: if esDeEsteNegocio(negocioId);
-      allow write: if tienePermiso(negocioId, 'reparaciones');
+      allow create, update: if tienePermiso(negocioId, 'reparaciones');
+      allow delete: if esAdminDe(negocioId);
     }
 
     match /negocios/{negocioId}/accesorios/{doc} {
       allow read: if esDeEsteNegocio(negocioId);
-      allow create, delete: if tienePermiso(negocioId, 'accesorios');
+      allow create: if tienePermiso(negocioId, 'accesorios');
+      allow delete: if esAdminDe(negocioId);
       // Ventas descuenta/repone `cantidad` como efecto de vender/cancelar un accesorio.
       allow update: if tienePermiso(negocioId, 'accesorios')
         || (tienePermiso(negocioId, 'ventas')
@@ -160,7 +174,7 @@ service cloud.firestore {
       allow read: if esDeEsteNegocio(negocioId);
       // Ventas también puede CREAR un equipo nuevo (recibido como parte de pago).
       allow create: if tienePermiso(negocioId, 'stock') || tienePermiso(negocioId, 'ventas');
-      allow delete: if tienePermiso(negocioId, 'stock');
+      allow delete: if esAdminDe(negocioId);
       // Ventas marca "vendido"/"disponible" como parte de una venta real, tocando SOLO
       // el campo estado -- nunca costoUsd ni el resto de la ficha del equipo.
       allow update: if tienePermiso(negocioId, 'stock')
@@ -170,7 +184,8 @@ service cloud.firestore {
 
     match /negocios/{negocioId}/ventas/{doc} {
       allow read: if esDeEsteNegocio(negocioId);
-      allow create, delete: if tienePermiso(negocioId, 'ventas');
+      allow create: if tienePermiso(negocioId, 'ventas');
+      allow delete: if esAdminDe(negocioId);
       // Cobros y el Dashboard marcan cuotas pagadas tocando SOLO el campo `cobros`.
       allow update: if tienePermiso(negocioId, 'ventas')
         || ((tienePermiso(negocioId, 'cobros') || tienePermiso(negocioId, 'dashboard'))
@@ -178,16 +193,28 @@ service cloud.firestore {
     }
 
     // Caja es el destino de los movimientos automáticos de Ventas, Cobros, Reparaciones
-    // y Proveedores (una venta, una cuota cobrada, un pago a proveedor) -- restringirlo
-    // solo a permiso "caja" rompería esos flujos para cualquier vendedor que tenga uno
-    // de esos módulos habilitados pero no "caja" en sí.
+    // y Proveedores (una venta, una cuota cobrada, un pago a proveedor) -- restringir
+    // el ALTA solo a permiso "caja" rompería esos flujos para cualquier vendedor que
+    // tenga uno de esos módulos habilitados pero no "caja" en sí. El borrado manual
+    // (el tacho que ve el usuario en Caja.jsx, solo visible en movimientos NO
+    // automáticos) sí queda reservado al admin; el borrado automático (que Ventas/
+    // Cobros/Reparaciones/Proveedores dispara solo al regenerar un movimiento cuando
+    // se edita/cancela algo que el usuario ya tenía permitido) sigue andando igual que
+    // antes, distinguido por el campo `automatico` del propio documento que se borra.
     match /negocios/{negocioId}/caja/{doc} {
       allow read: if esDeEsteNegocio(negocioId);
-      allow write: if tienePermiso(negocioId, 'caja')
+      allow create, update: if tienePermiso(negocioId, 'caja')
         || tienePermiso(negocioId, 'ventas')
         || tienePermiso(negocioId, 'cobros')
         || tienePermiso(negocioId, 'proveedores')
         || tienePermiso(negocioId, 'reparaciones');
+      allow delete: if esAdminDe(negocioId)
+        || (resource.data.get('automatico', false) == true
+            && (tienePermiso(negocioId, 'caja')
+                || tienePermiso(negocioId, 'ventas')
+                || tienePermiso(negocioId, 'cobros')
+                || tienePermiso(negocioId, 'proveedores')
+                || tienePermiso(negocioId, 'reparaciones')));
     }
 
     match /negocios/{negocioId}/cierresCaja/{doc} {

@@ -23,7 +23,8 @@ const labelStyle = {
 const FORM_VACIO = { nombre: '', categoria: 'Fundas', modelo: '', color: '', cantidad: '', costoMonto: '', costoMoneda: 'ARS', ventaMonto: '', ventaMoneda: 'ARS' };
 
 export default function Accesorios() {
-  const { negocioId } = useAuth();
+  const { negocioId, perfil } = useAuth();
+  const esAdmin = perfil?.rol === 'admin';
   const [accesorios, setAccesorios] = useState([]);
   const [modelosPorCategoria, setModelosPorCategoria] = useState({});
   const [categoriasProducto, setCategoriasProducto] = useState(CATEGORIAS_STOCK);
@@ -308,10 +309,12 @@ export default function Accesorios() {
                 {ventaActual(a) > 0 ? `$${ventaActual(a).toLocaleString('es-AR')}` : '—'}
               </div>
               <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                <button onClick={() => eliminar(a.id)}
-                  style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', padding: '0 4px', display: 'flex' }}>
-                  <IconX size={15} />
-                </button>
+                {esAdmin && (
+                  <button onClick={() => eliminar(a.id)}
+                    style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', padding: '0 4px', display: 'flex' }}>
+                    <IconX size={15} />
+                  </button>
+                )}
               </div>
             </div>
           ))}

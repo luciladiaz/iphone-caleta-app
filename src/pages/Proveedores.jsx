@@ -25,6 +25,7 @@ const FORM_PAGO_VACIO = { moneda: 'USD', monto: '', tipoCambio: '', formaPago: '
 
 export default function Proveedores() {
   const { negocioId, perfil } = useAuth();
+  const esAdmin = perfil?.rol === 'admin';
   const base = ['negocios', negocioId];
   const [proveedores, setProveedores] = useState([]);
   const [stock, setStock] = useState([]);
@@ -245,7 +246,9 @@ export default function Proveedores() {
                                 {pg.moneda === 'USD' ? 'USD' : '$'} {Number(pg.monto).toLocaleString('es-AR')}
                                 {pg.moneda === 'ARS' && <span style={{ color: 'var(--rv-text-dim)', fontWeight: 400 }}> · ≈USD {Number(pg.montoUsd || 0).toFixed(0)}</span>}
                               </span>
-                              <button onClick={() => eliminarPago(pg)} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', display: 'flex' }}><IconTrash size={13} /></button>
+                              {esAdmin && (
+                                <button onClick={() => eliminarPago(pg)} style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', display: 'flex' }}><IconTrash size={13} /></button>
+                              )}
                             </div>
                           </div>
                         );

@@ -34,7 +34,8 @@ const FORM_VACIO = { nombre: '', email: '', password: '', puntosVenta: [], activ
 const puntosVentaDe = (u) => u.puntosVenta?.length ? u.puntosVenta : (u.puntoVenta ? [u.puntoVenta] : []);
 
 export default function Usuarios() {
-  const { negocioId, plan, limitesPlan } = useAuth();
+  const { negocioId, plan, limitesPlan, perfil } = useAuth();
+  const esAdmin = perfil?.rol === 'admin';
   const base = ['negocios', negocioId];
 
   const [usuarios, setUsuarios] = useState([]);
@@ -145,15 +146,28 @@ export default function Usuarios() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}><IconUser size={22} style={{ color: 'var(--rv-accent)' }} />Usuarios</h1>
-        <button
-          onClick={() => {
-            const maxU = limitesPlan?.maxUsuarios ?? Infinity;
-            if (maxU !== Infinity && usuarios.length >= maxU) { setModalLimite(true); return; }
-            abrirNuevo();
-          }}
-          style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
-        >+ Nuevo usuario</button>
+        {esAdmin && (
+          <button
+            onClick={() => {
+              const maxU = limitesPlan?.maxUsuarios ?? Infinity;
+              if (maxU !== Infinity && usuarios.length >= maxU) { setModalLimite(true); return; }
+              abrirNuevo();
+            }}
+            style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+          >+ Nuevo usuario</button>
+        )}
       </div>
+
+      {/* Crear, editar, suspender o borrar un usuario queda reservado al admin -- lo
+          protege la base de datos, no solo esta pantalla (ver firestore.rules). Un
+          no-admin puede llegar a ver esta sección si tiene el módulo "Usuarios"
+          tildado, pero antes eso dejaba intentar acciones que después fallaban
+          confuso -- ahora se lo avisamos directo y se le esconden los botones. */}
+      {!esAdmin && (
+        <div style={{ background: 'var(--rv-accent-soft)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: 'var(--rv-text-mid)', marginBottom: 20 }}>
+          Podés ver los usuarios del negocio, pero solo un administrador puede crear, editar, suspender o borrar un usuario. Si necesitás alguno de estos cambios, pedíselo a un admin.
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         {[
@@ -186,12 +200,15 @@ export default function Usuarios() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-              {u.rol !== 'admin' && (
+              {!esAdmin && (
+                <span style={{ color: 'var(--rv-text-dim)', fontSize: 12, fontWeight: 600, padding: '6px 14px' }}>Solo lectura</span>
+              )}
+              {esAdmin && u.rol !== 'admin' && (
                 <button onClick={() => abrirEditar(u)} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-accent)', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <IconEdit size={12} />Editar
                 </button>
               )}
-              {u.rol === 'admin' ? (
+              {esAdmin && (u.rol === 'admin' ? (
                 <span style={{ color: 'var(--rv-text-dim)', fontSize: 12, fontWeight: 600, padding: '6px 14px' }}>Admin</span>
               ) : (
                 <>
@@ -202,7 +219,7 @@ export default function Usuarios() {
                     <IconTrash size={13} />
                   </button>
                 </>
-              )}
+              ))}
             </div>
           </div>
         ))}

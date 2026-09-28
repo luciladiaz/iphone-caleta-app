@@ -1,10 +1,10 @@
 ﻿import { useEffect, useState } from 'react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, setDoc, serverTimestamp, query, orderBy, getDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, setDoc, serverTimestamp, query, orderBy, getDoc, doc, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import CalculadoraPrecio from '../components/CalculadoraPrecio';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
-import { IconCalculator, IconLink, IconShare, IconEdit, IconTrash, IconCheck, IconX, IconBox, IconPin, IconArrowSwap } from '../components/Icons';
+import { IconCalculator, IconLink, IconShare, IconEdit, IconTrash, IconCheck, IconX, IconBox, IconPin, IconArrowSwap, IconFile, IconDownload } from '../components/Icons';
 import { CATEGORIAS_STOCK, ETIQUETA_ID_POR_CATEGORIA, SUGERENCIAS_CAPACIDAD_POR_CATEGORIA, EMOJI_POR_CATEGORIA, formatCapacidad, cargarModelosPorCategoria } from '../lib/categoriasProducto';
 import SelectorModelo from '../components/SelectorModelo';
 import SelectorCliente from '../components/SelectorCliente';
@@ -12,6 +12,8 @@ import CampoPrecio from '../components/CampoPrecio';
 import { convertirMoneda, faltaTipoCambio } from '../lib/moneda';
 import { fechaLocalDesdeInput } from '../lib/fechas';
 import { fechaMs, comparadorOrden } from '../lib/ordenStock';
+import { descargarExcel, leerExcel } from '../lib/excel';
+import { columnasPlantilla, FILA_EJEMPLO, procesarFilasImportacion } from '../lib/importarStock';
 
 const COLORES = ['Negro','Blanco','Azul','Natural','Desert','Desert Titanium','Natural Titanium','Naranja','Rosa','Verde','Morado','Rojo','Gris','Plata','Dorado'];
 const TIPOS = ['compra','consignacion','parte_de_pago'];
@@ -63,6 +65,15 @@ export default function Stock() {
   const [modalConsignar, setModalConsignar] = useState(null); // equipo elegido para dar en consignación
   const [formConsignar, setFormConsignar] = useState({ clienteId: '', clienteNombre: '', clienteNumero: null, precioMonto: '', precioMoneda: 'USD' });
   const [guardandoConsignar, setGuardandoConsignar] = useState(false);
+  // Importación masiva de stock desde Excel: filasImportar null = todavía no se leyó
+  // ningún archivo (pantalla de "elegir archivo"); array = ya se leyó y validó, se
+  // muestra la vista previa antes de escribir nada en Firestore.
+  const [modalImportar, setModalImportar] = useState(false);
+  const [nombreArchivoImportar, setNombreArchivoImportar] = useState('');
+  const [procesandoImportar, setProcesandoImportar] = useState(false);
+  const [filasImportar, setFilasImportar] = useState(null);
+  const [importandoStock, setImportandoStock] = useState(false);
+  const [resultadoImportar, setResultadoImportar] = useState(null);
   const FORM_VACIO = {
     categoria: categoriasProducto[0] || 'iPhone', modelo: '', color: '', gb: '', bateria: '', imei: '',
     tipo: 'compra', proveedor: '', costoMonto: '', costoMoneda: 'USD', pvMonto: '', pvMoneda: 'USD',
@@ -472,6 +483,95 @@ export default function Stock() {
     setModal(true);
   };
 
+  const descargarPlantillaStock = () => {
+    descargarExcel('plantilla-importar-stock.xlsx', [{
+      nombre: 'Stock',
+      filas: [columnasPlantilla(), FILA_EJEMPLO],
+      anchoColumnas: [12, 22, 12, 14, 10, 16, 20, 10, 12, 14, 12, 16, 30],
+    }]);
+  };
+
+  const abrirModalImportar = () => {
+    setFilasImportar(null);
+    setNombreArchivoImportar('');
+    setResultadoImportar(null);
+    setModalImportar(true);
+  };
+
+  const cerrarModalImportar = () => {
+    setModalImportar(false);
+    setFilasImportar(null);
+    setResultadoImportar(null);
+  };
+
+  const procesarArchivoSeleccionado = async (file) => {
+    if (!file) return;
+    setNombreArchivoImportar(file.name);
+    setProcesandoImportar(true);
+    try {
+      const filasCrudas = await leerExcel(file);
+      if (filasCrudas.length === 0) {
+        alert('El Excel no tiene filas de datos (¿quedó solo el encabezado?).');
+        return;
+      }
+      const cupoDisponible = maxStock === Infinity ? Number.MAX_SAFE_INTEGER : Math.max(0, maxStock - equipos.length);
+      setFilasImportar(procesarFilasImportacion({
+        filasCrudas, categoriasProducto, proveedores, puntosVenta, equipos, tipoCambio, cupoDisponible,
+      }));
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos leer ese archivo. ¿Es un .xlsx válido, descargado de la plantilla?');
+    } finally {
+      setProcesandoImportar(false);
+    }
+  };
+
+  const confirmarImportacionStock = async () => {
+    const validas = filasImportar.filter(f => !f.error);
+    if (validas.length === 0) return;
+    setImportandoStock(true);
+    try {
+      // Proveedores y puntos de venta nuevos primero, en su propio batch (son pocos) --
+      // así ya existen para cuando Configuración los muestre, sin depender de una
+      // recarga posterior de esta pantalla.
+      const proveedoresNuevos = [...new Set(validas.filter(f => f.nuevoProveedor).map(f => f.proveedor))];
+      const puntosVentaNuevos = [...new Set(validas.filter(f => f.nuevoPuntoVenta).map(f => f.puntoVenta))];
+      if (proveedoresNuevos.length || puntosVentaNuevos.length) {
+        const batchConfig = writeBatch(db);
+        proveedoresNuevos.forEach(nombre => batchConfig.set(doc(collection(db, ...base, 'proveedores')), { nombre }));
+        puntosVentaNuevos.forEach(nombre => batchConfig.set(doc(collection(db, ...base, 'puntosVenta')), { nombre }));
+        await batchConfig.commit();
+      }
+
+      // Los equipos en tandas de 450 -- el límite real de Firestore es 500 escrituras
+      // por batch, esto deja margen sin tener que calcularlo al límite exacto.
+      for (let i = 0; i < validas.length; i += 450) {
+        const tanda = validas.slice(i, i + 450);
+        const batchEquipos = writeBatch(db);
+        tanda.forEach(f => {
+          batchEquipos.set(doc(collection(db, ...base, 'stock')), {
+            categoria: f.categoria, modelo: f.modelo, color: f.color, gb: f.gb, bateria: f.bateria, imei: f.imei,
+            tipo: 'compra', proveedor: f.proveedor, costoMonto: f.costoMonto, costoMoneda: f.costoMoneda,
+            pvMonto: f.pvMonto, pvMoneda: f.pvMoneda, costoUsd: f.costoUsd, pvUsd: f.pvUsd,
+            estado: 'disponible', puntoVenta: f.puntoVenta, asignadoA: '', notas: f.notasEquipo,
+            noLibreOperador: false, fechaIngreso: serverTimestamp(),
+            origen: f.proveedor ? { tipo: 'compra', proveedorNombre: f.proveedor } : null,
+          });
+        });
+        await batchEquipos.commit();
+      }
+
+      setResultadoImportar({ creados: validas.length, omitidos: filasImportar.length - validas.length });
+      setFilasImportar(null);
+      cargar();
+    } catch (err) {
+      console.error(err);
+      alert('Algo falló importando el stock. Lo que ya se alcanzó a guardar quedó cargado -- revisá el stock y volvé a importar solo lo que falte, no hace falta repetir todo el archivo.');
+    } finally {
+      setImportandoStock(false);
+    }
+  };
+
   if (loading) return <div style={{ color: 'var(--rv-text-dim)', padding: 40 }}>Cargando stock...</div>;
 
   return (
@@ -491,6 +591,7 @@ export default function Stock() {
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button onClick={() => setShowCalculadora(true)} style={{ background: 'var(--rv-surface-alt)', color: 'var(--rv-accent)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}><IconCalculator size={15} />Calculadora</button>
           <button onClick={abrirModalCatalogo} style={{ background: 'var(--rv-surface-alt)', color: 'var(--rv-text)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}><IconLink size={15} />Catálogo</button>
+          {esAdmin && <button onClick={abrirModalImportar} style={{ background: 'var(--rv-surface-alt)', color: 'var(--rv-accent)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}><IconFile size={15} />Importar Excel</button>}
           {esAdmin && <button onClick={handleAgregarEquipo} style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>+ Agregar equipo</button>}
         </div>
       </div>
@@ -811,6 +912,92 @@ export default function Stock() {
                 {guardandoConsignar ? 'Guardando...' : 'Confirmar'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal importar stock desde Excel */}
+      {modalImportar && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
+          <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 920, margin: '40px auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 9 }}><IconFile size={16} />Importar stock desde Excel</h2>
+              <button onClick={cerrarModalImportar} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
+            </div>
+
+            {resultadoImportar ? (
+              <div style={{ marginTop: 16 }}>
+                <p style={{ fontSize: 14, color: 'var(--rv-text)' }}>
+                  ✅ Se cargaron <strong>{resultadoImportar.creados}</strong> equipo{resultadoImportar.creados === 1 ? '' : 's'} al stock.
+                  {resultadoImportar.omitidos > 0 && ` ${resultadoImportar.omitidos} fila(s) se omitieron por tener algún error.`}
+                </p>
+                <button onClick={cerrarModalImportar} style={{ marginTop: 16, padding: '10px 20px', background: 'var(--rv-accent)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Listo</button>
+              </div>
+            ) : !filasImportar ? (
+              <div style={{ marginTop: 16 }}>
+                <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 16 }}>
+                  Descargá la plantilla, completá una fila por equipo (Categoría, Modelo, IMEI, Costo, etc.) y subila acá.
+                  Se valida todo antes de guardar nada -- vas a ver una vista previa fila por fila y confirmás recién ahí.
+                  Los equipos entran como &quot;Compra directa&quot; y disponibles; si necesitás cargar una consignación, seguí
+                  haciéndolo a mano desde &quot;+ Agregar equipo&quot;.
+                </p>
+                <button onClick={descargarPlantillaStock} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text)', borderRadius: 8, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, marginBottom: 20 }}>
+                  <IconDownload size={14} />Descargar plantilla
+                </button>
+                <label style={{ display: 'block', border: '1px dashed var(--rv-border)', borderRadius: 10, padding: 24, textAlign: 'center', cursor: procesandoImportar ? 'default' : 'pointer', color: 'var(--rv-text-dim)', fontSize: 13 }}>
+                  {procesandoImportar ? 'Leyendo archivo...' : nombreArchivoImportar || 'Hacé clic para elegir el .xlsx ya completado'}
+                  <input type="file" accept=".xlsx,.xls" onChange={e => procesarArchivoSeleccionado(e.target.files?.[0])} style={{ display: 'none' }} disabled={procesandoImportar} />
+                </label>
+              </div>
+            ) : (
+              <div style={{ marginTop: 16 }}>
+                <p style={{ fontSize: 13, marginBottom: 12 }}>
+                  <strong style={{ color: 'var(--rv-accent)' }}>{filasImportar.filter(f => !f.error).length} equipo(s) listos para importar</strong>
+                  {filasImportar.some(f => f.error) && (
+                    <span style={{ color: 'var(--rv-danger)' }}> · {filasImportar.filter(f => f.error).length} fila(s) con error, se van a omitir</span>
+                  )}
+                </p>
+                <div style={{ maxHeight: 360, overflowY: 'auto', border: '1px solid var(--rv-border)', borderRadius: 10 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead style={{ position: 'sticky', top: 0, background: 'var(--rv-surface-alt)' }}>
+                      <tr>
+                        <th style={{ padding: '8px 10px', textAlign: 'left' }}>Fila</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'left' }}>Modelo</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'left' }}>Categoría</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'left' }}>IMEI/Serie</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'left' }}>Costo</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'left' }}>Venta</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'left' }}>Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filasImportar.map(f => (
+                        <tr key={f.numeroFila} style={{ borderTop: '1px solid var(--rv-border)', opacity: f.error ? 0.6 : 1 }}>
+                          <td style={{ padding: '6px 10px', color: 'var(--rv-text-dim)' }}>{f.numeroFila}</td>
+                          <td style={{ padding: '6px 10px' }}>{f.modelo || '—'}</td>
+                          <td style={{ padding: '6px 10px' }}>{f.categoria}</td>
+                          <td style={{ padding: '6px 10px' }}>{f.imei || '—'}</td>
+                          <td style={{ padding: '6px 10px' }}>{f.costoMonto ? `${f.costoMoneda} ${f.costoMonto}` : '—'}</td>
+                          <td style={{ padding: '6px 10px' }}>{f.pvMonto ? `${f.pvMoneda} ${f.pvMonto}` : '—'}</td>
+                          <td style={{ padding: '6px 10px', maxWidth: 260 }}>
+                            {f.error
+                              ? <span style={{ color: 'var(--rv-danger)' }}>✗ {f.error}</span>
+                              : <span style={{ color: 'var(--rv-accent)' }}>✓ Se importa{f.notas.length > 0 ? ` (${f.notas.join(' ')})` : ''}</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+                  <button type="button" onClick={() => setFilasImportar(null)} style={{ padding: '10px 20px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, cursor: 'pointer' }}>Elegir otro archivo</button>
+                  <button type="button" disabled={importandoStock || filasImportar.every(f => f.error)} onClick={confirmarImportacionStock}
+                    style={{ padding: '10px 24px', background: 'var(--rv-accent)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: importandoStock || filasImportar.every(f => f.error) ? 0.6 : 1 }}>
+                    {importandoStock ? 'Importando...' : `Importar ${filasImportar.filter(f => !f.error).length} equipo(s)`}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

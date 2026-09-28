@@ -527,13 +527,61 @@ async function manejarWinback(req, res) {
   return res.status(200).json({ ok: true, enviados, errores });
 }
 
+// Borra un negocio de prueba (cuentas E2E, seeds de desarrollo, etc.) por completo:
+// documento del negocio, sus subcolecciones conocidas, el mirror público, el usuario
+// dueño y su cuenta de Firebase Auth. Pensado para limpiar datos de prueba que
+// contaminan estadísticas reales (conversión trial→pago, Meta Ads) -- no para
+// clientes reales, que se manejan con "Suspender" (reversible), nunca borrando.
+const SUBCOLECCIONES_NEGOCIO = [
+  'stock', 'ventas', 'clientes', 'caja', 'proveedores', 'pagosProveedores',
+  'puntosVenta', 'vendedores', 'accesorios', 'pagos', 'usuarios', 'reparaciones',
+];
+
+async function manejarEliminarNegocio(req, res) {
+  const { negocioId } = req.body || {};
+  if (!negocioId) return res.status(400).json({ error: 'Falta negocioId' });
+
+  try {
+    const negRef = adminDb.doc(`negocios/${negocioId}`);
+    const negSnap = await negRef.get();
+    if (!negSnap.exists) return res.status(404).json({ error: 'Negocio no encontrado' });
+    const negocio = negSnap.data();
+
+    for (const sub of SUBCOLECCIONES_NEGOCIO) {
+      const subSnap = await negRef.collection(sub).get();
+      if (subSnap.empty) continue;
+      const batch = adminDb.batch();
+      subSnap.docs.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+    }
+    await negRef.collection('publico').doc('info').delete().catch(() => {});
+    await negRef.collection('config').doc('general').delete().catch(() => {});
+
+    // Se borra el documento de Firestore (usuarios/{uid}) pero NO la cuenta de
+    // Firebase Auth en sí -- borrar cuentas de Auth es una operación más sensible/
+    // irreversible, y sin el documento de negocio ni el de usuario esa cuenta queda
+    // inofensiva (no puede entrar a ningún negocio real). Si hiciera falta borrarla
+    // de Auth también, se puede hacer a mano desde la consola de Firebase.
+    if (negocio.ownerUid) {
+      await adminDb.doc(`usuarios/${negocio.ownerUid}`).delete().catch(() => {});
+    }
+
+    await negRef.delete();
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error('[superadmin] Error eliminando negocio:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
 async function manejarPost(req, res) {
-  const { dia, nota, dias, winback, suspenderManual } = req.body || {};
+  const { dia, nota, dias, winback, suspenderManual, eliminarNegocio } = req.body || {};
   if (dia !== undefined) return manejarMarcarContacto(req, res);
   if (nota !== undefined) return manejarGuardarNota(req, res);
   if (dias !== undefined) return manejarExtenderTrial(req, res);
   if (winback !== undefined) return manejarWinback(req, res);
   if (suspenderManual !== undefined) return manejarSuspenderManual(req, res);
+  if (eliminarNegocio !== undefined) return manejarEliminarNegocio(req, res);
   return res.status(400).json({ error: 'Body inválido' });
 }
 

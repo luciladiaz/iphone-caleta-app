@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, getDoc, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
-import { IconBox, IconHash, IconCoin, IconEdit, IconCheck, IconX } from '../components/Icons';
+import { IconBox, IconHash, IconCoin, IconEdit, IconCheck, IconX, IconFile, IconDownload } from '../components/Icons';
 import { CATEGORIAS_STOCK, cargarModelosPorCategoria } from '../lib/categoriasProducto';
 import SelectorModelo from '../components/SelectorModelo';
 import CampoPrecio from '../components/CampoPrecio';
 import { convertirMoneda, faltaTipoCambio } from '../lib/moneda';
+import { descargarExcel, leerExcel } from '../lib/excel';
+import { columnasPlantillaAccesorios, FILA_EJEMPLO_ACCESORIOS, procesarFilasImportacionAccesorios } from '../lib/importarAccesorios';
 
 const CATEGORIAS = ['Fundas', 'Vidrios templados', 'Cables', 'Cargadores', 'Adaptadores', 'Audio / AirPods', 'MagSafe', 'Power banks', 'Soportes', 'Otros'];
 
@@ -37,6 +39,13 @@ export default function Accesorios() {
   const [filtro, setFiltro] = useState('');
   const [categoriaFiltro, setCategoriaFiltro] = useState('Todas');
   const [mostrarForm, setMostrarForm] = useState(false);
+  // Importación masiva desde Excel -- mismo patrón que Stock.jsx.
+  const [modalImportar, setModalImportar] = useState(false);
+  const [nombreArchivoImportar, setNombreArchivoImportar] = useState('');
+  const [procesandoImportar, setProcesandoImportar] = useState(false);
+  const [filasImportar, setFilasImportar] = useState(null);
+  const [importandoAccesorios, setImportandoAccesorios] = useState(false);
+  const [resultadoImportar, setResultadoImportar] = useState(null);
 
   const cargar = async () => {
     if (!negocioId) return;
@@ -118,6 +127,77 @@ export default function Accesorios() {
     }
   };
 
+  const descargarPlantillaAccesorios = () => {
+    descargarExcel('plantilla-importar-accesorios.xlsx', [{
+      nombre: 'Accesorios',
+      filas: [columnasPlantillaAccesorios(), FILA_EJEMPLO_ACCESORIOS],
+      anchoColumnas: [22, 14, 18, 16, 10, 10, 20, 14, 20],
+    }]);
+  };
+
+  const abrirModalImportar = () => {
+    setFilasImportar(null);
+    setNombreArchivoImportar('');
+    setResultadoImportar(null);
+    setModalImportar(true);
+  };
+
+  const cerrarModalImportar = () => {
+    setModalImportar(false);
+    setFilasImportar(null);
+    setResultadoImportar(null);
+  };
+
+  const procesarArchivoSeleccionado = async (file) => {
+    if (!file) return;
+    setNombreArchivoImportar(file.name);
+    setProcesandoImportar(true);
+    try {
+      const filasCrudas = await leerExcel(file);
+      if (filasCrudas.length === 0) {
+        alert('El Excel no tiene filas de datos (¿quedó solo el encabezado?).');
+        return;
+      }
+      setFilasImportar(procesarFilasImportacionAccesorios({ filasCrudas, categoriasValidas: CATEGORIAS, tipoCambio }));
+    } catch (err) {
+      console.error(err);
+      alert('No pudimos leer ese archivo. ¿Es un .xlsx válido, descargado de la plantilla?');
+    } finally {
+      setProcesandoImportar(false);
+    }
+  };
+
+  const confirmarImportacionAccesorios = async () => {
+    const validas = filasImportar.filter(f => !f.error);
+    if (validas.length === 0) return;
+    setImportandoAccesorios(true);
+    try {
+      // Tandas de 450 -- el límite real de Firestore es 500 escrituras por batch.
+      for (let i = 0; i < validas.length; i += 450) {
+        const tanda = validas.slice(i, i + 450);
+        const batch = writeBatch(db);
+        tanda.forEach(f => {
+          batch.set(doc(collection(db, 'negocios', negocioId, 'accesorios')), {
+            nombre: f.nombre, categoria: f.categoria, modelo: f.modelo, color: f.color, cantidad: f.cantidad,
+            precioCosto: f.precioCosto, precioVenta: f.precioVenta,
+            costoMonto: Number(f.costoMonto) || 0, costoMoneda: f.costoMoneda,
+            ventaMonto: Number(f.pvMonto) || 0, ventaMoneda: f.pvMoneda,
+            creadoEn: new Date(),
+          });
+        });
+        await batch.commit();
+      }
+      setResultadoImportar({ creados: validas.length, omitidos: filasImportar.length - validas.length });
+      setFilasImportar(null);
+      cargar();
+    } catch (err) {
+      console.error(err);
+      alert('Algo falló importando los accesorios. Lo que ya se alcanzó a guardar quedó cargado -- revisá la lista y volvé a importar solo lo que falte.');
+    } finally {
+      setImportandoAccesorios(false);
+    }
+  };
+
   // El accesorio que se cargó en USD se traduce a pesos con el dólar de HOY, no con el
   // que había el día que se cargó — así el valor en pesos sigue al dólar solo mientras
   // no se vendió. Uno cargado directo en ARS no tiene de qué "seguir": queda como está.
@@ -144,12 +224,17 @@ export default function Accesorios() {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 12 }}>
         <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}><IconBox size={22} style={{ color: 'var(--rv-accent)' }} />Accesorios</h1>
-        <button
-          onClick={() => setMostrarForm(!mostrarForm)}
-          style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
-        >
-          {mostrarForm ? 'Cancelar' : '+ Agregar accesorio'}
-        </button>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button onClick={abrirModalImportar} style={{ background: 'var(--rv-surface-alt)', color: 'var(--rv-accent)', border: '1px solid var(--rv-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>
+            <IconFile size={15} />Importar Excel
+          </button>
+          <button
+            onClick={() => setMostrarForm(!mostrarForm)}
+            style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
+          >
+            {mostrarForm ? 'Cancelar' : '+ Agregar accesorio'}
+          </button>
+        </div>
       </div>
       <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, margin: '0 0 24px' }}>
         Para vender un accesorio, andá a Ventas → Nueva venta → Accesorio.
@@ -318,6 +403,90 @@ export default function Accesorios() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Modal importar accesorios desde Excel */}
+      {modalImportar && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
+          <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 920, margin: '40px auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 9 }}><IconFile size={16} />Importar accesorios desde Excel</h2>
+              <button onClick={cerrarModalImportar} style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', display: 'flex' }}><IconX size={18} /></button>
+            </div>
+
+            {resultadoImportar ? (
+              <div style={{ marginTop: 16 }}>
+                <p style={{ fontSize: 14, color: 'var(--rv-text)' }}>
+                  ✅ Se cargaron <strong>{resultadoImportar.creados}</strong> accesorio{resultadoImportar.creados === 1 ? '' : 's'}.
+                  {resultadoImportar.omitidos > 0 && ` ${resultadoImportar.omitidos} fila(s) se omitieron por tener algún error.`}
+                </p>
+                <button onClick={cerrarModalImportar} style={{ marginTop: 16, padding: '10px 20px', background: 'var(--rv-accent)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Listo</button>
+              </div>
+            ) : !filasImportar ? (
+              <div style={{ marginTop: 16 }}>
+                <p style={{ color: 'var(--rv-text-dim)', fontSize: 13, marginBottom: 16 }}>
+                  Descargá la plantilla, completá una fila por accesorio (Nombre, Categoría, Cantidad, Costo, etc.) y subila acá.
+                  Se valida todo antes de guardar nada -- vas a ver una vista previa fila por fila y confirmás recién ahí.
+                </p>
+                <button onClick={descargarPlantillaAccesorios} style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text)', borderRadius: 8, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, marginBottom: 20 }}>
+                  <IconDownload size={14} />Descargar plantilla
+                </button>
+                <label style={{ display: 'block', border: '1px dashed var(--rv-border)', borderRadius: 10, padding: 24, textAlign: 'center', cursor: procesandoImportar ? 'default' : 'pointer', color: 'var(--rv-text-dim)', fontSize: 13 }}>
+                  {procesandoImportar ? 'Leyendo archivo...' : nombreArchivoImportar || 'Hacé clic para elegir el .xlsx ya completado'}
+                  <input type="file" accept=".xlsx,.xls" onChange={e => procesarArchivoSeleccionado(e.target.files?.[0])} style={{ display: 'none' }} disabled={procesandoImportar} />
+                </label>
+              </div>
+            ) : (
+              <div style={{ marginTop: 16 }}>
+                <p style={{ fontSize: 13, marginBottom: 12 }}>
+                  <strong style={{ color: 'var(--rv-accent)' }}>{filasImportar.filter(f => !f.error).length} accesorio(s) listos para importar</strong>
+                  {filasImportar.some(f => f.error) && (
+                    <span style={{ color: 'var(--rv-danger)' }}> · {filasImportar.filter(f => f.error).length} fila(s) con error, se van a omitir</span>
+                  )}
+                </p>
+                <div style={{ maxHeight: 360, overflowY: 'auto', border: '1px solid var(--rv-border)', borderRadius: 10 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead style={{ position: 'sticky', top: 0, background: 'var(--rv-surface-alt)' }}>
+                      <tr>
+                        <th style={{ padding: '8px 10px', textAlign: 'left' }}>Fila</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'left' }}>Nombre</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'left' }}>Categoría</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'left' }}>Cantidad</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'left' }}>Costo</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'left' }}>Venta</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'left' }}>Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filasImportar.map(f => (
+                        <tr key={f.numeroFila} style={{ borderTop: '1px solid var(--rv-border)', opacity: f.error ? 0.6 : 1 }}>
+                          <td style={{ padding: '6px 10px', color: 'var(--rv-text-dim)' }}>{f.numeroFila}</td>
+                          <td style={{ padding: '6px 10px' }}>{f.nombre || '—'}</td>
+                          <td style={{ padding: '6px 10px' }}>{f.categoria}</td>
+                          <td style={{ padding: '6px 10px' }}>{f.cantidad ?? '—'}</td>
+                          <td style={{ padding: '6px 10px' }}>{f.costoMonto ? `${f.costoMoneda} ${f.costoMonto}` : '—'}</td>
+                          <td style={{ padding: '6px 10px' }}>{f.pvMonto ? `${f.pvMoneda} ${f.pvMonto}` : '—'}</td>
+                          <td style={{ padding: '6px 10px', maxWidth: 260 }}>
+                            {f.error
+                              ? <span style={{ color: 'var(--rv-danger)' }}>✗ {f.error}</span>
+                              : <span style={{ color: 'var(--rv-accent)' }}>✓ Se importa{f.notas.length > 0 ? ` (${f.notas.join(' ')})` : ''}</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+                  <button type="button" onClick={() => setFilasImportar(null)} style={{ padding: '10px 20px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, cursor: 'pointer' }}>Elegir otro archivo</button>
+                  <button type="button" disabled={importandoAccesorios || filasImportar.every(f => f.error)} onClick={confirmarImportacionAccesorios}
+                    style={{ padding: '10px 24px', background: 'var(--rv-accent)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: importandoAccesorios || filasImportar.every(f => f.error) ? 0.6 : 1 }}>
+                    {importandoAccesorios ? 'Importando...' : `Importar ${filasImportar.filter(f => !f.error).length} accesorio(s)`}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

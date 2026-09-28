@@ -185,15 +185,16 @@ async function manejarDetalle(req, res, negocioId) {
   }
 }
 
-// Suma cualquier tipo de acción que contenga "lead" (el nombre exacto que devuelve
-// Meta para el evento del píxel varía: "lead", "offsite_conversion.fb_pixel_lead",
-// "onsite_conversion.lead_grouped", etc. -- sumar por coincidencia es más robusto que
-// buscar un string exacto que podría cambiar).
+// Confirmado contra la cuenta real (2026-09-27): Meta reporta el MISMO lead bajo varios
+// action_type a la vez ("lead", "onsite_web_lead", "offsite_lead_add_20_s_calls",
+// "offsite_conversion.fb_pixel_lead"), todos con el mismo value -- no son leads
+// distintos. Sumar cualquier action_type que contenga "lead" (como se hacía antes)
+// contaba el mismo evento 3-4 veces (2 leads reales aparecían como 8). "lead" es el
+// agregado que Meta ya calcula deduplicado, así que se toma ese único valor.
 function contarLeads(actions) {
   if (!Array.isArray(actions)) return 0;
-  return actions
-    .filter(a => (a.action_type || '').toLowerCase().includes('lead'))
-    .reduce((sum, a) => sum + (Number(a.value) || 0), 0);
+  const lead = actions.find(a => a.action_type === 'lead');
+  return lead ? Number(lead.value) || 0 : 0;
 }
 
 async function manejarMetaAds(req, res) {

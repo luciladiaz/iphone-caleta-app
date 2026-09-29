@@ -965,6 +965,7 @@ export default function Stock() {
                         <th style={{ padding: '8px 10px', textAlign: 'left' }}>Modelo</th>
                         <th style={{ padding: '8px 10px', textAlign: 'left' }}>Categoría</th>
                         <th style={{ padding: '8px 10px', textAlign: 'left' }}>IMEI/Serie</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'left' }}>Batería</th>
                         <th style={{ padding: '8px 10px', textAlign: 'left' }}>Costo</th>
                         <th style={{ padding: '8px 10px', textAlign: 'left' }}>Venta</th>
                         <th style={{ padding: '8px 10px', textAlign: 'left' }}>Estado</th>
@@ -977,6 +978,7 @@ export default function Stock() {
                           <td style={{ padding: '6px 10px' }}>{f.modelo || '—'}</td>
                           <td style={{ padding: '6px 10px' }}>{f.categoria}</td>
                           <td style={{ padding: '6px 10px' }}>{f.imei || '—'}</td>
+                          <td style={{ padding: '6px 10px' }}>{f.bateria ? `${f.bateria}%` : '—'}</td>
                           <td style={{ padding: '6px 10px' }}>{f.costoMonto ? `${f.costoMoneda} ${f.costoMonto}` : '—'}</td>
                           <td style={{ padding: '6px 10px' }}>{f.pvMonto ? `${f.pvMoneda} ${f.pvMonto}` : '—'}</td>
                           <td style={{ padding: '6px 10px', maxWidth: 260 }}>

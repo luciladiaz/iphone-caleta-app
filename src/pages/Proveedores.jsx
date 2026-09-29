@@ -187,11 +187,11 @@ export default function Proveedores() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10, marginTop: 16 }}>
               <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '8px 12px' }}>
-                <div style={{ color: 'var(--rv-text-dim)', fontSize: 10, marginBottom: 2 }}>DEBIDO POR COMPRAS</div>
+                <div style={{ color: 'var(--rv-text-dim)', fontSize: 10, marginBottom: 2 }}>DEUDA POR COMPRAS</div>
                 <div style={{ fontWeight: 700 }}>USD {p.debidoCompra.toFixed(0)}</div>
               </div>
               <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '8px 12px' }}>
-                <div style={{ color: 'var(--rv-text-dim)', fontSize: 10, marginBottom: 2 }}>DEBIDO POR CONSIGNACIÓN</div>
+                <div style={{ color: 'var(--rv-text-dim)', fontSize: 10, marginBottom: 2 }}>DEUDA POR CONSIGNACIÓN</div>
                 <div style={{ fontWeight: 700 }}>USD {p.debidoConsignacion.toFixed(0)}</div>
                 {p.consignacionSinVender > 0 && <div style={{ color: 'var(--rv-text-dim)', fontSize: 9, marginTop: 2 }}>+{p.consignacionSinVender} sin vender todavía</div>}
               </div>

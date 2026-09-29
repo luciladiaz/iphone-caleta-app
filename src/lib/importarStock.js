@@ -42,6 +42,13 @@ function mapearFila(filaCruda) {
     const key = variantes.find(v => v in porNormalizado);
     fila[campo] = key !== undefined ? String(porNormalizado[key] ?? '').trim() : '';
   }
+  // Si en Excel se tipea "98%", Excel lo autoformatea solo como celda de porcentaje y
+  // guarda el NÚMERO 0.98 (no el texto "98%") -- xlsx.js lee ese valor crudo tal cual,
+  // así que sin esto la batería se guardaba como "0.98" en vez de "98". Probado con un
+  // archivo real armado igual que lo hace Excel (celda numérica + formato "0%") antes de
+  // aplicar esto. Un valor > 1 (ej: "91" tipeado directo, sin %) se deja como está.
+  const n = Number(fila.bateria);
+  if (fila.bateria && !isNaN(n) && n > 0 && n <= 1) fila.bateria = String(Math.round(n * 100));
   return fila;
 }
 

@@ -14,6 +14,10 @@ export const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+// Sin esto, los mails que manda Firebase Auth directo (como el de "crear tu
+// contraseña" al invitar un usuario nuevo, o el de recuperar contraseña) salen en
+// inglés por default -- todo el resto de la app está en español.
+auth.languageCode = 'es';
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 

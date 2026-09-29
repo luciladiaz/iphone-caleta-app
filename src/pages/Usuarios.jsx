@@ -1,12 +1,24 @@
 ﻿import { useEffect, useState } from 'react';
 import { collection, getDocs, doc, setDoc, updateDoc } from 'firebase/firestore';
 import { initializeApp, deleteApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth, db, firebaseConfig } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
-import { IconUser, IconX, IconEdit, IconTrash } from '../components/Icons';
-import { errorPassword } from '../lib/validacion';
+import { IconUser, IconX, IconEdit, IconTrash, IconMail } from '../components/Icons';
+
+// Contraseña temporal al azar para crear la cuenta -- nadie la ve ni la usa nunca: el
+// usuario nuevo arma la suya propia con el mail de "crear tu contraseña" que le manda
+// Firebase (sendPasswordResetEmail, más abajo). Igual respeta el mismo mínimo que pedía
+// errorPassword (8+, letras y números) por si algún día hace falta ese fallback.
+function generarPasswordTemporal() {
+  const letras = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
+  const numeros = '23456789';
+  const todos = letras + numeros;
+  let pass = letras[Math.floor(Math.random() * letras.length)] + numeros[Math.floor(Math.random() * numeros.length)];
+  for (let i = 0; i < 14; i++) pass += todos[Math.floor(Math.random() * todos.length)];
+  return pass;
+}
 
 const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
 const labelStyle = { color: 'var(--rv-text-dim)', fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4, textTransform: 'uppercase' };
@@ -27,7 +39,7 @@ const MODULOS = [
   { key: 'usuarios', label: 'Usuarios' },
 ];
 
-const FORM_VACIO = { nombre: '', email: '', password: '', puntosVenta: [], activo: true, permisos: {} };
+const FORM_VACIO = { nombre: '', email: '', puntosVenta: [], activo: true, permisos: {} };
 
 // Lee los puntos de venta de un usuario con fallback al campo viejo (singular,
 // de antes de que se pudiera asignar más de uno).
@@ -69,7 +81,7 @@ export default function Usuarios() {
   const abrirNuevo = () => { setEditandoId(null); setForm(FORM_VACIO); setModal(true); };
   const abrirEditar = (u) => {
     setEditandoId(u.id);
-    setForm({ nombre: u.nombre || '', email: u.email || '', password: '', puntosVenta: puntosVentaDe(u), activo: u.activo !== false, permisos: u.permisos || {} });
+    setForm({ nombre: u.nombre || '', email: u.email || '', puntosVenta: puntosVentaDe(u), activo: u.activo !== false, permisos: u.permisos || {} });
     setModal(true);
   };
   const cerrarModal = () => { setModal(false); setEditandoId(null); setForm(FORM_VACIO); };
@@ -86,13 +98,13 @@ export default function Usuarios() {
         await updateDoc(doc(db, 'usuarios', editandoId), cambios);
         await updateDoc(doc(db, ...base, 'usuarios', editandoId), cambios);
       } else {
-        const passwordError = errorPassword(form.password);
-        if (passwordError) { setError(passwordError); setGuardando(false); return; }
-        // App secundaria para no cerrar la sesión del admin al crear el usuario
+        // App secundaria para no cerrar la sesión del admin al crear el usuario. La
+        // cuenta nace con una contraseña al azar que nadie llega a usar -- el mail de
+        // "crear tu contraseña" de abajo es lo que realmente le da acceso a la persona.
         const tempApp = initializeApp(firebaseConfig, `crear-usuario-${Date.now()}`);
         const tempAuth = getAuth(tempApp);
-        const cred = await createUserWithEmailAndPassword(tempAuth, form.email, form.password);
-        await deleteApp(tempApp);
+        tempAuth.languageCode = 'es';
+        const cred = await createUserWithEmailAndPassword(tempAuth, form.email, generarPasswordTemporal());
 
         // Los usuarios que se crean desde acá siempre quedan como "vendedor": su acceso
         // se define 100% por los permisos de módulo elegidos abajo, nunca por un rol
@@ -102,12 +114,46 @@ export default function Usuarios() {
         await setDoc(doc(db, 'usuarios', cred.user.uid), userData);
         // Guardar también en el negocio
         await setDoc(doc(db, ...base, 'usuarios', cred.user.uid), userData);
+
+        // Si el mail de invitación falla (ej: cuota de Firebase, problema de red), la
+        // cuenta ya quedó creada igual -- no la deshacemos, pero avisamos claro que hay
+        // que reintentar el envío en vez de dejar a la persona sin forma de entrar.
+        let fallaEnvioMail = false;
+        try {
+          await sendPasswordResetEmail(tempAuth, form.email);
+        } catch (errMail) {
+          console.error('Error enviando mail de invitación:', errMail);
+          fallaEnvioMail = true;
+        }
+        await deleteApp(tempApp);
+
+        cerrarModal();
+        cargar();
+        if (fallaEnvioMail) {
+          alert(`El usuario se creó, pero no pudimos mandarle el mail para crear su contraseña a ${form.email}. Usá "Reenviar invitación" en su fila para intentar de nuevo.`);
+        } else {
+          alert(`Usuario creado. Le mandamos un mail a ${form.email} para que arme su propia contraseña.`);
+        }
+        return;
       }
       cerrarModal();
       cargar();
     } catch (err) {
       setError(err.code === 'auth/email-already-in-use' ? 'Ese email ya está registrado' : err.message);
     } finally { setGuardando(false); }
+  };
+
+  // Reenvía el mail de "crear tu contraseña" -- por si el primero se perdió, fue a spam,
+  // o falló al crear el usuario. Usa el mismo sendPasswordResetEmail: no importa si la
+  // persona ya tiene una contraseña puesta, el link simplemente le deja poner una nueva.
+  const reenviarInvitacion = async (u) => {
+    try {
+      await sendPasswordResetEmail(auth, u.email);
+      alert(`Le volvimos a mandar el mail a ${u.email} para que cree su contraseña.`);
+    } catch (err) {
+      console.error('Error reenviando invitación:', err);
+      alert(`No pudimos reenviar el mail: ${err.message}`);
+    }
   };
 
   const toggleActivo = async (u) => {
@@ -208,6 +254,11 @@ export default function Usuarios() {
                   <IconEdit size={12} />Editar
                 </button>
               )}
+              {esAdmin && u.rol !== 'admin' && (
+                <button onClick={() => reenviarInvitacion(u)} title="Reenviar el mail para crear su contraseña" style={{ background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', color: 'var(--rv-text-mid)', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <IconMail size={12} />Reenviar invitación
+                </button>
+              )}
               {esAdmin && (u.rol === 'admin' ? (
                 <span style={{ color: 'var(--rv-text-dim)', fontSize: 12, fontWeight: 600, padding: '6px 14px' }}>Admin</span>
               ) : (
@@ -248,10 +299,13 @@ export default function Usuarios() {
             <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div><label style={labelStyle}>Nombre</label><input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} required style={inputStyle} /></div>
               {!editandoId && (
-                <>
-                  <div><label style={labelStyle}>Email</label><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required style={inputStyle} /></div>
-                  <div><label style={labelStyle}>Contraseña</label><input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required minLength={8} placeholder="Mínimo 8 caracteres, con letras y números" style={inputStyle} /></div>
-                </>
+                <div>
+                  <label style={labelStyle}>Email</label>
+                  <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required style={inputStyle} />
+                  <p style={{ color: 'var(--rv-text-dim)', fontSize: 12, margin: '6px 0 0' }}>
+                    No hace falta poner contraseña: le mandamos un mail a esta dirección para que la persona cree la suya propia.
+                  </p>
+                </div>
               )}
               <div>
                 <label style={{ ...labelStyle, marginBottom: 8 }}>Puntos de venta</label>
@@ -282,7 +336,7 @@ export default function Usuarios() {
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
                 <button type="button" onClick={cerrarModal} style={{ padding: '10px 20px', background: 'var(--rv-surface-alt)', border: '1px solid var(--rv-border)', borderRadius: 8, color: 'var(--rv-text)', fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
                 <button type="submit" disabled={guardando} style={{ padding: '10px 24px', background: 'var(--rv-accent)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-                  {editandoId ? (guardando ? 'Guardando...' : 'Guardar cambios') : (guardando ? 'Creando...' : 'Crear usuario')}
+                  {editandoId ? (guardando ? 'Guardando...' : 'Guardar cambios') : (guardando ? 'Creando...' : 'Crear usuario y enviar invitación')}
                 </button>
               </div>
             </form>

@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { collection, getDocs, doc, setDoc, updateDoc } from 'firebase/firestore';
 import { initializeApp, deleteApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db, firebaseConfig } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
@@ -115,17 +115,28 @@ export default function Usuarios() {
         // Guardar también en el negocio
         await setDoc(doc(db, ...base, 'usuarios', cred.user.uid), userData);
 
-        // Si el mail de invitación falla (ej: cuota de Firebase, problema de red), la
-        // cuenta ya quedó creada igual -- no la deshacemos, pero avisamos claro que hay
-        // que reintentar el envío en vez de dejar a la persona sin forma de entrar.
+        await deleteApp(tempApp);
+
+        // El sendPasswordResetEmail del SDK cliente (lo que había acá antes) probado en
+        // vivo y confirmado que NUNCA le llega el mail a nadie -- este proyecto no tiene
+        // configurado el envío propio de Firebase Auth, solo Resend a través del backend
+        // (mismo mecanismo ya probado que usa el mail de "Verificá tu email" del
+        // registro). Por eso pasa por /api/enviar-verificacion en vez del SDK directo.
+        // Si falla (ej: problema de red), la cuenta ya quedó creada igual -- no la
+        // deshacemos, pero avisamos claro que hay que reintentar el envío.
         let fallaEnvioMail = false;
         try {
-          await sendPasswordResetEmail(tempAuth, form.email);
+          const idToken = await auth.currentUser.getIdToken();
+          const res = await fetch('/api/enviar-verificacion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+            body: JSON.stringify({ uid: cred.user.uid }),
+          });
+          if (!res.ok) throw new Error((await res.json()).error || 'Error desconocido');
         } catch (errMail) {
           console.error('Error enviando mail de invitación:', errMail);
           fallaEnvioMail = true;
         }
-        await deleteApp(tempApp);
 
         cerrarModal();
         cargar();
@@ -144,11 +155,17 @@ export default function Usuarios() {
   };
 
   // Reenvía el mail de "crear tu contraseña" -- por si el primero se perdió, fue a spam,
-  // o falló al crear el usuario. Usa el mismo sendPasswordResetEmail: no importa si la
-  // persona ya tiene una contraseña puesta, el link simplemente le deja poner una nueva.
+  // o falló al crear el usuario. No importa si la persona ya tiene una contraseña
+  // puesta, el link simplemente le deja poner una nueva.
   const reenviarInvitacion = async (u) => {
     try {
-      await sendPasswordResetEmail(auth, u.email);
+      const idToken = await auth.currentUser.getIdToken();
+      const res = await fetch('/api/enviar-verificacion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ uid: u.id }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Error desconocido');
       alert(`Le volvimos a mandar el mail a ${u.email} para que cree su contraseña.`);
     } catch (err) {
       console.error('Error reenviando invitación:', err);

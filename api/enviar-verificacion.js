@@ -11,6 +11,22 @@ function escaparHtml(str) {
   return String(str || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// adminAuth.generate*Link() siempre devuelve el link con &lang=en -- no hay forma de
+// pedirlo en español al generarlo (no es parte de actionCodeSettings). Sin esto, la
+// página de Firebase donde la persona termina poniendo su contraseña (o confirmando el
+// email) se veía en inglés, mientras todo el resto -- mail, app -- está en español.
+// Encontrado probando en vivo el mail de invitación nuevo (mismo problema ya existía en
+// el de verificación de siempre, así que esto lo corrige para los dos).
+function forzarEspanol(link) {
+  try {
+    const url = new URL(link);
+    url.searchParams.set('lang', 'es');
+    return url.toString();
+  } catch {
+    return link;
+  }
+}
+
 function botonWhatsapp(mensaje) {
   const WHATSAPP_SOPORTE = '5493364400111';
   const url = `https://wa.me/${WHATSAPP_SOPORTE}?text=${encodeURIComponent(mensaje)}`;
@@ -55,10 +71,10 @@ async function manejarInvitacion(req, res, solicitante) {
   const negocioSnap = await adminDb.doc(`negocios/${solicitante.negocioId}`).get();
   const nombreNegocio = escaparHtml(negocioSnap.data()?.nombre || 'ReventApp');
 
-  const link = await adminAuth.generatePasswordResetLink(target.email, {
+  const link = forzarEspanol(await adminAuth.generatePasswordResetLink(target.email, {
     url: `${APP_URL}/login`,
     handleCodeInApp: false,
-  });
+  }));
 
   const nombreSeguro = escaparHtml(target.nombre);
   const html = `
@@ -95,10 +111,10 @@ export default async function handler(req, res) {
     const email = usuario.email;
     const { nombre } = req.body || {};
 
-    const link = await adminAuth.generateEmailVerificationLink(email, {
+    const link = forzarEspanol(await adminAuth.generateEmailVerificationLink(email, {
       url: `${APP_URL}/login`,
       handleCodeInApp: false,
-    });
+    }));
 
     const nombreSeguro = escaparHtml(nombre);
     const html = `

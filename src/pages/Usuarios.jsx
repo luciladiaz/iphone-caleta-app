@@ -8,8 +8,8 @@ import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
 import { IconUser, IconX, IconEdit, IconTrash, IconMail } from '../components/Icons';
 
 // Contraseña temporal al azar para crear la cuenta -- nadie la ve ni la usa nunca: el
-// usuario nuevo arma la suya propia con el mail de "crear tu contraseña" que le manda
-// Firebase (sendPasswordResetEmail, más abajo). Igual respeta el mismo mínimo que pedía
+// usuario nuevo arma la suya propia con el mail de "crear tu contraseña" que manda
+// /api/enviar-verificacion (Resend), más abajo. Igual respeta el mismo mínimo que pedía
 // errorPassword (8+, letras y números) por si algún día hace falta ese fallback.
 function generarPasswordTemporal() {
   const letras = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';

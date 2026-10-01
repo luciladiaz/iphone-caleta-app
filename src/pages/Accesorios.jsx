@@ -36,6 +36,12 @@ export default function Accesorios() {
   const [saving, setSaving] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
   const [editCantidad, setEditCantidad] = useState('');
+  // Edición completa (nombre/categoría/modelo/color/costo/venta) -- separado de
+  // `editandoId`, que es solo el ajuste rápido de cantidad en la tabla. Antes no existía
+  // ninguna forma de corregir un accesorio cargado mal (nombre con un typo, sin precio,
+  // etc.) más que borrarlo y volver a cargarlo entero. Reportado por Lucila con una
+  // captura real de accesorios de prueba que quedaron sin poder arreglarse, 2026-10-01.
+  const [editandoAccesorioId, setEditandoAccesorioId] = useState(null);
   const [filtro, setFiltro] = useState('');
   const [categoriaFiltro, setCategoriaFiltro] = useState('Todas');
   const [mostrarForm, setMostrarForm] = useState(false);
@@ -77,23 +83,28 @@ export default function Accesorios() {
     }
     setSaving(true);
     try {
-      await addDoc(collection(db, 'negocios', negocioId, 'accesorios'), {
+      // precioCosto/precioVenta quedan en ARS (moneda que usa el resto de la pantalla:
+      // "Valor stock", tabla, etc.); costoMonto/costoMoneda guardan lo que se tipeó
+      // realmente, por si se cargó en USD.
+      const datos = {
         nombre: form.nombre.trim(),
         categoria: form.categoria,
         modelo: form.modelo,
         color: form.color.trim(),
         cantidad: Number(form.cantidad),
-        // precioCosto/precioVenta quedan en ARS (moneda que usa el resto de la pantalla:
-        // "Valor stock", tabla, etc.); costoMonto/costoMoneda guardan lo que se tipeó
-        // realmente, por si se cargó en USD.
         precioCosto: convertirMoneda(form.costoMonto, form.costoMoneda, 'ARS', tipoCambio),
         precioVenta: convertirMoneda(form.ventaMonto, form.ventaMoneda, 'ARS', tipoCambio),
         costoMonto: Number(form.costoMonto) || 0, costoMoneda: form.costoMoneda,
         ventaMonto: Number(form.ventaMonto) || 0, ventaMoneda: form.ventaMoneda,
-        creadoEn: new Date(),
-      });
+      };
+      if (editandoAccesorioId) {
+        await updateDoc(doc(db, 'negocios', negocioId, 'accesorios', editandoAccesorioId), datos);
+      } else {
+        await addDoc(collection(db, 'negocios', negocioId, 'accesorios'), { ...datos, creadoEn: new Date() });
+      }
       setForm(FORM_VACIO);
       setMostrarForm(false);
+      setEditandoAccesorioId(null);
       cargar();
     } catch (err) {
       console.error(err);
@@ -101,6 +112,23 @@ export default function Accesorios() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const abrirEditarAccesorio = (a) => {
+    setForm({
+      nombre: a.nombre || '', categoria: a.categoria || 'Fundas', modelo: a.modelo || '', color: a.color || '',
+      cantidad: String(a.cantidad ?? ''),
+      costoMonto: a.costoMonto || '', costoMoneda: a.costoMoneda || 'ARS',
+      ventaMonto: a.ventaMonto || '', ventaMoneda: a.ventaMoneda || 'ARS',
+    });
+    setEditandoAccesorioId(a.id);
+    setMostrarForm(true);
+  };
+
+  const cerrarForm = () => {
+    setForm(FORM_VACIO);
+    setMostrarForm(false);
+    setEditandoAccesorioId(null);
   };
 
   const eliminar = async (id) => {
@@ -229,7 +257,7 @@ export default function Accesorios() {
             <IconFile size={15} />Importar Excel
           </button>
           <button
-            onClick={() => setMostrarForm(!mostrarForm)}
+            onClick={() => (mostrarForm ? cerrarForm() : setMostrarForm(true))}
             style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
           >
             {mostrarForm ? 'Cancelar' : '+ Agregar accesorio'}
@@ -258,7 +286,7 @@ export default function Accesorios() {
       {/* Formulario */}
       {mostrarForm && (
         <div style={{ background: 'var(--rv-surface)', border: '1px solid var(--rv-border)', borderRadius: 14, padding: 24, marginBottom: 24 }}>
-          <h3 style={{ margin: '0 0 18px', fontSize: 15, fontWeight: 700 }}>Nuevo accesorio</h3>
+          <h3 style={{ margin: '0 0 18px', fontSize: 15, fontWeight: 700 }}>{editandoAccesorioId ? 'Editar accesorio' : 'Nuevo accesorio'}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14 }}>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={labelStyle}>NOMBRE *</label>
@@ -306,9 +334,9 @@ export default function Accesorios() {
           <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
             <button onClick={guardar} disabled={saving || !form.nombre.trim() || !form.cantidad}
               style={{ background: 'var(--rv-accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 700, cursor: 'pointer', opacity: (saving || !form.nombre.trim() || !form.cantidad) ? 0.5 : 1 }}>
-              {saving ? 'Guardando...' : 'Guardar'}
+              {saving ? 'Guardando...' : editandoAccesorioId ? 'Guardar cambios' : 'Guardar'}
             </button>
-            <button onClick={() => { setForm(FORM_VACIO); setMostrarForm(false); }}
+            <button onClick={cerrarForm}
               style={{ background: 'none', border: '1px solid var(--rv-border)', borderRadius: 8, padding: '10px 20px', color: 'var(--rv-text-dim)', cursor: 'pointer', fontWeight: 600 }}>
               Cancelar
             </button>
@@ -394,6 +422,10 @@ export default function Accesorios() {
                 {ventaActual(a) > 0 ? `$${ventaActual(a).toLocaleString('es-AR')}` : '—'}
               </div>
               <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                <button onClick={() => abrirEditarAccesorio(a)}
+                  style={{ background: 'none', border: 'none', color: 'var(--rv-text-dim)', cursor: 'pointer', padding: '0 4px', display: 'flex' }}>
+                  <IconEdit size={15} />
+                </button>
                 {esAdmin && (
                   <button onClick={() => eliminar(a.id)}
                     style={{ background: 'none', border: 'none', color: 'var(--rv-danger)', cursor: 'pointer', padding: '0 4px', display: 'flex' }}>

@@ -31,6 +31,20 @@ function fechaCuotaCalc(fechaInicio, idx) {
   return d;
 }
 
+// Un accesorio cargado 100% en pesos (costo y precio de venta los dos en ARS) suma su
+// ganancia directo en pesos reales -- convertirlo a USD y de vuelta a ARS para mostrarlo
+// inventaba un número que dependía del tipo de cambio del día, distinto de la plata que
+// realmente ganó. Si se cargó en dólares (como un equipo, que siempre es así), se trata
+// igual que un equipo: pvUsd/costoUsd, en la bolsa de dólares. Pedido explícito de un
+// cliente real, 2026-10-01.
+function gananciaDeVenta(v) {
+  const esAccesorioEnPesos = v.tipo === 'accesorio' && v.pvVentaMoneda === 'ARS' && (v.costoMoneda || 'ARS') === 'ARS';
+  if (esAccesorioEnPesos) {
+    return { moneda: 'ARS', monto: (Number(v.pvVentaMonto) || 0) - (Number(v.costoMonto) || 0) };
+  }
+  return { moneda: 'USD', monto: (Number(v.pvUsd) || 0) - (Number(v.costoUsd) || 0) };
+}
+
 const generarMensajeWA = (cliente, telefono, modelo, gb, numeroCuota, totalCuotas, monto) => {
   const mensaje = `Hola ${cliente}! Te recuerdo que vence la cuota ${numeroCuota} de ${totalCuotas} de tu ${modelo}${gb ? ' ' + formatCapacidad(gb) : ''}. El monto es $${Number(monto).toLocaleString('es-AR')} ARS. Cualquier consulta avisame. Gracias!`;
   const numero = numeroWhatsapp(telefono);
@@ -80,7 +94,12 @@ export default function Dashboard() {
           return fecha >= primerDiaMes && v.estado === 'entregado';
         });
 
-        const gananciaUSD = ventasMes.reduce((acc, v) => acc + (Number(v.pvUsd || 0) - Number(v.costoUsd || 0)), 0);
+        let gananciaUSD = 0, gananciaARSPropia = 0;
+        for (const v of ventasMes) {
+          const g = gananciaDeVenta(v);
+          if (g.moneda === 'ARS') gananciaARSPropia += g.monto;
+          else gananciaUSD += g.monto;
+        }
         const stockDisponible = stock.filter(s => s.estado === 'disponible');
         const stockValorUSD = stockDisponible.reduce((acc, s) => acc + Number(s.pvUsd || 0), 0);
 
@@ -100,7 +119,11 @@ export default function Dashboard() {
           ventasMes: ventasMes.length,
           pendientesCobro: ventas.filter(v => v.estado === 'pendiente').length,
           gananciaUSD: gananciaUSD.toFixed(2),
-          gananciaARS: (gananciaUSD * tc).toLocaleString('es-AR'),
+          // El de USD es el que realmente se ganó en dólares (equipos + accesorios cargados
+          // en USD); el ARS es la plata real en pesos de los accesorios cargados en pesos,
+          // MÁS la conversión aproximada de la parte en dólares (esa sí depende del tipo de
+          // cambio -- no hay forma de evitarlo para algo que de verdad se cobró en dólares).
+          gananciaARS: (gananciaARSPropia + gananciaUSD * tc).toLocaleString('es-AR'),
           stockValorUSD: stockValorUSD.toFixed(2),
           stockValorARS: (stockValorUSD * tc).toLocaleString('es-AR'),
           deudoresUrgentes,

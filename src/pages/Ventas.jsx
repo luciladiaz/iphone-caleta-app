@@ -510,15 +510,23 @@ export default function Ventas() {
           notas: form.notas,
           cobros: form.cobros,
           fecha: serverTimestamp(),
-          // costoUsd se saca del propio accesorio en el momento de la venta (si después se
-          // edita el costo en Accesorios, esta venta ya hecha no se recalcula -- mismo
-          // criterio que un equipo vendido, ver costoUsd más abajo en la rama de equipo).
-          // pvUsd es el valor canónico en USD que usa el resto de la app (Caja, Dashboard,
-          // Cobros) para calcular saldo y ganancia. Antes ninguno de los dos se guardaba acá:
-          // una venta de accesorio no tenía forma de cargar un precio de venta real (solo
-          // "cobros", lo efectivamente cobrado), así que nunca sumaba a "Ganancia" ni dejaba
-          // anotar una deuda pendiente del cliente. Reportado por un cliente real, 2026-10-01.
+          // costoUsd/pvUsd son el valor canónico en USD que usa Cobros.jsx para calcular el
+          // saldo pendiente (necesita una sola moneda común para poder sumar la deuda de
+          // equipos y accesorios juntos) -- se calculan igual sin importar en qué moneda se
+          // cargó el accesorio. costoUsd se saca del propio accesorio en el momento de la
+          // venta (si después se edita el costo en Accesorios, esta venta ya hecha no se
+          // recalcula -- mismo criterio que un equipo vendido).
+          // costoMonto/costoMoneda (sin convertir) quedan guardados aparte: la "Ganancia" del
+          // Dashboard los usa tal cual, en pesos, cuando el accesorio se cargó en pesos --
+          // convertir a dólares y de vuelta a pesos para un accesorio 100% en pesos inventaba
+          // un valor que dependía del tipo de cambio del día, en vez de la ganancia real en
+          // pesos que cobró. Si el accesorio se cargó en dólares, se trata igual que un
+          // equipo (ver gananciaDeVenta en Dashboard.jsx). Reportado por un cliente real,
+          // 2026-10-01 (el no poder cargar precio de venta) y corregido en dos pasos: primero
+          // el precio en sí, después que la ganancia no "se transformara" a dólares sola.
           costoUsd: convertirMoneda(accesorioSeleccionado?.costoMonto, accesorioSeleccionado?.costoMoneda, 'USD', tc) || '',
+          costoMonto: Number(accesorioSeleccionado?.costoMonto) || 0,
+          costoMoneda: accesorioSeleccionado?.costoMoneda || 'ARS',
           pvUsd: convertirMoneda(form.pvVentaMonto, form.pvVentaMoneda, 'USD', tc) || '',
           pvVentaMonto: Number(form.pvVentaMonto) || 0,
           pvVentaMoneda: form.pvVentaMoneda,

@@ -195,6 +195,21 @@ export default function Ventas() {
   }, [form.equipoId, stock, editando]);
   const accesorioSeleccionado = accesorios.find(a => a.id === form.accesorioId);
 
+  // Mismo autocompletado que arriba, pero para accesorios: antes el campo de precio de
+  // venta ni se mostraba para una venta de accesorio, así que nunca se completaba solo
+  // ni a mano -- la venta quedaba sin precio, Cobros no podía calcular el saldo si el
+  // cliente debía plata, y Dashboard nunca sumaba esa venta a "Ganancia" (pvUsd/costoUsd
+  // quedaban vacíos). Reportado por un cliente real, 2026-10-01.
+  useEffect(() => {
+    if (editando || !form.accesorioId) return;
+    const acc = accesorios.find(a => a.id === form.accesorioId);
+    if (!acc) return;
+    const monto = acc.ventaMonto || '';
+    if (!monto) return;
+    setForm(f => (f.accesorioId === acc.id ? { ...f, pvVentaMonto: monto, pvVentaMoneda: acc.ventaMoneda || 'ARS' } : f));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.accesorioId, accesorios, editando]);
+
   const seleccionarCliente = (c) => {
     setForm(f => ({ ...f, clienteId: c?.id || '', cliente: c?.nombre || '', telefono: c?.telefono || '' }));
   };
@@ -312,28 +327,34 @@ export default function Ventas() {
     }
     const base = ['negocios', negocioId];
     const tc = Number(form.tipoCambio || tipoCambioGlobal) || 0;
+    // esVentaEquipo todavía distingue lo que sigue siendo exclusivo de un equipo
+    // (partesDePago, el stock que se marca "vendido"). El precio de venta (pvVentaMonto/
+    // tipoCambio) YA NO es exclusivo de equipo -- hasta acá, una venta de accesorio no
+    // tenía forma de cargar un precio de venta real (solo "cobros", lo que efectivamente
+    // ya se cobró), así que nunca se podía anotar una deuda pendiente del cliente ni sumaba
+    // nada a "Ganancia" en el Dashboard (pvUsd/costoUsd quedaban sin guardar). Reportado
+    // por un cliente real, 2026-10-01 -- las validaciones de precio de acá abajo se
+    // aplican ahora a los dos tipos por igual.
+    const esVentaEquipo = (editando ? ventas.find(v => v.id === editando)?.tipo !== 'accesorio' : form.tipo === 'equipo');
     // Si el precio se cargó en pesos y no hay tipo de cambio (ni en esta venta ni en
     // Configuración), convertirMoneda() da 0 — guardar así perdería el precio sin avisar.
-    // Se frena acá en vez de dejar que se guarde con USD 0. No aplica a accesorios: esos
-    // no usan pvVentaMonto/tipoCambio, el monto cobrado sale directo de "cobros".
-    const esVentaEquipo = (editando ? ventas.find(v => v.id === editando)?.tipo !== 'accesorio' : form.tipo === 'equipo');
-    if (esVentaEquipo && faltaTipoCambio(form.pvVentaMonto, form.pvVentaMoneda, 'USD', tc)) {
+    if (faltaTipoCambio(form.pvVentaMonto, form.pvVentaMoneda, 'USD', tc)) {
       alert('Cargaste el precio de venta en pesos pero no hay tipo de cambio disponible (ni en esta venta ni en Configuración) — se perdería el valor. Cargá un tipo de cambio o ingresá el precio directamente en USD.');
       return;
     }
     // Al EDITAR una venta ya facturada, si el campo de precio queda vacío/0 (a diferencia
-    // de crear una venta nueva, acá no hay un pvUsd del equipo al que volver como
-    // fallback) se bloquea el guardado en vez de pisar silenciosamente el precio real por
-    // USD 0 -- por ejemplo, alguien editando solo para corregir el vendedor y de paso el
-    // campo de precio queda en blanco.
-    if (editando && esVentaEquipo && convertirMoneda(form.pvVentaMonto, form.pvVentaMoneda, 'USD', tc) <= 0) {
+    // de crear una venta nueva, acá no hay un pvUsd del equipo/accesorio al que volver
+    // como fallback) se bloquea el guardado en vez de pisar silenciosamente el precio real
+    // por USD 0 -- por ejemplo, alguien editando solo para corregir el vendedor y de paso
+    // el campo de precio queda en blanco.
+    if (editando && convertirMoneda(form.pvVentaMonto, form.pvVentaMoneda, 'USD', tc) <= 0) {
       alert('El precio de venta no puede quedar vacío o en $0 — revisá el campo antes de guardar.');
       return;
     }
     // Un precio o un monto de cobro negativo (tipeo accidental, ej. "-500" en vez de
     // "500") no se detectaba antes -- restaba de los totales de Ventas/Caja/reportes sin
     // ningún aviso, a diferencia de Caja.jsx que sí valida esto en sus movimientos manuales.
-    if (esVentaEquipo && Number(form.pvVentaMonto) < 0) {
+    if (Number(form.pvVentaMonto) < 0) {
       alert('El precio de venta no puede ser negativo.');
       return;
     }
@@ -364,23 +385,23 @@ export default function Ventas() {
           notas: form.notas,
           cobros: form.cobros,
         };
-        // pvUsd/tipoCambio solo aplican a ventas de equipo (para el saldo restante en
-        // USD) — una venta de accesorio no los usa, el monto cobrado sale de "cobros".
         // "nueva" es solo una marca de este formulario (qué equipos se sumaron recién en
         // esta edición) -- no se guarda en la venta.
         const partesGuardar = form.partesDePago.map(({ nueva, ...parte }) => parte); // eslint-disable-line no-unused-vars
-        await updateDoc(doc(db, ...base, 'ventas', editando), esVentaEquipo ? {
+        await updateDoc(doc(db, ...base, 'ventas', editando), {
           ...camposComunes,
-          partesDePago: partesGuardar,
-          // Antes no se guardaban acá: si el equipo se cargó al stock sin precio de venta,
-          // la venta quedaba con pvUsd vacío para siempre y el resumen de pago (cobrado/saldo)
-          // no se podía mostrar nunca, ni corrigiéndolo desde este formulario. pvUsd es el
-          // valor canónico en USD; pvVentaMonto/pvVentaMoneda respaldan lo tipeado realmente.
+          // pvUsd es el valor canónico en USD que usa el resto de la app (Caja, Dashboard,
+          // Cobros) para saldo y ganancia; pvVentaMonto/pvVentaMoneda respaldan lo tipeado
+          // realmente. Antes esto solo se guardaba para equipos -- una venta de accesorio
+          // vieja podía quedar con pvUsd vacío para siempre, sin forma de corregirlo ni
+          // siquiera editándola. Ahora aplica a los dos tipos por igual (ver comentario más
+          // arriba, en las validaciones).
           pvUsd: convertirMoneda(form.pvVentaMonto, form.pvVentaMoneda, 'USD', tc),
           pvVentaMonto: Number(form.pvVentaMonto) || 0,
           pvVentaMoneda: form.pvVentaMoneda,
           tipoCambio: form.tipoCambio || tipoCambioGlobal || '',
-        } : camposComunes);
+          ...(esVentaEquipo ? { partesDePago: partesGuardar } : {}),
+        });
         // Solo se regeneran los ingresos de caja si el cobro (o el nombre del cliente,
         // que forma parte del concepto) realmente cambió — si no, cada edición de una
         // venta vieja (aunque sea corregir el vendedor o una nota) borraba y recreaba
@@ -489,6 +510,19 @@ export default function Ventas() {
           notas: form.notas,
           cobros: form.cobros,
           fecha: serverTimestamp(),
+          // costoUsd se saca del propio accesorio en el momento de la venta (si después se
+          // edita el costo en Accesorios, esta venta ya hecha no se recalcula -- mismo
+          // criterio que un equipo vendido, ver costoUsd más abajo en la rama de equipo).
+          // pvUsd es el valor canónico en USD que usa el resto de la app (Caja, Dashboard,
+          // Cobros) para calcular saldo y ganancia. Antes ninguno de los dos se guardaba acá:
+          // una venta de accesorio no tenía forma de cargar un precio de venta real (solo
+          // "cobros", lo efectivamente cobrado), así que nunca sumaba a "Ganancia" ni dejaba
+          // anotar una deuda pendiente del cliente. Reportado por un cliente real, 2026-10-01.
+          costoUsd: convertirMoneda(accesorioSeleccionado?.costoMonto, accesorioSeleccionado?.costoMoneda, 'USD', tc) || '',
+          pvUsd: convertirMoneda(form.pvVentaMonto, form.pvVentaMoneda, 'USD', tc) || '',
+          pvVentaMonto: Number(form.pvVentaMonto) || 0,
+          pvVentaMoneda: form.pvVentaMoneda,
+          tipoCambio: form.tipoCambio || tipoCambioGlobal || '',
         };
         const ventaRef = doc(collection(db, ...base, 'ventas'));
         // Misma garantía que al vender un equipo: la transacción relee el stock del
@@ -671,7 +705,7 @@ export default function Ventas() {
                   <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 99, border: '1px solid var(--rv-border)', color: estadoColor[v.estado] }}>
                     {estadoLabel[v.estado] || v.estado}
                   </span>
-                  {v.estado !== 'cancelado' && v.equipoId && (() => {
+                  {v.estado !== 'cancelado' && (v.equipoId || v.accesorioId) && (() => {
                     const { saldoUSD } = resumenVenta(v);
                     const saldado = saldoUSD <= 0.5;
                     return (
@@ -817,35 +851,31 @@ export default function Ventas() {
                     <option value="cancelado">Anulada</option>
                   </select>
                 </div>
-                {esVentaEquipoActual && (
-                  <>
-                    <div>
-                      <label style={labelStyle}>
-                        Tipo de cambio (ARS/USD)
-                        {tipoCambioGlobal && <span style={{ color: 'var(--rv-text-dim)', fontWeight: 400, marginLeft: 6 }}>— Global: ${tipoCambioGlobal}</span>}
-                      </label>
-                      <input
-                        type="number"
-                        value={form.tipoCambio}
-                        onChange={e => setForm({ ...form, tipoCambio: e.target.value })}
-                        placeholder={tipoCambioGlobal || '1430'}
-                        style={inputStyle}
-                      />
-                    </div>
-                    <CampoPrecio
-                      label="Precio de venta"
-                      monto={form.pvVentaMonto} moneda={form.pvVentaMoneda}
-                      onChange={({ monto, moneda }) => setForm({ ...form, pvVentaMonto: monto, pvVentaMoneda: moneda })}
-                      tipoCambio={tcForm} placeholder="500"
-                    />
-                    <div style={{ gridColumn: '1/-1' }}>
-                      <div style={{ fontSize: 11, color: 'var(--rv-text-dim)' }}>
-                        Si no modificás el TC, se usa el tipo de cambio global de configuración.
-                        {' '}El precio de venta se toma del equipo elegido; si quedó vacío ahí, cargalo acá para que se calcule el saldo.
-                      </div>
-                    </div>
-                  </>
-                )}
+                <div>
+                  <label style={labelStyle}>
+                    Tipo de cambio (ARS/USD)
+                    {tipoCambioGlobal && <span style={{ color: 'var(--rv-text-dim)', fontWeight: 400, marginLeft: 6 }}>— Global: ${tipoCambioGlobal}</span>}
+                  </label>
+                  <input
+                    type="number"
+                    value={form.tipoCambio}
+                    onChange={e => setForm({ ...form, tipoCambio: e.target.value })}
+                    placeholder={tipoCambioGlobal || '1430'}
+                    style={inputStyle}
+                  />
+                </div>
+                <CampoPrecio
+                  label="Precio de venta"
+                  monto={form.pvVentaMonto} moneda={form.pvVentaMoneda}
+                  onChange={({ monto, moneda }) => setForm({ ...form, pvVentaMonto: monto, pvVentaMoneda: moneda })}
+                  tipoCambio={tcForm} placeholder="500"
+                />
+                <div style={{ gridColumn: '1/-1' }}>
+                  <div style={{ fontSize: 11, color: 'var(--rv-text-dim)' }}>
+                    Si no modificás el TC, se usa el tipo de cambio global de configuración.
+                    {' '}El precio de venta se toma del equipo o accesorio elegido; si quedó vacío ahí, cargalo acá para que se calcule el saldo (y sume a la ganancia).
+                  </div>
+                </div>
               </div>
 
               {/* Cobros */}
@@ -856,7 +886,7 @@ export default function Ventas() {
                 </div>
                 {(() => {
                   const tc = Number(form.tipoCambio || tipoCambioGlobal) || 0;
-                  const pvUsd = convertirMoneda(form.pvVentaMonto, form.pvVentaMoneda, 'USD', tc) || Number(equipoSeleccionado?.pvUsd) || 0;
+                  const pvUsd = convertirMoneda(form.pvVentaMonto, form.pvVentaMoneda, 'USD', tc) || Number(equipoSeleccionado?.pvUsd) || convertirMoneda(accesorioSeleccionado?.ventaMonto, accesorioSeleccionado?.ventaMoneda, 'USD', tc) || 0;
 
                   const cobradoUsd = form.cobros.reduce((sum, c) => {
                     if (c.tipo === 'Equipo como parte de pago') return sum;

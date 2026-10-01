@@ -824,6 +824,8 @@ export default function Ventas() {
               {accesorioSeleccionado && (
                 <div style={{ background: 'var(--rv-surface-alt)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--rv-accent)' }}>
                   {accesorioSeleccionado.cantidad} unidades disponibles
+                  {Number(accesorioSeleccionado.costoMonto) > 0 && ` · Costo ${accesorioSeleccionado.costoMoneda === 'USD' ? 'USD' : '$'} ${accesorioSeleccionado.costoMonto}`}
+                  {Number(accesorioSeleccionado.ventaMonto) > 0 && ` · Venta ${accesorioSeleccionado.ventaMoneda === 'USD' ? 'USD' : '$'} ${accesorioSeleccionado.ventaMonto}`}
                 </div>
               )}
 

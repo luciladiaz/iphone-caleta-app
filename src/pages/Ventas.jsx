@@ -565,7 +565,9 @@ export default function Ventas() {
           transaction.set(ventaRef, ventaData);
           transaction.update(accRef, { cantidad: cantidadActual - cantidadNum });
         });
-        await registrarMovimientosVenta(negocioId, ventaRef.id, ventaData);
+        // Si se carga una venta nueva directamente como "Anulada" (ej: para dejar
+        // registro de algo que no se concretó), no debe generar ingreso en Caja.
+        if (form.estado !== 'cancelado') await registrarMovimientosVenta(negocioId, ventaRef.id, ventaData);
       } else {
         const equipo = stock.find(s => s.id === form.equipoId);
         const ventaData = {
@@ -599,7 +601,7 @@ export default function Ventas() {
           transaction.set(ventaRef, ventaData);
           transaction.update(stockRef, { estado: 'vendido' });
         });
-        await registrarMovimientosVenta(negocioId, ventaRef.id, ventaData);
+        if (form.estado !== 'cancelado') await registrarMovimientosVenta(negocioId, ventaRef.id, ventaData);
         const clienteQueEntrega = clientes.find(c => c.id === form.clienteId);
         // Si todavía no lo entregó, no se crea el equipo en stock ni se cuenta como
         // cobrado -- queda anotado en la venta (ventaData.partesDePago, ya guardado

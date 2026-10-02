@@ -146,6 +146,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: `Plan inválido: ${plan}` });
 
   try {
+    // Si este negocio ya tenía un preapproval de un intento anterior (ej: alta que
+    // falló por tarjeta rechazada y el cliente reintentó), guardamos su id para
+    // cancelarlo en MP más abajo una vez que el nuevo se haya creado bien -- si no, queda
+    // huérfano y MP le sigue reintentando el cobro solo, en segundo plano, para siempre
+    // (ver el comentario largo en webhook-mp.js sobre el caso real de un cliente con dos
+    // suscripciones activas a la vez por esto).
+    const negSnapPrevio = await adminDb.doc(`negocios/${negocioId}`).get();
+    const preapprovalIdViejo = negSnapPrevio.exists ? negSnapPrevio.data().preapprovalId : null;
     const mpBody = {
       // Ojo: antes tenía un guión largo "—" (em dash, no un guión común "-"). La API de
       // Mercado Pago viene rechazando la creación de la suscripción con un 400 genérico
@@ -259,6 +267,28 @@ export default async function handler(req, res) {
       });
     } catch (e) {
       console.warn('No se pudo guardar preapprovalId:', e.message);
+    }
+
+    // Cancelar el preapproval viejo (si había) ahora que el nuevo ya quedó guardado como
+    // el vigente -- best-effort: si esto falla, no se corta el alta nueva (el cliente ya
+    // pagó y tiene que poder seguir), solo queda un huérfano más que el webhook ya sabe
+    // ignorar de todos modos. Nunca se cancela a sí mismo por las dudas de que MP
+    // devuelva el mismo id en algún reintento raro.
+    if (preapprovalIdViejo && preapprovalIdViejo !== data.id) {
+      try {
+        const cancelRes = await fetch(`https://api.mercadopago.com/preapproval/${preapprovalIdViejo}`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${MP_ACCESS_TOKEN}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'cancelled' }),
+        });
+        if (cancelRes.ok) {
+          console.log(`[crear-suscripcion] Preapproval viejo cancelado | negocio=${negocioId} | viejo=${preapprovalIdViejo} | nuevo=${data.id}`);
+        } else {
+          console.warn(`[crear-suscripcion] No se pudo cancelar el preapproval viejo (${cancelRes.status}) | negocio=${negocioId} | viejo=${preapprovalIdViejo}`);
+        }
+      } catch (e) {
+        console.warn('[crear-suscripcion] Error cancelando preapproval viejo:', e.message);
+      }
     }
 
     return res.json({ ok: true, status: data.status, preapprovalId: data.id });

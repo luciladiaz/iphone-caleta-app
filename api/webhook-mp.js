@@ -256,6 +256,25 @@ export default async function handler(req, res) {
       const parsed = parsearRef(sub.external_reference);
       if (!parsed) return res.status(200).json({ ok: true });
 
+      // Un negocio puede terminar con MÁS DE UN preapproval en Mercado Pago -- ej: un
+      // intento de alta que falló (tarjeta rechazada) y el cliente reintentó con éxito
+      // después. El viejo queda huérfano, pero sigue siendo una suscripción viva para MP,
+      // que le sigue reintentando el cobro en segundo plano, totalmente aparte de la que
+      // el cliente realmente usa y paga. Sin este chequeo, cuando ese preapproval viejo
+      // agota sus propios reintentos y MP lo pasa a 'cancelled', procesarCancelacion()
+      // suspendía la cuenta real del cliente -- aunque su suscripción de verdad (otro
+      // preapproval_id, el que está guardado en negocios/{id}.preapprovalId) siguiera al
+      // día. Confirmado con la captura real de Lucila: Joaquín González aparece dos veces
+      // en el panel de MP, una "Al día" (14/sep) y otra "Atrasado, intento 1 de 4"
+      // (30/sep) -- dos preapprovals distintos del mismo cliente. Cualquier evento que no
+      // sea del preapproval que el negocio tiene guardado como el vigente se ignora acá.
+      const negSnap = await adminDb.doc(`negocios/${parsed.negocioId}`).get();
+      const preapprovalVigente = negSnap.exists ? negSnap.data().preapprovalId : null;
+      if (sub.id !== preapprovalVigente) {
+        console.log(`[Webhook MP] Evento de un preapproval viejo/huérfano, no es el vigente del negocio -- se ignora | negocio=${parsed.negocioId} | preapproval_evento=${sub.id} | preapproval_vigente=${preapprovalVigente || 'ninguno'} | status=${sub.status}`);
+        return res.status(200).json({ ok: true });
+      }
+
       // 'authorized' es el estado del MANDATO de la suscripción (el permiso para
       // cobrarle), no la prueba de que el cobro real del mes se haya efectivizado -- se
       // pone en 'authorized' ni bien se crea la suscripción y se mantiene ahí aunque el

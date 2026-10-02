@@ -165,15 +165,28 @@ export default function Reparaciones() {
       // los reportes de Caja de días pasados. Por eso el ingreso y el egreso se regeneran
       // cada uno por separado, y solo cuando el monto que le da origen realmente cambió
       // (o es una reparación nueva).
+      // Igual que en Ventas: anular una reparación no debe dejar la plata que ya se
+      // había cobrado (ni el egreso del repuesto) colgada en Caja como si siguiera
+      // valiendo -- antes se podía anular sin que Caja se enterara.
+      const pasaACancelada = !!original && original.estado !== 'cancelado' && datos.estado === 'cancelado';
+      const saleDeCancelada = !!original && original.estado === 'cancelado' && datos.estado !== 'cancelado';
       const cobradoCambio = !original || (Number(original.montoPagado) || 0) !== (Number(datos.montoPagado) || 0);
       const repuestoCambio = !original || (Number(original.costoRepuestoUsd) || 0) !== (Number(datos.costoRepuestoUsd) || 0);
-      if (cobradoCambio) {
+      if (pasaACancelada) {
         await eliminarMovimientosReparacion(negocioId, idReparacion, 'reparacion');
-        await registrarMovimientoReparacion(negocioId, idReparacion, datos);
-      }
-      if (repuestoCambio) {
         await eliminarMovimientosReparacion(negocioId, idReparacion, 'reparacion_costo');
+      } else if (saleDeCancelada) {
+        await registrarMovimientoReparacion(negocioId, idReparacion, datos);
         await registrarEgresoRepuestoReparacion(negocioId, idReparacion, datos);
+      } else if (datos.estado !== 'cancelado') {
+        if (cobradoCambio) {
+          await eliminarMovimientosReparacion(negocioId, idReparacion, 'reparacion');
+          await registrarMovimientoReparacion(negocioId, idReparacion, datos);
+        }
+        if (repuestoCambio) {
+          await eliminarMovimientosReparacion(negocioId, idReparacion, 'reparacion_costo');
+          await registrarEgresoRepuestoReparacion(negocioId, idReparacion, datos);
+        }
       }
       cerrarModal();
       cargar();

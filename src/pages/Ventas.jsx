@@ -411,7 +411,26 @@ export default function Ventas() {
         // nuevo quede fechado igual que el que reemplaza.
         const ventaOriginal = ventas.find(v => v.id === editando);
         const cobrosCambiaron = !cobrosIguales(ventaOriginal?.cobros, form.cobros) || (ventaOriginal?.cliente || '') !== (form.cliente || '');
-        if (cobrosCambiaron) {
+        // Anular una venta liberaba el equipo/accesorio de vuelta al stock, pero los
+        // movimientos de Caja que ya se habían generado para sus cobros quedaban intactos
+        // -- Caja seguía mostrando esa plata como ingreso real después de anulada, sin
+        // ninguna marca de que la venta ya no cuenta. Reportado por Lucila al pedir una
+        // revisión a fondo de todo el sistema, 2026-10-01: ahora anular borra esos
+        // movimientos (la plata deja de contarse en Caja), y "descancelar" los vuelve a
+        // generar con los cobros vigentes en ese momento.
+        const pasaACancelada = ventaOriginal?.estado !== 'cancelado' && form.estado === 'cancelado';
+        const saleDeCancelada = ventaOriginal?.estado === 'cancelado' && form.estado !== 'cancelado';
+        if (pasaACancelada) {
+          await eliminarMovimientosVenta(negocioId, editando, 'venta');
+        } else if (saleDeCancelada) {
+          await registrarMovimientosVenta(negocioId, editando, {
+            modelo: ventaOriginal?.modelo,
+            gb: ventaOriginal?.gb,
+            cliente: form.cliente,
+            cobros: form.cobros,
+            fecha: ventaOriginal?.fecha,
+          });
+        } else if (cobrosCambiaron && form.estado !== 'cancelado') {
           await eliminarMovimientosVenta(negocioId, editando, 'venta');
           await registrarMovimientosVenta(negocioId, editando, {
             modelo: ventaOriginal?.modelo,

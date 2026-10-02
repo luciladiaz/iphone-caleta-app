@@ -321,6 +321,10 @@ export async function reconciliarCaja(negocioId) {
   let creados = 0;
   for (const ventaDoc of ventasSnap.docs) {
     const venta = { id: ventaDoc.id, ...ventaDoc.data() };
+    // Una venta anulada no debe sumar nada a Caja -- sin este corte, "Recalcular desde
+    // ventas" volvía a crear el ingreso de una venta anulada apenas alguien lo
+    // presionaba, aunque el estado la hubiera borrado antes al anularla.
+    if (venta.estado === 'cancelado') continue;
     const cobros = venta.cobros || [];
 
     for (let i = 0; i < cobros.length; i++) {
@@ -370,6 +374,7 @@ export async function reconciliarCaja(negocioId) {
 
   for (const repDoc of reparacionesSnap.docs) {
     const reparacion = { id: repDoc.id, ...repDoc.data() };
+    if (reparacion.estado === 'cancelado') continue;
 
     const keyIngreso = `reparacion:${reparacion.id}::`;
     if (!existentes.has(keyIngreso) && Number(reparacion.montoPagado) > 0) {

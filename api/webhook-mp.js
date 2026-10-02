@@ -48,11 +48,30 @@ function parsearRef(externalRef) {
   return { negocioId, plan };
 }
 
+// Una misma renovación real puede avisarse por más de un tipo de evento de MP a la vez
+// -- confirmado en vivo con el caso de un cliente real que quedó con DOS "plan_renovado"
+// el mismo día: uno vino del evento "payment" (mpId = payment_id numérico) y el otro del
+// evento "subscription_preapproval" en estado "authorized" (mpId = preapproval_id,
+// alfanumérico, nada que ver con el payment_id del mismo cobro). Si cada aviso dispara
+// esta función sin control, cada uno además empuja vencePlan 31 días más -- en el peor
+// caso un cliente podría terminar renovando gratis con cada aviso duplicado, sin que
+// Mercado Pago le haya cobrado de nuevo. Como una renovación real nunca ocurre dos veces
+// en la misma hora (el ciclo es mensual), alcanza con no volver a extender ni loguear si
+// la activación anterior fue hace menos de 1 hora -- cualquier aviso de MP para ESA misma
+// renovación, venga del tipo de evento que venga, cae en esta ventana y se ignora.
 async function activarPlan(negocioId, plan, mpId) {
+  const negRef = adminDb.doc(`negocios/${negocioId}`);
+  const negSnap = await negRef.get();
+  const ultimoPago = negSnap.exists ? negSnap.data().ultimoPago?.toDate?.() : null;
+  if (ultimoPago && (Date.now() - ultimoPago.getTime()) < 60 * 60 * 1000) {
+    console.log(`[Webhook MP] Plan ya se activó hace menos de 1 hora (otro aviso de MP para la misma renovación) -- no se vuelve a extender ni duplicar en el historial | negocio=${negocioId} | mpId=${mpId}`);
+    return;
+  }
+
   const vencePlan = new Date();
   vencePlan.setDate(vencePlan.getDate() + 31);
 
-  await adminDb.doc(`negocios/${negocioId}`).update({
+  await negRef.update({
     plan,
     estado: 'activo',
     vencePlan,
@@ -120,24 +139,36 @@ async function logPagoRechazado(negocioId, mpId, statusDetail) {
   const requiereAccion = RECHAZOS_QUE_REQUIEREN_ACCION_DEL_CLIENTE.has(statusDetail);
   try {
     // MP puede reenviar la misma notificación más de una vez (comportamiento normal de
-    // sus webhooks) -- sin este chequeo, cada reenvío del mismo pago rechazado agregaba
-    // una entrada duplicada idéntica al historial. 'test' se excluye a propósito: en ese
-    // caso mpId no identifica un pago real, y dos intentos de prueba distintos no
+    // sus webhooks), a veces con los dos avisos llegando casi al mismo tiempo -- confirmado
+    // en vivo con un caso real que quedó con DOS entradas idénticas (mismo mpId, mismo
+    // motivo, mismo día). Un chequeo "leer si existe, después escribir" no alcanza contra
+    // eso: las dos llamadas pueden hacer la lectura ANTES de que cualquiera de las dos
+    // termine de escribir, así que las dos ven "no existe" y las dos agregan su entrada.
+    // La única forma de que esto sea a prueba de carrera es que el id del documento sea el
+    // mpId mismo y usar create() (atómico en el servidor: falla solo si ya existe, en vez
+    // de leer y confiar en que nadie escribió en el medio). 'test' se excluye a propósito:
+    // en ese caso mpId no identifica un pago real, y dos intentos de prueba distintos no
     // deberían fusionarse en uno solo.
-    if (mpId && mpId !== 'test') {
-      const existente = await adminDb.collection(`negocios/${negocioId}/pagos`).where('mpId', '==', mpId).limit(1).get();
-      if (!existente.empty) {
-        console.log(`[Webhook MP] Pago rechazado ya estaba registrado, no se duplica | negocio=${negocioId} | mpId=${mpId}`);
-        return;
-      }
-    }
-    await adminDb.collection(`negocios/${negocioId}/pagos`).add({
+    const datos = {
       tipo: requiereAccion ? 'pago_rechazado_requiere_autorizacion_cliente' : 'pago_rechazado_reintentando',
       estado: 'reintentando',
       motivoRechazo: statusDetail || 'desconocido',
       mpId: mpId || 'test',
       fecha: FieldValue.serverTimestamp(),
-    });
+    };
+    if (mpId && mpId !== 'test') {
+      try {
+        await adminDb.doc(`negocios/${negocioId}/pagos/rechazo_${mpId}`).create(datos);
+      } catch (err) {
+        if (err.code === 6) { // ALREADY_EXISTS
+          console.log(`[Webhook MP] Pago rechazado ya estaba registrado, no se duplica | negocio=${negocioId} | mpId=${mpId}`);
+          return;
+        }
+        throw err;
+      }
+    } else {
+      await adminDb.collection(`negocios/${negocioId}/pagos`).add(datos);
+    }
   } catch (err) { console.error('[Webhook MP] Error logueando pago rechazado:', err); }
   if (requiereAccion) {
     console.log(`[Webhook MP] ⚠️ Pago rechazado -- requiere que el cliente autorice con su banco (${statusDetail}) | negocio=${negocioId}`);

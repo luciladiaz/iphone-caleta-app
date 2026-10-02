@@ -336,6 +336,10 @@ export default function Cobros() {
 
   const deudas = [];
   for (const venta of ventas) {
+    // Una venta anulada no genera deuda -- sin este corte, una venta con cuotas
+    // personales que se anula seguía listada acá con sus cuotas "vencidas" como si el
+    // cliente debiera plata de una venta que ya no cuenta.
+    if (venta.estado === 'cancelado') continue;
     if (!venta.cobros) continue;
     for (let ci = 0; ci < venta.cobros.length; ci++) {
       const cobro = venta.cobros[ci];
@@ -382,6 +386,7 @@ export default function Cobros() {
   // (no solo "Cuotas personales") — ej. pagó una seña y falta el resto.
   // Si la venta ya tiene cuotas personales, ese saldo se sigue por cuota más arriba.
   for (const venta of ventas) {
+    if (venta.estado === 'cancelado') continue;
     const tieneCuotasPersonales = (venta.cobros || []).some(c => c.tipo === 'Cuotas personales');
     if (tieneCuotasPersonales || !venta.fecha) continue;
 
@@ -432,6 +437,7 @@ export default function Cobros() {
   // pago. Se resuelve con marcarEquipoEntregado más abajo, que recién ahí crea el
   // equipo en stock -- hasta entonces no existe en ningún lado más que acá.
   for (const venta of ventas) {
+    if (venta.estado === 'cancelado') continue;
     const tc = Number(venta.tipoCambio) || tipoCambio || 0;
     const partes = venta.partesDePago || [];
     for (let pi = 0; pi < partes.length; pi++) {

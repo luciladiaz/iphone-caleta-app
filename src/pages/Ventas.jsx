@@ -4,7 +4,7 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import ModalLimiteAlcanzado from '../components/ModalLimiteAlcanzado';
 import ComprobanteVenta from '../components/ComprobanteVenta';
-import { IconUser, IconPhone, IconX, IconEdit, IconTrash, IconFile, IconWallet, IconBox, IconArrowSwap, IconCheckCircle, IconDownload } from '../components/Icons';
+import { IconUser, IconPhone, IconX, IconEdit, IconTrash, IconFile, IconWallet, IconBox, IconArrowSwap, IconCheckCircle, IconDownload, IconWarning } from '../components/Icons';
 import { registrarMovimientosVenta, eliminarMovimientosVenta, montoCobro, fechaKey } from '../lib/caja';
 import SelectorCliente from '../components/SelectorCliente';
 import SelectorEquipoStock from '../components/SelectorEquipoStock';
@@ -715,10 +715,16 @@ export default function Ventas() {
                   </span>
                   {v.estado !== 'cancelado' && (v.equipoId || v.accesorioId) && (() => {
                     const { saldoUSD } = resumenVenta(v);
-                    const saldado = saldoUSD <= 0.5;
+                    const saldado = Math.abs(saldoUSD) <= 0.5;
+                    const pagoDeMas = saldoUSD < -0.5;
+                    const estilo = saldado
+                      ? { background: 'var(--rv-accent-soft)', color: 'var(--rv-accent)' }
+                      : pagoDeMas
+                        ? { background: 'var(--rv-warning-soft)', color: 'var(--rv-warning)' }
+                        : { background: 'var(--rv-danger-soft)', color: 'var(--rv-danger)' };
                     return (
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 99, background: saldado ? 'var(--rv-accent-soft)' : 'var(--rv-danger-soft)', color: saldado ? 'var(--rv-accent)' : 'var(--rv-danger)' }}>
-                        {saldado ? 'Saldado' : `Saldo: USD ${Math.round(saldoUSD).toLocaleString('es-AR')}`}
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 99, ...estilo }}>
+                        {saldado ? 'Saldado' : pagoDeMas ? `Pagó de más: USD ${Math.round(-saldoUSD).toLocaleString('es-AR')}` : `Saldo: USD ${Math.round(saldoUSD).toLocaleString('es-AR')}`}
                       </span>
                     );
                   })()}
@@ -999,9 +1005,13 @@ export default function Ventas() {
                               <span style={{ fontWeight: 700, color: 'var(--rv-text)' }}>USD {totalPagadoUsd.toFixed(2)} <span style={{ color: 'var(--rv-text-dim)', fontWeight: 400 }}>· ${(totalPagadoUsd * tc).toLocaleString('es-AR', { maximumFractionDigits: 2 })} ARS</span></span>
                             </div>
                             <div style={{ borderTop: '1px solid var(--rv-border)', paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-                              <span style={{ fontWeight: 700 }}>Saldo restante</span>
-                              <span style={{ fontWeight: 800, color: saldoUsd <= 0 ? 'var(--rv-text)' : 'var(--rv-text-mid)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                {saldoUsd <= 0 ? <><IconCheckCircle size={14} style={{ color: 'var(--rv-accent)' }} />Saldado</> : `USD ${saldoUsd.toFixed(2)} · $${saldoArs.toLocaleString('es-AR', { maximumFractionDigits: 2 })} ARS`}
+                              <span style={{ fontWeight: 700 }}>{saldoUsd < -0.005 ? 'Pagó de más' : 'Saldo restante'}</span>
+                              <span style={{ fontWeight: 800, color: Math.abs(saldoUsd) <= 0.005 ? 'var(--rv-text)' : saldoUsd < 0 ? 'var(--rv-warning)' : 'var(--rv-text-mid)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                {Math.abs(saldoUsd) <= 0.005
+                                  ? <><IconCheckCircle size={14} style={{ color: 'var(--rv-accent)' }} />Saldado</>
+                                  : saldoUsd < 0
+                                    ? <><IconWarning size={14} />USD {Math.abs(saldoUsd).toFixed(2)} · ${Math.abs(saldoArs).toLocaleString('es-AR', { maximumFractionDigits: 2 })} ARS</>
+                                    : `USD ${saldoUsd.toFixed(2)} · $${saldoArs.toLocaleString('es-AR', { maximumFractionDigits: 2 })} ARS`}
                               </span>
                             </div>
                           </div>

@@ -14,6 +14,8 @@
   --rv-accent-soft: rgba(47, 111, 237, 0.08);
   --rv-danger: #d43d3d;
   --rv-danger-soft: rgba(212, 61, 61, 0.1);
+  --rv-warning: #c47d12;
+  --rv-warning-soft: rgba(196, 125, 18, 0.12);
 }
 
 :root[data-theme="dark"] {

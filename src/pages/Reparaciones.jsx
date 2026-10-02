@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
-import { IconWrench, IconEdit, IconTrash, IconX, IconCheckCircle, IconFile } from '../components/Icons';
+import { IconWrench, IconEdit, IconTrash, IconX, IconCheckCircle, IconFile, IconWarning } from '../components/Icons';
 import { registrarMovimientoReparacion, registrarEgresoRepuestoReparacion, eliminarMovimientosReparacion } from '../lib/caja';
 import ComprobanteReparacion from '../components/ComprobanteReparacion';
 import SelectorCliente from '../components/SelectorCliente';
@@ -227,7 +227,13 @@ export default function Reparaciones() {
                 {rep.fallaReportada && <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>{rep.fallaReportada}</span>}
                 {rep.imei && <span><span style={{ color: 'var(--rv-accent)', fontWeight: 700, marginRight: 6 }}>✓</span>IMEI {rep.imei}</span>}
                 {esAdmin && rep.costoRepuestoUsd > 0 && <span style={{ color: 'var(--rv-text-dim)' }}>Costo repuesto: USD {rep.costoRepuestoUsd}</span>}
-                {rep.precioUsd > 0 && <span style={{ color: 'var(--rv-accent)', fontWeight: 600 }}>Precio: USD {rep.precioUsd}{saldo > 0 && ` · Debe USD ${saldo}`}</span>}
+                {rep.precioUsd > 0 && (
+                  <span style={{ color: 'var(--rv-accent)', fontWeight: 600 }}>
+                    Precio: USD {rep.precioUsd}
+                    {saldo > 0.005 && ` · Debe USD ${saldo.toFixed(2)}`}
+                    {saldo < -0.005 && <span style={{ color: 'var(--rv-warning)' }}>{` · Pagó de más: USD ${Math.abs(saldo).toFixed(2)}`}</span>}
+                  </span>
+                )}
                 {vence && <span style={{ color: 'var(--rv-text-dim)' }}>Garantía hasta {vence.toLocaleDateString('es-AR')}</span>}
               </div>
 
@@ -318,9 +324,13 @@ export default function Reparaciones() {
                         <span style={{ fontWeight: 700 }}>USD {pagado.toFixed(2)}</span>
                       </div>
                       <div style={{ borderTop: '1px solid var(--rv-border)', paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-                        <span style={{ fontWeight: 700 }}>Saldo restante</span>
-                        <span style={{ fontWeight: 800, color: saldo <= 0 ? 'var(--rv-text)' : 'var(--rv-text-mid)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                          {saldo <= 0 ? <><IconCheckCircle size={14} style={{ color: 'var(--rv-accent)' }} />Saldado</> : `USD ${saldo.toFixed(2)}`}
+                        <span style={{ fontWeight: 700 }}>{saldo < -0.005 ? 'Pagó de más' : 'Saldo restante'}</span>
+                        <span style={{ fontWeight: 800, color: Math.abs(saldo) <= 0.005 ? 'var(--rv-text)' : saldo < 0 ? 'var(--rv-warning)' : 'var(--rv-text-mid)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          {Math.abs(saldo) <= 0.005
+                            ? <><IconCheckCircle size={14} style={{ color: 'var(--rv-accent)' }} />Saldado</>
+                            : saldo < 0
+                              ? <><IconWarning size={14} />USD {Math.abs(saldo).toFixed(2)}</>
+                              : `USD ${saldo.toFixed(2)}`}
                         </span>
                       </div>
                     </div>

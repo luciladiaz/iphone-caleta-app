@@ -408,8 +408,10 @@ export default function ComprobanteReparacion({ reparacion, negocioId, negocioNo
               <div style={{ fontWeight: 700 }}>USD {pagado}</div>
             </div>
             <div>
-              <div style={{ color: '#555', marginBottom: 4 }}>SALDO</div>
-              <div style={{ fontWeight: 700, color: saldo > 0 ? '#d43d3d' : '#111' }}>{saldo > 0 ? `USD ${saldo}` : 'Saldado'}</div>
+              <div style={{ color: '#555', marginBottom: 4 }}>{saldo < -0.005 ? 'PAGÓ DE MÁS' : 'SALDO'}</div>
+              <div style={{ fontWeight: 700, color: saldo > 0.005 ? '#d43d3d' : saldo < -0.005 ? '#c47d12' : '#111' }}>
+                {saldo > 0.005 ? `USD ${saldo}` : saldo < -0.005 ? `USD ${Math.abs(saldo).toFixed(2)}` : 'Saldado'}
+              </div>
             </div>
           </div>
 
